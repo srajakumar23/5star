@@ -1,0 +1,24 @@
+
+> achariya-ambassador@0.1.0 build
+> next build
+
+   Γû▓ Next.js 16.0.10 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 4.4s
+   Running TypeScript ...
+Failed to compile.
+
+./src/app/(main)/superadmin/superadmin-client.tsx:172:46
+Type error: Argument of type '({ gradeFees: { grade: string; campusId: number; id: number; annualFee: number; }[]; } & { createdAt: Date; id: number; campusName: string; campusCode: string; location: string; grades: string; ... 7 more ...; updatedAt: Date; })[] | undefined' is not assignable to parameter of type 'SetStateAction<any[]>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<any[]>'.
+
+  170 |                 setSystemSettings(sys)
+  171 |                 setRegistrationEnabled(sys.allowNewRegistrations)
+> 172 |                 if (cmp.success) setCampuses(cmp.campuses)
+      |                                              ^
+  173 |                 if (slb.success) setSlabs(slb.slabs)
+  174 |                 setLeadSettings(lead)
+  175 |                 setSecuritySettings(sec)
+Next.js build worker exited with code: 1 and signal: null
