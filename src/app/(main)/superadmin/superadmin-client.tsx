@@ -57,7 +57,7 @@ interface UserRecord {
     studentFee: number
     status: string
     referralCount: number
-    createdAt: Date
+    createdAt: string
 }
 
 interface AdminRecord {
@@ -67,7 +67,7 @@ interface AdminRecord {
     role: string
     assignedCampus: string | null
     status: string
-    createdAt: Date
+    createdAt: string
 }
 
 interface StudentRecord {
@@ -84,7 +84,7 @@ interface StudentRecord {
     status: string
     baseFee: number
     discountPercent: number
-    createdAt: Date
+    createdAt: string
 }
 
 interface Props {
