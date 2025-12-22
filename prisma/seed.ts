@@ -30,7 +30,7 @@ async function main() {
         })
     }
 
-    // 2. Admin
+    // 2. Admins
     await prisma.admin.upsert({
         where: { adminMobile: '9999999999' },
         update: {},
@@ -38,6 +38,26 @@ async function main() {
             adminName: 'Super Admin',
             adminMobile: '9999999999',
             role: 'Super Admin'
+        }
+    })
+
+    await prisma.admin.upsert({
+        where: { adminMobile: '8888888888' },
+        update: {},
+        create: {
+            adminName: 'Campus Head',
+            adminMobile: '8888888888',
+            role: 'Campus Head'
+        }
+    })
+
+    await prisma.admin.upsert({
+        where: { adminMobile: '7777777777' },
+        update: {},
+        create: {
+            adminName: 'Admission Admin',
+            adminMobile: '7777777777',
+            role: 'Admission Admin'
         }
     })
 
