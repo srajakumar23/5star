@@ -49,10 +49,10 @@ export default async function SuperadminPage({ searchParams }: PageProps) {
         <SuperadminClient
             analytics={analytics}
             campusComparison={campusComparison}
-            users={serializeData(users)}
-            admins={serializeData(admins)}
-            students={serializeData(students)}
-            currentUser={serializeData(user)}
+            users={serializeData(users) as any}
+            admins={serializeData(admins) as any}
+            students={serializeData(students) as any}
+            currentUser={serializeData(user) as any}
             initialView={initialView}
         />
     )
