@@ -83,7 +83,7 @@ export async function getLoginRedirect(mobile: string) {
             return '/superadmin'
         }
         // Then check Campus Head
-        else if (admin.role === 'CampusHead') {
+        else if (admin.role === 'Campus Head') {
             return '/campus'
         }
         // Finally, regular admins (like "Admission Admin")
