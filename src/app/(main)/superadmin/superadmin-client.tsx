@@ -531,18 +531,18 @@ export default function SuperadminClient({ analytics, campusComparison, users, a
 
     // Settings Save Handlers
     const handleUpdateSystemSettings = async () => {
-        if (!systemSettings) return
+        if (!settingsState) return
         setLoading(true)
         const result = await updateSystemSettings({
-            currentAcademicYear: systemSettings.currentAcademicYear,
-            defaultStudentFee: systemSettings.defaultStudentFee,
+            currentAcademicYear: settingsState.currentAcademicYear,
+            defaultStudentFee: settingsState.defaultStudentFee,
             allowNewRegistrations: registrationEnabled,
-            maintenanceMode: systemSettings.maintenanceMode
+            maintenanceMode: settingsState.maintenanceMode
         })
         setLoading(false)
         if (result) {
             alert('System settings updated successfully')
-            setSystemSettings(result)
+            setSettingsState(result)
         }
     }
 
@@ -2438,7 +2438,7 @@ export default function SuperadminClient({ analytics, campusComparison, users, a
                                     </div>
                                     <select
                                         value={systemSettings?.currentAcademicYear || '2025-2026'}
-                                        onChange={(e) => setSystemSettings({ ...systemSettings, currentAcademicYear: e.target.value })}
+                                        onChange={(e) => setSettingsState({ ...settingsState, currentAcademicYear: e.target.value })}
                                         style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #D1D5DB', background: 'white', fontSize: '14px' }}
                                     >
                                         <option value="2024-2025">2024-2025</option>
@@ -2463,7 +2463,7 @@ export default function SuperadminClient({ analytics, campusComparison, users, a
                                         <input
                                             type="number"
                                             value={systemSettings?.defaultStudentFee || 60000}
-                                            onChange={(e) => setSystemSettings({ ...systemSettings, defaultStudentFee: parseInt(e.target.value) })}
+                                            onChange={(e) => setSettingsState({ ...settingsState, defaultStudentFee: parseInt(e.target.value) })}
                                             style={{ width: '100%', padding: '10px 10px 10px 30px', borderRadius: '8px', border: '1px solid #D1D5DB', background: 'white', fontSize: '14px' }}
                                         />
                                     </div>
@@ -3074,7 +3074,7 @@ export default function SuperadminClient({ analytics, campusComparison, users, a
                                             value={selectedView === 'staff-dash' ? (systemSettings?.staffWelcomeMessage || '') : (systemSettings?.parentWelcomeMessage || '')}
                                             onChange={(e) => {
                                                 const field = selectedView === 'staff-dash' ? 'staffWelcomeMessage' : 'parentWelcomeMessage'
-                                                setSystemSettings({ ...systemSettings, [field]: e.target.value })
+                                                setSettingsState({ ...settingsState, [field]: e.target.value })
                                             }}
                                             placeholder="e.g. Welcome to the Staff Ambassador Dashboard"
                                             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none', fontSize: '14px' }}
@@ -3088,7 +3088,7 @@ export default function SuperadminClient({ analytics, campusComparison, users, a
                                             value={selectedView === 'staff-dash' ? (systemSettings?.staffReferralText || '') : (systemSettings?.parentReferralText || '')}
                                             onChange={(e) => {
                                                 const field = selectedView === 'staff-dash' ? 'staffReferralText' : 'parentReferralText'
-                                                setSystemSettings({ ...systemSettings, [field]: e.target.value })
+                                                setSettingsState({ ...settingsState, [field]: e.target.value })
                                             }}
                                             placeholder="The message that will be pre-filled when they click Share..."
                                             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none', fontSize: '14px', resize: 'vertical' }}
