@@ -37,6 +37,7 @@ model User {
   paymentAmount          Int            @default(0)
   
   // Specific Role IDs
+  email                  String?        // Mail ID
   childEprNo             String?        // For Parents
   empId                  String?        // For Staff
   aadharNo               String?        // For Alumini/Others
@@ -46,7 +47,6 @@ model User {
   academicYear           String         @default("2025-2026")
   createdAt              DateTime       @default(now())
   profileImage           String?
-  email                  String?
   address                String?
   
   referrals              ReferralLead[]

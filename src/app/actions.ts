@@ -111,7 +111,7 @@ export async function getRegistrationCampuses() {
 }
 
 export async function registerUser(formData: any) {
-    const { fullName, mobileNumber, role, childInAchariya, childName, bankAccountDetails, campusId, grade, transactionId, childEprNo, empId, aadharNo } = formData
+    const { fullName, mobileNumber, role, childInAchariya, childName, bankAccountDetails, campusId, grade, transactionId, childEprNo, empId, aadharNo, email } = formData
 
     // Generate Code
     const randomSuffix = Math.floor(1000 + Math.random() * 9000)
@@ -151,6 +151,7 @@ export async function registerUser(formData: any) {
                 studentFee,
                 academicYear: settings?.currentAcademicYear || '2025-2026',
                 // New Role Fields
+                email: email || null,
                 childEprNo: childEprNo || null,
                 empId: empId || null,
                 aadharNo: aadharNo || null,
@@ -163,8 +164,19 @@ export async function registerUser(formData: any) {
 
         await createSession(user.userId, 'user')
         return { success: true }
-    } catch (e) {
-        console.error(e)
-        return { success: false, error: 'Registration failed. Mobile might be taken.' }
+    } catch (e: any) {
+        console.error('Registration error:', e)
+
+        // Handle Prisma Unique Constraint Violation
+        if (e.code === 'P2002') {
+            if (e.meta?.target?.includes('mobileNumber')) {
+                return { success: false, error: 'This mobile number is already registered. Please login.' }
+            }
+            if (e.meta?.target?.includes('referralCode')) {
+                return { success: false, error: 'System busy (Ref Code collision). Please try again.' }
+            }
+        }
+
+        return { success: false, error: e.message || 'Registration failed due to a system error.' }
     }
 }
