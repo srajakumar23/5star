@@ -36,6 +36,11 @@ model User {
   transactionId          String?        // Manual reference or Gateway ID
   paymentAmount          Int            @default(0)
   
+  // Specific Role IDs
+  childEprNo             String?        // For Parents
+  empId                  String?        // For Staff
+  aadharNo               String?        // For Alumini/Others
+  
   // Earnings & Context
   studentFee             Int            @default(60000)
   academicYear           String         @default("2025-2026")

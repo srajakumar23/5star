@@ -111,7 +111,7 @@ export async function getRegistrationCampuses() {
 }
 
 export async function registerUser(formData: any) {
-    const { fullName, mobileNumber, role, childInAchariya, childName, bankAccountDetails, campusId, grade, transactionId } = formData
+    const { fullName, mobileNumber, role, childInAchariya, childName, bankAccountDetails, campusId, grade, transactionId, childEprNo, empId, aadharNo } = formData
 
     // Generate Code
     const randomSuffix = Math.floor(1000 + Math.random() * 9000)
@@ -150,6 +150,10 @@ export async function registerUser(formData: any) {
                 benefitStatus: 'Inactive', // Active only after admin approval or auto-check
                 studentFee,
                 academicYear: settings?.currentAcademicYear || '2025-2026',
+                // New Role Fields
+                childEprNo: childEprNo || null,
+                empId: empId || null,
+                aadharNo: aadharNo || null,
                 // Payment Info
                 paymentStatus: transactionId ? 'Completed' : 'Pending', // Dummy flow assumes completion
                 transactionId: transactionId || null,

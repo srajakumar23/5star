@@ -22,7 +22,10 @@ export default function LoginPage() {
     grade: 'Grade 1',
     campusId: '',
     bankAccountDetails: '',
-    transactionId: ''
+    transactionId: '',
+    childEprNo: '',
+    empId: '',
+    aadharNo: ''
   })
   const [campuses, setCampuses] = useState<any[]>([])
 
