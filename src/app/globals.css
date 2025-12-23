@@ -500,6 +500,11 @@ body {
   background-image: radial-gradient(ellipse at top, #2a0a0a 0%, #0d0d0d 50%, #050505 100%) !important;
 }
 
+.bg-premium-pink {
+  background: linear-gradient(135deg, #500018 0%, #880136 50%, #B00858 100%) !important;
+  background-size: cover;
+}
+
 .overflow-hidden {
   overflow: hidden;
 }

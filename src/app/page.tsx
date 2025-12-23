@@ -89,10 +89,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-elite-radial">
+    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-premium-pink">
       {/* Decorative background elements for "Elite" feel */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#CC0000] opacity-20 blur-[120px] rounded-full"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#CC0000] opacity-10 blur-[120px] rounded-full"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#DE0C78] opacity-20 blur-[120px] rounded-full"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#700124] opacity-30 blur-[120px] rounded-full"></div>
 
       <div className="relative z-10 w-full max-w-sm animate-fade-in mx-auto">
         {/* Brand Header */}
@@ -109,12 +109,28 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col items-center justify-center gap-3 mb-4">
-            <div className="flex gap-2 mb-1">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="animate-pulse-gold" style={{ animationDelay: `${i * 150}ms` }}>
-                  <Star size={32} fill="#FFD700" stroke="none" className="gold-glow" />
-                </div>
-              ))}
+            <div className="flex items-center gap-0 mb-4 justify-center -space-x-3">
+              {[1, 2, 3, 4, 5].map((i, index) => {
+                // Pyramid sizing: Middle biggest, then neighbors, then ends
+                let size = 45; // Default (ends)
+                if (index === 2) size = 85;       // Middle
+                else if (index === 1 || index === 3) size = 60; // Inner neighbors
+
+                // Staggered delay for "wave" effect outward from center
+                const delay = Math.abs(index - 2) * 100;
+
+                return (
+                  <div key={i} className="animate-pulse-gold relative" style={{ animationDelay: `${delay}ms` }}>
+                    <div className="absolute inset-0 bg-yellow-400 blur-md opacity-40 rounded-full scale-75"></div>
+                    <Star
+                      size={size}
+                      fill="#FFD700"
+                      stroke="none"
+                      className="gold-glow relative z-10"
+                    />
+                  </div>
+                )
+              })}
             </div>
             <h1 style={{
               fontSize: '3.5rem',
@@ -148,7 +164,7 @@ export default function LoginPage() {
                 <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '32px', textAlign: 'center', color: '#FFFFFF' }}>Member Access</h2>
 
                 <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-                  <label style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' }}>Mobile Identity</label>
+                  <label style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' }}>Mobile Identity</label>
                   <input
                     type="tel"
                     className="w-full bg-white border border-white/50 rounded-xl px-4 py-4 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#FFD700] transition-all text-xl font-medium tracking-wide text-center"
@@ -177,7 +193,7 @@ export default function LoginPage() {
 
                 <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{ height: '1px', width: '100%', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent)', marginBottom: '24px' }}></div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.8)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
                     <ShieldCheck size={14} />
                     <span>Identity Verification: 123</span>
                   </div>
@@ -193,7 +209,7 @@ export default function LoginPage() {
                 <div style={{ marginBottom: '32px', textAlign: 'center' }}>
                   <label style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' }}>OTP Code</label>
                   <input
-                    type="text"
+                    type="password"
                     className="w-full bg-white border border-white/50 rounded-xl px-4 py-5 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#FFD700] transition-all text-4xl font-bold tracking-[1rem] text-center"
                     placeholder="••••"
                     maxLength={4}
@@ -353,7 +369,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info */}
-        <p style={{ marginTop: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '4px' }}>
+        <p style={{ marginTop: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.9)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '4px' }}>
           © 2025 Achariya Group of Institutions
         </p>
       </div>

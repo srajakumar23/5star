@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth-service'
 import { redirect } from 'next/navigation'
-import { getAllReferrals, getAdminAnalytics, getAdminUsers, getAdminStudents } from '@/app/admin-actions'
+import { getAllReferrals, getAdminAnalytics, getAdminUsers, getAdminStudents, getAdminAdmins, getAdminCampusPerformance } from '@/app/admin-actions'
 import { getCampuses } from '@/app/campus-actions'
 import { confirmReferral } from '@/app/admin-actions'
 import { AdminClient } from './admin-client'
@@ -37,28 +37,44 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     // Conditional fetching for heavier views
     let users: any[] = []
     let students: any[] = []
+    let admins: any[] = []
+    let campusPerformance: any[] = []
 
     if (view === 'users') {
         const res = await getAdminUsers()
-        if (res.success && res.users) users = res.users
+        if (res.success && res.users) users = res.users || []
     }
 
     if (view === 'students') {
         const res = await getAdminStudents()
-        if (res.success && res.students) students = res.students
+        if (res.success && res.students) students = res.students || []
     }
 
-    if (!analytics) return <div>Error loading analytics</div>
+    if (view === 'admins') {
+        const res = await getAdminAdmins()
+        if (res.success && res.admins) admins = res.admins || []
+    }
+
+    // Always fetch campus performance if view is campuses, or maybe pre-fetch? 
+    // The user wants "Campus Performance" -> assume view='campuses'
+    if (view === 'campuses') {
+        const res = await getAdminCampusPerformance()
+        if (res.success && res.campusPerformance) campusPerformance = res.campusPerformance || []
+    }
+
+    if (!analytics.success) return <div>Error loading analytics</div>
 
     return (
         <AdminClient
-            referrals={serializeData(referrals)}
-            analytics={analytics}
+            referrals={serializeData(referrals.success ? referrals.referrals : [])}
+            analytics={analytics.success ? analytics : null}
             confirmReferral={confirmReferral}
             initialView={view}
             campuses={campusesResult.success ? campusesResult.campuses : []}
-            users={serializeData(users)}
-            students={serializeData(students)}
+            users={serializeData(users) || []}
+            students={serializeData(students) || []}
+            admins={serializeData(admins) || []}
+            campusPerformance={serializeData(campusPerformance) || []}
         />
     )
 }

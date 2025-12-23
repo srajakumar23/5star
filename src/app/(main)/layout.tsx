@@ -12,6 +12,8 @@ async function logout() {
     redirect('/')
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser()
     if (!user) {

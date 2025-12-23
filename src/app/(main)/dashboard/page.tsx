@@ -247,13 +247,13 @@ export default async function DashboardPage() {
 
                 {/* Long Term Benefits */}
                 <div style={{
-                    background: 'linear-gradient(135deg, #0F0F0F 0%, #1A0A0A 50%, #0F0F0F 100%)',
+                    background: 'linear-gradient(135deg, #420a15 0%, #700f1c 50%, #8a1c2a 100%)',
                     padding: '20px',
                     borderRadius: '16px',
                     position: 'relative',
                     overflow: 'hidden',
-                    border: '1px solid rgba(220, 38, 38, 0.2)',
-                    boxShadow: '0 0 60px rgba(220, 38, 38, 0.15)'
+                    border: '1px solid rgba(255, 215, 0, 0.3)',
+                    boxShadow: 'inset 0 0 50px rgba(0,0,0,0.5), 0 20px 40px -10px rgba(60, 0, 0, 0.6)'
                 }}>
                     {/* Ambient glow */}
                     <div style={{

@@ -6,17 +6,18 @@ import { revalidatePath } from 'next/cache'
 
 export async function getAllReferrals() {
     const user = await getCurrentUser()
-    if (!user || !user.role.includes('Admin')) return []
+    if (!user || !user.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
 
-    return await prisma.referralLead.findMany({
+    const referrals = await prisma.referralLead.findMany({
         include: { user: true },
         orderBy: { createdAt: 'desc' }
     })
+    return { success: true, referrals }
 }
 
 export async function getAdminAnalytics() {
     const user = await getCurrentUser()
-    if (!user || !user.role.includes('Admin')) return null
+    if (!user || !user.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
 
     const referrals = await prisma.referralLead.findMany({
         include: { user: true }
@@ -93,6 +94,7 @@ export async function getAdminAnalytics() {
         }))
 
     return {
+        success: true,
         totalLeads,
         confirmedLeads,
         pendingLeads,
@@ -231,5 +233,107 @@ export async function getAdminStudents() {
     } catch (error) {
         console.error('getAdminStudents error:', error)
         return { success: false, error: 'Failed to fetch students' }
+    }
+}
+
+export async function getAdminAdmins() {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('CampusHead') && !user.role.includes('Admin'))) {
+        return { success: false, error: 'Unauthorized' }
+    }
+
+    const where: any = {}
+
+    // Campus Head can only see admins in their campus (except themselves usually, but let's list all for now)
+    if (user.role !== 'Super Admin' && user.assignedCampus) {
+        where.assignedCampus = user.assignedCampus
+    }
+
+    try {
+        const admins = await prisma.admin.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                adminId: true,
+                adminName: true,
+                adminMobile: true,
+                role: true,
+                assignedCampus: true,
+                status: true,
+                createdAt: true
+            }
+        })
+        return { success: true, admins }
+    } catch (error) {
+        console.error('getAdminAdmins error:', error)
+        return { success: false, error: 'Failed to fetch admins' }
+    }
+}
+
+export async function getAdminCampusPerformance() {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('CampusHead') && !user.role.includes('Admin'))) {
+        return { success: false, error: 'Unauthorized' }
+    }
+
+    try {
+        let campusNames: string[] = []
+
+        if (user.assignedCampus) {
+            campusNames = [user.assignedCampus]
+        } else {
+            // Get all campuses from referrals if global admin
+            const distinctCampuses = await prisma.referralLead.findMany({
+                where: { campus: { not: null } },
+                select: { campus: true },
+                distinct: ['campus']
+            })
+            campusNames = distinctCampuses.map(c => c.campus).filter(Boolean) as string[]
+        }
+
+        const comparison = []
+
+        for (const campus of campusNames) {
+            const totalLeads = await prisma.referralLead.count({
+                where: { campus }
+            })
+
+            const confirmed = await prisma.referralLead.count({
+                where: { campus, leadStatus: 'Confirmed' }
+            })
+
+            const pending = await prisma.referralLead.count({
+                where: { campus, leadStatus: { in: ['New', 'Follow-up'] } }
+            })
+
+            const conversionRate = totalLeads > 0
+                ? (confirmed / totalLeads) * 100
+                : 0
+
+            // Count unique ambassadors for this campus
+            const ambassadorIds = await prisma.referralLead.findMany({
+                where: { campus },
+                select: { userId: true },
+                distinct: ['userId']
+            })
+
+            comparison.push({
+                campus,
+                totalLeads,
+                confirmed,
+                pending,
+                conversionRate: Number(conversionRate.toFixed(2)),
+                ambassadors: ambassadorIds.length
+            })
+        }
+
+        // Sort by total leads descending
+        comparison.sort((a, b) => b.totalLeads - a.totalLeads)
+
+        return { success: true, campusPerformance: comparison }
+
+    } catch (error) {
+        console.error('getAdminCampusPerformance error:', error)
+        return { success: false, error: 'Failed to fetch campus performance' }
     }
 }

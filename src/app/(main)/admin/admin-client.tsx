@@ -13,12 +13,19 @@ interface AdminClientProps {
     campuses?: any[]
     users?: any[]
     students?: any[]
+    admins?: any[]
+    campusPerformance?: any[]
 }
 
-export function AdminClient({ referrals, analytics, confirmReferral, initialView = 'analytics', campuses = [], users = [], students = [] }: AdminClientProps) {
+export function AdminClient({ referrals, analytics, confirmReferral, initialView = 'analytics', campuses = [], users = [], students = [], admins = [], campusPerformance = [] }: AdminClientProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [statusFilter, setStatusFilter] = useState<string>('All')
+
+    // Filters for Admins View
+    const [adminSearch, setAdminSearch] = useState('')
+    const [adminRoleFilter, setAdminRoleFilter] = useState('All')
+    const [adminCampusFilter, setAdminCampusFilter] = useState('All')
 
     // Filters for Users View
     const [filterRole, setFilterRole] = useState('All')
@@ -114,63 +121,108 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
 
             {/* CONTENT VIEWS */}
 
-            {/* CAMPUSES VIEW */}
+            {/* CAMPUSES VIEW - Rich Performance Analytics */}
             {selectedView === 'campuses' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                    {campuses && campuses.length > 0 ? (
-                        campuses.map((campus: any) => (
-                            <div key={campus.id} style={{
-                                background: 'white',
-                                borderRadius: '16px',
-                                padding: '24px',
-                                border: '1px solid #E5E7EB',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                                    <div style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        borderRadius: '10px',
-                                        background: '#E0E7FF',
-                                        color: '#4F46E5',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
-                                        <Building2 size={20} />
-                                    </div>
-                                    <span style={{
-                                        fontSize: '11px',
-                                        fontWeight: '700',
-                                        padding: '4px 8px',
-                                        borderRadius: '20px',
-                                        background: campus.isActive ? '#DCFCE7' : '#F3F4F6',
-                                        color: campus.isActive ? '#15803D' : '#6B7280'
-                                    }}>
-                                        {campus.isActive ? 'ACTIVE' : 'INACTIVE'}
-                                    </span>
-                                </div>
-                                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px' }}>{campus.campusName}</h3>
-                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 16px' }}>{campus.campusCode} • {campus.location}</p>
-
-                                <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid #F3F4F6', paddingTop: '16px' }}>
-                                    <div>
-                                        <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0, fontWeight: '600', textTransform: 'uppercase' }}>Grades</p>
-                                        <p style={{ fontSize: '13px', color: '#374151', margin: '2px 0 0', fontWeight: '500' }}>{campus.grades}</p>
-                                    </div>
-                                    <div style={{ height: '30px', width: '1px', background: '#F3F4F6' }}></div>
-                                    <div>
-                                        <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0, fontWeight: '600', textTransform: 'uppercase' }}>Capacity</p>
-                                        <p style={{ fontSize: '13px', color: '#374151', margin: '2px 0 0', fontWeight: '500' }}>{campus.maxCapacity}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', background: 'white', borderRadius: '16px', color: '#6B7280' }}>
-                            No campuses found.
+                <div className="space-y-6">
+                    {/* Summary Stats Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                        <div style={{ background: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #f0f0f0', textAlign: 'center' }}>
+                            <p style={{ fontSize: '24px', fontWeight: '700', color: '#B91C1C', margin: 0 }}>{campusPerformance.length}</p>
+                            <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Total Campuses</p>
                         </div>
-                    )}
+                        <div style={{ background: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #f0f0f0', textAlign: 'center' }}>
+                            <p style={{ fontSize: '24px', fontWeight: '700', color: '#F59E0B', margin: 0 }}>{campusPerformance.reduce((sum: number, c: any) => sum + c.totalLeads, 0)}</p>
+                            <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Total Leads</p>
+                        </div>
+                        <div style={{ background: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #f0f0f0', textAlign: 'center' }}>
+                            <p style={{ fontSize: '24px', fontWeight: '700', color: '#10B981', margin: 0 }}>{campusPerformance.reduce((sum: number, c: any) => sum + c.confirmed, 0)}</p>
+                            <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Confirmed</p>
+                        </div>
+                        <div style={{ background: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #f0f0f0', textAlign: 'center' }}>
+                            {/* Compute Global Conversion */}
+                            <p style={{ fontSize: '24px', fontWeight: '700', color: '#8B5CF6', margin: 0 }}>
+                                {(campusPerformance.reduce((sum: number, c: any) => sum + c.totalLeads, 0) > 0
+                                    ? ((campusPerformance.reduce((sum: number, c: any) => sum + c.confirmed, 0) / campusPerformance.reduce((sum: number, c: any) => sum + c.totalLeads, 0)) * 100).toFixed(1)
+                                    : '0')}%
+                            </p>
+                            <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Avg Conversion</p>
+                        </div>
+                    </div>
+
+                    {/* Lead Distribution Chart */}
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '10px', border: '1px solid #f0f0f0' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#111827' }}>Lead Distribution by Campus</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {campusPerformance.map((campus: any) => {
+                                const maxLeads = Math.max(...campusPerformance.map((c: any) => c.totalLeads))
+                                const widthPercent = maxLeads > 0 ? (campus.totalLeads / maxLeads) * 100 : 0
+
+                                return (
+                                    <div key={campus.campus}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                            <span style={{ fontWeight: '500', fontSize: '13px' }}>{campus.campus}</span>
+                                            <span style={{ fontSize: '13px', color: '#6B7280' }}>{campus.totalLeads} leads</span>
+                                        </div>
+                                        <div style={{ width: '100%', background: '#E5E7EB', borderRadius: '6px', height: '8px' }}>
+                                            <div
+                                                style={{
+                                                    width: `${widthPercent}%`,
+                                                    background: 'linear-gradient(90deg, #DC2626, #EF4444)',
+                                                    height: '8px',
+                                                    borderRadius: '6px'
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            {campusPerformance.length === 0 && (
+                                <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>No campus performance data available</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Campus Performance Table */}
+                    <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #f0f0f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <div style={{ padding: '20px 24px', borderBottom: '1px solid #E5E7EB' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>Campus Performance Details</h3>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ background: '#F9FAFB' }}>
+                                        <th style={{ padding: '12px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E5E7EB' }}>Campus</th>
+                                        <th style={{ padding: '12px 24px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E5E7EB' }}>Total Leads</th>
+                                        <th style={{ padding: '12px 24px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E5E7EB' }}>Confirmed</th>
+                                        <th style={{ padding: '12px 24px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E5E7EB' }}>Pending</th>
+                                        <th style={{ padding: '12px 24px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E5E7EB' }}>Conversion</th>
+                                        <th style={{ padding: '12px 24px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E5E7EB' }}>Ambassadors</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {campusPerformance.map((campus: any, index: number) => (
+                                        <tr key={campus.campus} style={{ background: index % 2 === 0 ? 'white' : '#FAFAFA', borderBottom: '1px solid #F3F4F6' }}>
+                                            <td style={{ padding: '14px 24px', fontWeight: '600', color: '#111827' }}>{campus.campus}</td>
+                                            <td style={{ padding: '14px 24px', textAlign: 'center', color: '#374151', fontWeight: '600' }}>{campus.totalLeads}</td>
+                                            <td style={{ padding: '14px 24px', textAlign: 'center', color: '#059669', fontWeight: '600' }}>{campus.confirmed}</td>
+                                            <td style={{ padding: '14px 24px', textAlign: 'center', color: '#D97706', fontWeight: '500' }}>{campus.pending}</td>
+                                            <td style={{ padding: '14px 24px', textAlign: 'center' }}>
+                                                <span style={{ display: 'inline-block', padding: '4px 10px', fontSize: '12px', fontWeight: '600', borderRadius: '9999px', background: campus.conversionRate >= 80 ? '#D1FAE5' : campus.conversionRate >= 50 ? '#FEF3C7' : '#FEE2E2', color: campus.conversionRate >= 80 ? '#065F46' : campus.conversionRate >= 50 ? '#92400E' : '#B91C1C' }}>
+                                                    {campus.conversionRate}%
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '14px 24px', textAlign: 'center', color: '#374151', fontWeight: '500' }}>{campus.ambassadors}</td>
+                                        </tr>
+                                    ))}
+                                    {campusPerformance.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF' }}>No data available</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -546,7 +598,94 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
                 </div>
             )}
 
-            {/* STUDENTS VIEW */}
+            {/* ADMINS VIEW */}
+            {selectedView === 'admins' && (
+                <div className="space-y-4">
+                    {/* Filters Row */}
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'white', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f0f0f0', flexWrap: 'wrap' }}>
+                        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+                            <input
+                                type="text"
+                                placeholder="Search admins..."
+                                value={adminSearch}
+                                onChange={(e) => setAdminSearch(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px 10px 8px 32px',
+                                    border: '1px solid #E5E7EB',
+                                    borderRadius: '6px',
+                                    fontSize: '13px',
+                                    outline: 'none'
+                                }}
+                            />
+                        </div>
+
+                        <select
+                            value={adminRoleFilter}
+                            onChange={(e) => setAdminRoleFilter(e.target.value)}
+                            style={{ padding: '6px 12px', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '12px', color: '#374151' }}
+                        >
+                            <option value="All">All Roles</option>
+                            <option value="Campus Admin">Campus Admin</option>
+                            <option value="Admission Admin">Admission Admin</option>
+                            <option value="CampusHead">Campus Head</option>
+                        </select>
+                    </div>
+
+                    <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderLeft: '4px solid #10B981' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                                <thead style={{ background: '#F9FAFB' }}>
+                                    <tr>
+                                        <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Admin Name</th>
+                                        <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Mobile</th>
+                                        <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Role</th>
+                                        <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Assigned Campus</th>
+                                        <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {admins
+                                        .filter(a => {
+                                            const matchesSearch = a.adminName.toLowerCase().includes(adminSearch.toLowerCase()) ||
+                                                a.adminMobile.includes(adminSearch)
+                                            const matchesRole = adminRoleFilter === 'All' || a.role === adminRoleFilter
+                                            return matchesSearch && matchesRole
+                                        })
+                                        .map((admin: any) => (
+                                            <tr key={admin.adminId} className="hover:bg-gray-50">
+                                                <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: '600', color: '#111827' }}>
+                                                    {admin.adminName}
+                                                </td>
+                                                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#374151' }}>
+                                                    {admin.adminMobile}
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                    <span style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '9999px', background: admin.role === 'CampusHead' ? '#FEE2E2' : '#ECFDF5', color: admin.role === 'CampusHead' ? '#B91C1C' : '#047857' }}>
+                                                        {admin.role}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#374151' }}>{admin.assignedCampus || '-'}</td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                    <span style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '9999px', background: admin.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: admin.status === 'Active' ? '#065F46' : '#6B7280' }}>
+                                                        {admin.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    {admins.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF', fontSize: '14px' }}>
+                                                No admins found
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
             {selectedView === 'students' && (
                 <div className="space-y-4">
                     {/* Filters Row */}
