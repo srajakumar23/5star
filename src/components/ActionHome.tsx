@@ -185,8 +185,8 @@ function StatusBadge({ status }: { status: string }) {
 
 function getGreeting() {
     const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 17) return 'Good afternoon'
+    if (hour < 12) return 'Happy Morning'
+    if (hour < 17) return 'Happy Morning'
     return 'Good evening'
 }
 

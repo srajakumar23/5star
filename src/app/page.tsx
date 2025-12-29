@@ -13,7 +13,7 @@ export default function LoginPage() {
   useEffect(() => {
     async function verify() {
       const res = await checkSession()
-      if (res.authenticated) {
+      if (res.authenticated && res.redirect) {
         router.push(res.redirect)
       }
     }
