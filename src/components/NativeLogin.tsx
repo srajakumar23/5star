@@ -12,26 +12,9 @@ export function NativeLogin({ onMobileFill }: { onMobileFill?: (mobile: string) 
     const [available, setAvailable] = useState(false)
 
     useEffect(() => {
-        const loadBiometrics = async () => {
-            if (!Capacitor.isNativePlatform()) return
-
-            try {
-                // Dynamically import at runtime only on native platforms
-                const module = await import('@capacitor-community/native-biometric')
-                NativeBiometric = module.NativeBiometric
-
-                const result = await NativeBiometric.isAvailable()
-
-                if (result.isAvailable) {
-                    setAvailable(true)
-                }
-            } catch (e) {
-                // Soft fail: Just don't show the button if plugin fails or hardware missing
-                console.log('Biometric plugin soft-fail:', e)
-            }
-        }
-
-        loadBiometrics()
+        // Biometrics temporarily disabled to fix deployment issues.
+        // The dependency @capacitor-community/native-biometric causes 404/Auth errors on CI/CD.
+        setAvailable(false);
     }, [])
 
     const handleLogin = async () => {
