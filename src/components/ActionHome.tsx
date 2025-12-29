@@ -51,7 +51,9 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
                     <p className="text-red-200 text-sm font-medium mb-1">{greeting}</p>
                     <h1 className="text-2xl md:text-3xl font-extrabold mb-2">{firstName}! 👋</h1>
                     <p className="text-red-100 text-sm opacity-80 mb-6">
-                        Welcome back to your Ambassador Dashboard
+                        {user.role === 'Alumni'
+                            ? 'Welcome back to your Alumni Ambassador Dashboard'
+                            : 'Welcome back to your Ambassador Dashboard'}
                     </p>
 
                     {/* Quick Stats Row */}
@@ -72,7 +74,7 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
                         <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3">
                             <Star size={20} className="text-yellow-300" />
                             <div>
-                                <p className="text-xs text-red-200">Fee Benefit</p>
+                                <p className="text-xs text-red-200">{user.role === 'Alumni' ? 'Referral Benefit' : 'Fee Benefit'}</p>
                                 <p className="text-xl font-bold">{user.yearFeeBenefitPercent}%</p>
                             </div>
                         </div>
