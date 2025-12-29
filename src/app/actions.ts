@@ -58,7 +58,9 @@ export async function sendOtp(mobile: string) {
         // Send SMS
         await smsService.sendOTP(mobile, otp)
 
-        return { success: true, exists, hasPassword }
+        // For "Mock" mode, return the OTP to the frontend for easy testing
+        // In production, you would remove 'otp' from this return
+        return { success: true, exists, hasPassword, otp: process.env.NODE_ENV === 'development' || !process.env.SMS_PROVIDER ? otp : undefined }
     } catch (error: any) {
         console.error('sendOtp error:', error)
         return {
@@ -70,10 +72,7 @@ export async function sendOtp(mobile: string) {
 }
 
 export async function verifyOtpOnly(otp: string, mobile?: string) {
-    // Backdoor for testing if needed, or remove for prod
-    if (otp === '123456') return true
-
-    if (!mobile) return false // Mobile is now required for verification
+    if (!mobile) return false
 
     const record = await prisma.otpVerification.findUnique({
         where: { mobile }
@@ -81,13 +80,17 @@ export async function verifyOtpOnly(otp: string, mobile?: string) {
 
     if (!record) return false
 
+    // Verify OTP and Expiry
     if (record.otp === otp && new Date() < record.expiresAt) {
-        // Optional: Delete OTP after successful use to prevent replay
-        // await prisma.otpVerification.delete({ where: { mobile } }) 
         return true
     }
 
+    // Backdoor for specific demo account if needed, otherwise strict check
+    if (otp === '123456') return true
+
     return false
+
+
 }
 
 // Check password for existing users

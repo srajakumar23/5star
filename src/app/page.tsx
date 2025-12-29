@@ -56,6 +56,14 @@ export default function LoginPage() {
       const res = await sendOtp(mobile)
       setLoading(false)
       if (res && res.success) {
+        // SIMULATION: Show the mock OTP to the user
+        if (res.otp) {
+          toast.success(`Your Verification Code is: ${res.otp}`, { duration: 6000 })
+          console.log('MOCK OTP:', res.otp)
+        } else {
+          toast.success(`OTP Sent to ${mobile}`)
+        }
+
         if (res.exists && res.hasPassword) {
           // Go to Password Login
           setStep(1.5)
@@ -87,9 +95,9 @@ export default function LoginPage() {
   }
 
   const handleVerifyOtp = async () => {
-    if (otp !== '123') return toast.error('Invalid OTP (hint: 123)')
+    if (!otp || otp.length < 4) return toast.error('Enter valid OTP')
     setLoading(true)
-    const valid = await verifyOtpOnly(otp)
+    const valid = await verifyOtpOnly(otp, mobile)
     if (valid) {
       if (isNewUser) {
         setStep(3)
@@ -330,7 +338,7 @@ export default function LoginPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                   />
-                  <p className="text-white/40 text-[10px] mt-4 tracking-widest uppercase">Use OTP: 123</p>
+                  <p className="text-white/40 text-[10px] mt-4 tracking-widest uppercase">Check your messages</p>
                 </div>
 
                 <div style={{ textAlign: 'center' }}>
