@@ -24,9 +24,15 @@ export default async function DashboardPage() {
 
     // Build WhatsApp share URL
     const referralLink = `https://achariya.in/apply?ref=${userData.referralCode}`
-    const rawShareText = userData.role === 'Staff'
-        ? (settings?.staffReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`)
-        : (settings?.parentReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`)
+    let rawShareText = ''
+    if (userData.role === 'Staff') {
+        rawShareText = settings?.staffReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`
+    } else if (userData.role === 'Alumni') {
+        rawShareText = `Hello 👋 I'm a proud Alumni of Achariya. I recommend you to explore admission for your child and experience the 5-Star Education. Click here: {referralLink}`
+    } else {
+        // Parent and others
+        rawShareText = settings?.parentReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`
+    }
     const shareText = rawShareText.replace('{referralLink}', referralLink)
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
 
