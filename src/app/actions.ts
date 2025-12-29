@@ -44,6 +44,11 @@ export async function sendOtp(mobile: string) {
             }
         }
 
+        // OPTIMIZATION: If user exists and has password, skip OTP generation entirely
+        if (exists && hasPassword) {
+            return { success: true, exists, hasPassword }
+        }
+
         // Generate Real OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString()
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
