@@ -167,7 +167,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             </main>
 
             {/* Mobile Bottom Navigation */}
-            <BottomNav />
+            <BottomNav role={user.role} />
             <InstallPrompt />
             <MobileConfig />
             <OfflineAlert />
