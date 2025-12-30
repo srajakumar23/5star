@@ -2,7 +2,7 @@ import prisma from './prisma'
 import { getSession } from './session'
 import { headers } from 'next/headers'
 
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'PERMISSION_CHANGE' | 'EXPORT'
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'PERMISSION_CHANGE' | 'EXPORT' | 'EXPORT_REPORT'
 
 export async function logAction(
     action: AuditAction,

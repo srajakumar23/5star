@@ -197,9 +197,24 @@ export async function registerUser(formData: any) {
         return { success: false, error: 'Password must be at least 8 chars with 1 uppercase, 1 special char, and 1 number.' }
     }
 
-    // Generate Code
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000)
-    const referralCode = `ACH25-${randomSuffix}`
+    // Generate Smart Referral Code based on Role
+    // Format: ACH25-[ROLE-PREFIX][RANDOM4] -> ACH25-PAR1234
+    const normalizedRole = role.toUpperCase()
+    let rolePrefix = 'M' // Default
+
+    if (normalizedRole.includes('PARENT')) rolePrefix = 'P'
+    else if (normalizedRole.includes('STAFF')) rolePrefix = 'S'
+    else if (normalizedRole.includes('ALUMNI')) rolePrefix = 'A'
+
+    // Continuous Numbering Strategy
+    // Count existing users with this role to determine the next number
+    const roleCount = await prisma.user.count({
+        where: { role: role }
+    })
+
+    // Format: ACH25-P00001 (Start from 1, pad with 5 zeros)
+    const sequenceNumber = (roleCount + 1).toString().padStart(5, '0')
+    const referralCode = `ACH25-${rolePrefix}${sequenceNumber}`
 
     // Fetch fee based on campus and grade
     let studentFee = 60000

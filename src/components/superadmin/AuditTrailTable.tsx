@@ -13,32 +13,43 @@ interface AuditTrailTableProps {
 
 export function AuditTrailTable({ logs }: AuditTrailTableProps) {
     return (
-        <div className="space-y-4 animate-fade-in">
-            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #f0f0f0', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead style={{ background: '#F9FAFB' }}>
-                        <tr>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Timestamp</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Admin</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Action</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Details</th>
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white rounded-[24px] border border-gray-100 shadow-xl shadow-gray-200/40 overflow-hidden">
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                            <th className="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Timestamp</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Admin</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Action</th>
+                            <th className="px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Details</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-50">
                         {logs.length > 0 ? (
                             logs.map((log, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#4B5563' }}>{log.timestamp}</td>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: '600' }}>{log.admin}</td>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#111827' }}>{log.action}</td>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#6B7280' }}>{log.details}</td>
+                                <tr key={i} className="group hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-6 py-4 text-sm font-medium text-gray-500 whitespace-nowrap">{log.timestamp}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-gray-900">{log.admin}</td>
+                                    <td className="px-6 py-4">
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">
+                                            {log.action}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-600 max-w-md truncate" title={log.details}>{log.details}</td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>
-                                    <Database size={48} style={{ margin: '0 auto 12px', opacity: 0.2 }} />
-                                    <p>Activity logs will appear as admins perform actions.</p>
+                                <td colSpan={4} className="py-20 text-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="p-4 bg-gray-50 rounded-full text-gray-300">
+                                            <Database size={32} strokeWidth={1.5} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-gray-900">No Activity Logs</p>
+                                            <p className="text-xs font-medium text-gray-400 mt-1">Actions performed by admins will appear here.</p>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         )}

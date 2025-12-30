@@ -10,6 +10,7 @@ export default async function DashboardPage() {
 
     // Admin redirects
     if (user.role === 'Super Admin') redirect('/superadmin')
+    if (user.role === 'Finance Admin') redirect('/finance')
     if (user.role.includes('Campus')) redirect('/campus')
     if (user.role.includes('Admin')) redirect('/admin')
 

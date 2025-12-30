@@ -39,18 +39,18 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
     const referralTrend = monthStats ? calculateChange(monthStats.currentConfirmed, monthStats.prevConfirmed) : null
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 max-w-2xl mx-auto">
             {/* Hero Section */}
-            <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden">
+            <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-[32px] p-8 md:p-10 text-white relative overflow-hidden shadow-[0_24px_60px_-12px_rgba(220,38,38,0.3)]">
                 {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
 
                 <div className="relative z-10">
                     {/* Greeting */}
-                    <p className="text-red-200 text-sm font-medium mb-1">{greeting}</p>
-                    <h1 className="text-2xl md:text-3xl font-extrabold mb-2">{firstName}! 👋</h1>
-                    <p className="text-red-100 text-sm opacity-80 mb-6">
+                    <p className="text-red-100/90 font-medium mb-1 tracking-wide text-sm">{greeting}</p>
+                    <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">{firstName}! 👋</h1>
+                    <p className="text-red-100 text-sm opacity-90 mb-8 font-medium">
                         {user.role === 'Alumni'
                             ? 'Welcome back to your Alumni Ambassador Dashboard'
                             : 'Welcome back to your Ambassador Dashboard'}
@@ -58,24 +58,28 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
 
                     {/* Quick Stats Row */}
                     <div className="flex flex-wrap gap-4">
-                        <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3 relative overflow-hidden group">
-                            <TrendingUp size={20} className="text-yellow-300" />
+                        <div className="bg-white/10 backdrop-blur-md rounded-[20px] px-5 py-4 flex items-center gap-4 relative overflow-hidden group border border-white/10 shadow-inner">
+                            <div className="p-2 bg-yellow-400/20 rounded-xl">
+                                <TrendingUp size={20} className="text-yellow-300" />
+                            </div>
                             <div>
-                                <p className="text-xs text-red-200">Confirmed</p>
-                                <p className="text-xl font-bold">{user.confirmedReferralCount}</p>
+                                <p className="text-[11px] uppercase tracking-wider font-bold text-red-100/80 mb-0.5">Confirmed</p>
+                                <p className="text-2xl font-black tracking-tight">{user.confirmedReferralCount}</p>
                             </div>
                             {referralTrend !== null && (
-                                <div className={`absolute -right-1 -top-1 px-1.5 py-0.5 rounded-bl-lg text-[8px] font-black flex items-center gap-0.5 ${referralTrend >= 0 ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                    {referralTrend >= 0 ? <ArrowUpRight size={8} /> : <ArrowDownRight size={8} />}
+                                <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 ${referralTrend >= 0 ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-100 border border-amber-500/30'}`}>
+                                    {referralTrend >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                                     {Math.abs(referralTrend).toFixed(0)}%
                                 </div>
                             )}
                         </div>
-                        <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3">
-                            <Star size={20} className="text-yellow-300" />
+                        <div className="bg-white/10 backdrop-blur-md rounded-[20px] px-5 py-4 flex items-center gap-4 border border-white/10 shadow-inner">
+                            <div className="p-2 bg-yellow-400/20 rounded-xl">
+                                <Star size={20} className="text-yellow-300" />
+                            </div>
                             <div>
-                                <p className="text-xs text-red-200">{user.role === 'Alumni' ? 'Referral Benefit' : 'Fee Benefit'}</p>
-                                <p className="text-xl font-bold">{user.yearFeeBenefitPercent}%</p>
+                                <p className="text-[11px] uppercase tracking-wider font-bold text-red-100/80 mb-0.5">{user.role === 'Alumni' ? 'Referral Benefit' : 'Fee Benefit'}</p>
+                                <p className="text-2xl font-black tracking-tight">{user.yearFeeBenefitPercent}%</p>
                             </div>
                         </div>
                     </div>
@@ -83,61 +87,63 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
                 <Link
                     href="/refer"
-                    className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl p-5 flex flex-col items-center justify-center gap-2 shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 transition-all hover:-translate-y-0.5 no-underline"
+                    className="group bg-gradient-to-br from-red-500 to-red-600 text-white rounded-[28px] p-6 flex flex-col items-center justify-center gap-3 shadow-[0_20px_40px_-12px_rgba(239,68,68,0.4)] hover:shadow-[0_24px_50px_-12px_rgba(239,68,68,0.5)] transition-all hover:-translate-y-1 active:scale-[0.98] no-underline relative overflow-hidden"
                 >
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                        <UserPlus size={24} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                        <UserPlus size={28} className="text-white" />
                     </div>
-                    <span className="font-bold text-sm">Refer Now</span>
+                    <span className="font-bold text-base tracking-tight">Refer Now</span>
                 </Link>
 
                 <Link
                     href="/analytics"
-                    className="bg-white border border-gray-200 text-gray-800 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 no-underline"
+                    className="group bg-white border border-gray-100 text-gray-800 rounded-[28px] p-6 flex flex-col items-center justify-center gap-3 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_24px_50px_-15px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 active:scale-[0.98] no-underline"
                 >
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                        <BarChart3 size={24} className="text-gray-600" />
+                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:bg-gray-100">
+                        <BarChart3 size={28} className="text-gray-600 group-hover:text-primary-maroon transition-colors" />
                     </div>
-                    <span className="font-bold text-sm">My Status</span>
+                    <span className="font-bold text-base tracking-tight">My Status</span>
                 </Link>
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                    <h3 className="font-bold text-gray-900">Recent Referrals</h3>
-                    <Link href="/referrals" className="text-red-600 text-sm font-medium flex items-center gap-1 no-underline">
+            <div className="bg-white rounded-[32px] border border-gray-100 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.06)] overflow-hidden">
+                <div className="flex items-center justify-between p-6 md:p-8 border-b border-gray-100">
+                    <h3 className="font-bold text-xl text-gray-900 tracking-tight">Recent Referrals</h3>
+                    <Link href="/referrals" className="text-primary-maroon text-sm font-bold flex items-center gap-1 no-underline hover:brightness-110 transition-all bg-red-50 px-3 py-1 rounded-full">
                         View All <ChevronRight size={16} />
                     </Link>
                 </div>
 
                 {recentReferrals.length === 0 ? (
-                    <div className="p-8 text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <UserPlus size={24} className="text-gray-400" />
+                    <div className="p-10 text-center">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                            <UserPlus size={32} className="text-gray-400" />
                         </div>
-                        <p className="text-gray-500 text-sm mb-4">No referrals yet</p>
+                        <p className="text-gray-900 font-bold mb-1">No referrals yet</p>
+                        <p className="text-gray-500 text-sm mb-6">Start sharing your code to earn benefits!</p>
                         <Link
                             href="/refer"
-                            className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium no-underline"
+                            className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-bold no-underline hover:bg-black transition-colors shadow-lg hover:translate-y-[-2px]"
                         >
-                            <UserPlus size={16} /> Make Your First Referral
+                            <UserPlus size={18} /> Make Your First Referral
                         </Link>
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-50">
                         {recentReferrals.slice(0, 5).map((ref) => (
-                            <div key={ref.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600 font-bold">
+                            <div key={ref.id} className="flex items-center justify-between p-5 hover:bg-gray-50/50 transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-2xl flex items-center justify-center text-red-600 font-black text-lg shadow-sm group-hover:scale-105 transition-transform">
                                         {ref.parentName[0]}
                                     </div>
                                     <div>
-                                        <p className="font-medium text-gray-900 text-sm">{ref.parentName}</p>
-                                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                                        <p className="font-bold text-gray-900 text-sm mb-0.5">{ref.parentName}</p>
+                                        <p className="text-xs text-gray-500 flex items-center gap-1.5 font-medium">
                                             <Clock size={12} /> {formatDate(ref.createdAt)}
                                         </p>
                                     </div>
@@ -152,18 +158,20 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
             {/* View Analytics Link */}
             <Link
                 href="/analytics"
-                className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl p-4 transition-colors no-underline"
+                className="group flex items-center justify-between bg-white hover:bg-gray-50 border border-gray-100 rounded-[24px] p-5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] transition-all hover:translate-y-[-2px] no-underline"
             >
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                        <BarChart3 size={20} className="text-gray-600" />
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center shadow-inner group-hover:bg-white transition-colors">
+                        <BarChart3 size={24} className="text-gray-400 group-hover:text-primary-maroon transition-colors" />
                     </div>
                     <div>
-                        <p className="font-semibold text-gray-900 text-sm">View Full Analytics</p>
-                        <p className="text-xs text-gray-500">Detailed stats & benefit structure</p>
+                        <p className="font-bold text-gray-900 text-base tracking-tight mb-0.5">View Full Analytics</p>
+                        <p className="text-xs text-gray-500 font-medium">Detailed stats & benefit structure</p>
                     </div>
                 </div>
-                <ChevronRight size={20} className="text-gray-400" />
+                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary-maroon group-hover:text-white transition-all">
+                    <ChevronRight size={20} />
+                </div>
             </Link>
         </div>
     )

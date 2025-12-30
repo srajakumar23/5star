@@ -2,10 +2,15 @@ import { getCurrentUser } from '@/lib/auth-service'
 import { getCampusStats, getCampusStudents, getCampusReferrals, getCampusFinance, getCampusRecentActivity, getCampusTargets } from '@/app/actions/campus-dashboard-actions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, GraduationCap, TrendingUp, Search, Filter, MoreHorizontal, MapPin, CheckCircle2, XCircle, Clock, UserPlus, AlertCircle, BarChart3, ArrowLeft, Activity, ArrowUpRight, ArrowDownRight, Target } from 'lucide-react'
+import { Users, GraduationCap, TrendingUp, Search, Filter, MoreHorizontal, MapPin, CheckCircle2, XCircle, Clock, UserPlus, AlertCircle, BarChart3, ArrowLeft, Activity, ArrowUpRight, ArrowDownRight, Target, Building2 } from 'lucide-react'
 import { CampusReportsClient } from './campus-reports-client'
 import { DateRangeSelector } from './date-range-selector'
 import { CampusTargetModal } from './campus-target-modal'
+
+// Imports at top
+import { PremiumHeader } from '@/components/premium/PremiumHeader'
+import { PremiumStatCard } from '@/components/premium/PremiumStatCard'
+import { PremiumCard } from '@/components/premium/PremiumCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -286,186 +291,223 @@ export default async function CampusDashboard({ searchParams }: PageProps) {
 
     // Default Home View
     return (
-        <div className="space-y-8 animate-fade-in text-gray-900">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-maroon to-primary-gold">
-                        Campus Dashboard
-                    </h1>
-                    <p className="text-gray-500 mt-1">Hello, {user.fullName} 👋 Managing {user.assignedCampus || 'Global'}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    {user.role === 'Super Admin' && (
-                        <CampusTargetModal
-                            currentLeads={target?.leadTarget}
-                            currentAdmissions={target?.admissionTarget}
-                        />
-                    )}
-                    <DateRangeSelector currentDays={days} />
-                </div>
-            </div>
+        <div className="space-y-8 max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8">
+            {/* Premium Header - Library Component */}
+            <PremiumHeader
+                title={user.assignedCampus || 'Global Campus'}
+                subtitle={`Campus Overview • ${user.fullName}`}
+                icon={Building2}
+                iconColor="text-[#CC0000]"
+                gradientFrom="from-red-600"
+                gradientTo="to-red-600"
+            >
+                {user.role === 'Super Admin' && (
+                    <CampusTargetModal
+                        currentLeads={target?.leadTarget}
+                        currentAdmissions={target?.admissionTarget}
+                    />
+                )}
+                <DateRangeSelector currentDays={days} />
+            </PremiumHeader>
 
-            {/* Target Progress Section */}
+            {/* Target Progress Section - Glass Cards */}
             {!target && user.role === 'Super Admin' ? (
-                <div className="bg-white/50 border border-dashed border-gray-200 rounded-3xl p-8 text-center">
-                    <Target size={32} className="mx-auto text-gray-300 mb-3" />
-                    <p className="text-gray-500 font-medium italic">No targets set for this month yet.</p>
+                <div className="bg-white/50 border border-dashed border-gray-300 rounded-[32px] p-12 text-center shadow-inner">
+                    <Target size={48} className="mx-auto text-gray-300 mb-4" strokeWidth={1.5} />
+                    <p className="text-gray-500 font-bold text-lg">No monthly targets set.</p>
+                    <p className="text-gray-400 text-sm mt-1">Set a target to track performance.</p>
                 </div>
             ) : target && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white/80 backdrop-blur-md rounded-3xl p-6 border border-white shadow-xl shadow-gray-200/50">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                <TrendingUp size={16} className="text-blue-500" /> Lead Goal
-                            </h3>
-                            <span className="text-xs font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-                                {stats?.leadsNew || 0} / {target.leadTarget}
-                            </span>
+                    {/* Lead Goal Card */}
+                    <div className="group relative overflow-hidden bg-white rounded-[32px] p-8 shadow-[0_20px_40px_-12px_rgba(37,99,235,0.1)] border border-gray-100 hover:shadow-[0_30px_60px_-12px_rgba(37,99,235,0.2)] transition-all duration-500">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full translate-x-10 -translate-y-10 blur-3xl opacity-50" />
+                        <div className="relative z-10">
+                            <div className="flex justify-between items-center mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                        <TrendingUp size={20} strokeWidth={2.5} />
+                                    </div>
+                                    <h3 className="font-black text-gray-900 text-lg tracking-tight">Lead Goal</h3>
+                                </div>
+                                <span className="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 shadow-sm">
+                                    {stats?.leadsNew || 0} / {target.leadTarget}
+                                </span>
+                            </div>
+                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden p-0.5 mb-2">
+                                <div
+                                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-sm transition-all duration-1000 ease-out"
+                                    style={{ width: `${Math.min(100, ((stats?.leadsNew || 0) / target.leadTarget) * 100)}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-[11px] text-gray-400 uppercase font-black tracking-widest text-right">
+                                {Math.round(((stats?.leadsNew || 0) / target.leadTarget) * 100)}% Achieved
+                            </p>
                         </div>
-                        <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden p-1">
-                            <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-sm transition-all duration-1000"
-                                style={{ width: `${Math.min(100, ((stats?.leadsNew || 0) / target.leadTarget) * 100)}%` }}
-                            ></div>
-                        </div>
-                        <p className="text-[10px] text-gray-400 mt-2 uppercase font-black tracking-widest text-right">
-                            {Math.round(((stats?.leadsNew || 0) / target.leadTarget) * 100)}% Progress
-                        </p>
                     </div>
 
-                    <div className="bg-white/80 backdrop-blur-md rounded-3xl p-6 border border-white shadow-xl shadow-gray-200/50">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                <CheckCircle2 size={16} className="text-green-500" /> Admissions
-                            </h3>
-                            <span className="text-xs font-black text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
-                                {stats?.leadsConfirmed || 0} / {target.admissionTarget}
-                            </span>
+                    {/* Admission Goal Card */}
+                    <div className="group relative overflow-hidden bg-white rounded-[32px] p-8 shadow-[0_20px_40px_-12px_rgba(5,150,105,0.1)] border border-gray-100 hover:shadow-[0_30px_60px_-12px_rgba(5,150,105,0.2)] transition-all duration-500">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full translate-x-10 -translate-y-10 blur-3xl opacity-50" />
+                        <div className="relative z-10">
+                            <div className="flex justify-between items-center mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                                        <CheckCircle2 size={20} strokeWidth={2.5} />
+                                    </div>
+                                    <h3 className="font-black text-gray-900 text-lg tracking-tight">Admissions</h3>
+                                </div>
+                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 shadow-sm">
+                                    {stats?.leadsConfirmed || 0} / {target.admissionTarget}
+                                </span>
+                            </div>
+                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden p-0.5 mb-2">
+                                <div
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full shadow-sm transition-all duration-1000 ease-out"
+                                    style={{ width: `${Math.min(100, ((stats?.leadsConfirmed || 0) / target.admissionTarget) * 100)}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-[11px] text-gray-400 uppercase font-black tracking-widest text-right">
+                                {Math.round(((stats?.leadsConfirmed || 0) / target.admissionTarget) * 100)}% Achieved
+                            </p>
                         </div>
-                        <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden p-1">
-                            <div
-                                className="h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-sm transition-all duration-1000"
-                                style={{ width: `${Math.min(100, ((stats?.leadsConfirmed || 0) / target.admissionTarget) * 100)}%` }}
-                            ></div>
-                        </div>
-                        <p className="text-[10px] text-gray-400 mt-2 uppercase font-black tracking-widest text-right">
-                            {Math.round(((stats?.leadsConfirmed || 0) / target.admissionTarget) * 100)}% Progress
-                        </p>
                     </div>
                 </div>
             )}
 
+            {/* Premium Stats Grid - Library Component */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard
+                <PremiumStatCard
                     title="Total Students"
                     value={stats?.totalStudents || 0}
-                    icon={<Users className="text-blue-500" />}
-                    bg="bg-blue-50"
+                    icon={<Users size={24} color="white" />}
+                    gradient="linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)" // Sapphire
+                    shadowColor="rgba(37, 99, 235, 0.3)"
                 />
-                <StatCard
+                <PremiumStatCard
                     title="New Leads"
                     value={stats?.newReferrals || 0}
-                    icon={<UserPlus className="text-purple-500" />}
-                    bg="bg-purple-50"
+                    icon={<UserPlus size={24} color="white" />}
+                    gradient="linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)" // Violet
+                    shadowColor="rgba(124, 58, 237, 0.3)"
                     change={leadChange}
                 />
-                <StatCard
+                <PremiumStatCard
                     title="Admissions"
                     value={stats?.confirmedAdmissions || 0}
-                    icon={<CheckCircle2 className="text-green-500" />}
-                    bg="bg-green-50"
+                    icon={<CheckCircle2 size={24} color="white" />}
+                    gradient="linear-gradient(135deg, #059669 0%, #064E3B 100%)" // Emerald
+                    shadowColor="rgba(5, 150, 105, 0.3)"
                     change={admissionChange}
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
                     <RecentActivitySection />
                 </div>
-                <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white shadow-xl shadow-gray-200/50">
-                    <h2 className="text-xl font-bold mb-6 text-gray-800">Quick Actions</h2>
+
+                {/* Quick Actions - Premium Style (Using PremiumCard container) */}
+                <PremiumCard className="h-full">
+                    <h2 className="text-xl font-black mb-8 text-gray-900 tracking-tight flex items-center gap-3">
+                        <span className="w-1.5 h-6 bg-amber-500 rounded-full"></span>
+                        Quick Actions
+                    </h2>
                     <div className="grid grid-cols-1 gap-4">
-                        <Link href="/campus/referrals" className="group flex items-center justify-between p-4 bg-primary-maroon text-white rounded-2xl hover:scale-[1.02] transition-all shadow-lg shadow-primary-maroon/20">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-white/20 rounded-xl"><UserPlus size={20} /></div>
-                                <span className="font-bold">Process Admissions</span>
+                        <Link href="/campus/referrals" className="group flex items-center justify-between p-5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-[24px] hover:shadow-[0_10px_30px_-10px_rgba(220,38,38,0.5)] active:scale-[0.98] transition-all duration-300">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm border border-white/20 shadow-inner">
+                                    <UserPlus size={20} strokeWidth={2.5} />
+                                </div>
+                                <span className="font-bold text-lg">Process Admissions</span>
                             </div>
-                            <MoreHorizontal size={20} className="opacity-40" />
+                            <MoreHorizontal size={24} className="opacity-60 group-hover:opacity-100 transition-opacity" />
                         </Link>
-                        <Link href="/campus/students" className="group flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-primary-gold/10 text-primary-gold rounded-xl"><Users size={20} /></div>
-                                <span className="font-bold text-gray-700">Student Roster</span>
+
+                        <Link href="/campus/students" className="group flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[24px] hover:bg-gray-50 hover:border-gray-200 transition-all shadow-sm">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                                    <Users size={20} strokeWidth={2.5} />
+                                </div>
+                                <span className="font-bold text-gray-700 text-lg">Student Roster</span>
                             </div>
-                            <MoreHorizontal size={20} className="text-gray-300" />
+                            <MoreHorizontal size={24} className="text-gray-300 group-hover:text-gray-400 transition-colors" />
                         </Link>
-                        <Link href="/campus?view=analytics" className="group flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-500 rounded-xl"><BarChart3 size={20} /></div>
-                                <span className="font-bold text-gray-700">Analytics</span>
+
+                        <Link href="/campus?view=analytics" className="group flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[24px] hover:bg-gray-50 hover:border-gray-200 transition-all shadow-sm">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                    <BarChart3 size={20} strokeWidth={2.5} />
+                                </div>
+                                <span className="font-bold text-gray-700 text-lg">Detailed Analytics</span>
                             </div>
-                            <MoreHorizontal size={20} className="text-gray-300" />
+                            <MoreHorizontal size={24} className="text-gray-300 group-hover:text-gray-400 transition-colors" />
                         </Link>
                     </div>
-                </div>
+                </PremiumCard>
             </div>
         </div>
     )
 }
+
+// ----------------------------------------------------------------------
+// SUB-COMPONENTS (Refactored to Premium)
+// ----------------------------------------------------------------------
 
 async function RecentActivitySection() {
     const { success, data: activities } = await getCampusRecentActivity()
+
     if (!success || !activities || activities.length === 0) {
         return (
-            <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white shadow-xl shadow-gray-200/50 min-h-[400px] flex flex-col justify-center items-center">
-                <Activity size={48} className="text-gray-100 mb-4" />
-                <p className="text-gray-400 font-medium">No recent activity detected</p>
-            </div>
+            <PremiumCard className="min-h-[400px] flex flex-col justify-center items-center text-center">
+                <div className="p-6 bg-gray-50 rounded-full mb-6">
+                    <Activity size={32} className="text-gray-300" strokeWidth={1.5} />
+                </div>
+                <p className="text-gray-900 font-bold text-lg mb-1">No recent activity</p>
+                <p className="text-gray-400 text-sm">New actions will appear here in real-time.</p>
+            </PremiumCard>
         )
     }
+
     return (
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 border border-white shadow-xl shadow-gray-200/50">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <Activity className="text-primary-maroon" size={20} />
-                    <h2 className="text-xl font-bold text-gray-800">Recent Activity</h2>
+        <div className="bg-white rounded-[32px] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center gap-3">
+                    <span className="w-1.5 h-6 bg-red-600 rounded-full"></span>
+                    <h2 className="text-xl font-black text-gray-900 tracking-tight">Recent Activity</h2>
                 </div>
-                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Live Updates</span>
+                <span className="flex items-center gap-1.5 text-[11px] font-black text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    Live Feed
+                </span>
             </div>
-            <div className="space-y-6">
+            <div className="p-6 space-y-6">
                 {activities.map((activity: any, idx: number) => (
-                    <div key={idx} className="flex items-start gap-4 group">
-                        <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${activity.type === 'confirmed' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
-                            {activity.type === 'confirmed' ? <CheckCircle2 size={16} /> : <UserPlus size={16} />}
+                    <div key={idx} className="flex items-start gap-5 group p-2 hover:bg-gray-50 rounded-2xl transition-colors">
+                        <div className={`p-4 rounded-2xl shadow-sm border transition-all group-hover:scale-105 group-hover:shadow-md ${activity.type === 'confirmed'
+                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                : 'bg-blue-50 text-blue-600 border-blue-100'
+                            }`}>
+                            {activity.type === 'confirmed' ? <CheckCircle2 size={20} strokeWidth={2.5} /> : <UserPlus size={20} strokeWidth={2.5} />}
                         </div>
-                        <div className="flex-1 min-w-0 border-b border-gray-50 pb-4 group-last:border-0">
-                            <p className="text-sm text-gray-800 font-bold leading-tight">{activity.message}</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                                {activity.by} • {new Date(activity.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        <div className="flex-1 min-w-0 pt-1">
+                            <p className="text-base text-gray-900 font-bold leading-snug group-hover:text-red-700 transition-colors">
+                                {activity.message}
                             </p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                                    {activity.by}
+                                </span>
+                                <span className="text-xs text-gray-400 font-medium">
+                                    • {new Date(activity.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 ))}
-            </div>
-        </div>
-    )
-}
-
-function StatCard({ title, value, icon, bg, change }: { title: string, value: number, icon: any, bg: string, change?: any }) {
-    return (
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-xl shadow-gray-200/50 border border-white flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-transform">
-            <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-2xl ${bg} group-hover:bg-white transition-colors`}>{icon}</div>
-                {change && (
-                    <div className={`flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-full ${change.isIncrease ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                        {change.isIncrease ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                        {change.value}%
-                    </div>
-                )}
-            </div>
-            <div>
-                <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">{title}</p>
-                <h3 className="text-3xl font-extrabold mt-1 text-gray-900 tracking-tight">{value.toLocaleString()}</h3>
             </div>
         </div>
     )

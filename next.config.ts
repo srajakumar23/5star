@@ -10,8 +10,12 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
-      allowedOrigins: ['localhost:3001', '5starv1.vercel.app'],
+      allowedOrigins: ['localhost:3001', process.env.VERCEL_URL || '5starv1.vercel.app'],
     },
+  },
+  env: {
+    // Expose Vercel URL to client if needed
+    NEXT_PUBLIC_APP_URL: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001',
   },
   typescript: {
     // !! WARN !!

@@ -1,4 +1,5 @@
 import { UserPlus, Download, MoreHorizontal, CheckCircle, XCircle, Calendar, CreditCard, Smartphone, Hash, Building, Trash2 } from 'lucide-react'
+import { PremiumHeader } from '@/components/premium/PremiumHeader'
 import { User } from '@/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Badge } from '@/components/ui/Badge'
@@ -177,17 +178,15 @@ export function UserTable({
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <div className="bg-white p-10 rounded-[32px] border border-gray-100 shadow-2xl shadow-gray-200/50 flex items-center justify-between flex-wrap gap-8 premium-border relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-32 h-32 bg-red-50/50 rounded-bl-full -z-10 blur-2xl"></div>
-                <div className="flex items-center gap-6">
-                    <div className="p-4 bg-red-600 rounded-3xl shadow-lg shadow-red-200">
-                        <UserPlus size={24} className="text-white" />
-                    </div>
-                    <div>
-                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Ambassador Network</h3>
-                        <p className="text-sm font-medium text-gray-400 mt-1">Manage parent and staff ambassadors globally.</p>
-                    </div>
-                </div>
+            {/* Premium Header */}
+            <PremiumHeader
+                title="Ambassador Network"
+                subtitle="Manage parent and staff ambassadors globally"
+                icon={UserPlus}
+                iconColor="text-white"
+                gradientFrom="from-red-600"
+                gradientTo="to-red-600"
+            >
                 <div className="flex gap-4">
                     <button
                         onClick={onBulkAdd}
@@ -204,7 +203,7 @@ export function UserTable({
                         <UserPlus size={18} /> New Ambassador
                     </button>
                 </div>
-            </div>
+            </PremiumHeader>
 
             <DataTable
                 data={users}

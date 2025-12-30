@@ -32,14 +32,15 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     const isSuperAdmin = user.role === 'Super Admin'
     const isCampusHead = user.role.includes('Campus')
     const isRegularAdmin = user.role.includes('Admin') && !isSuperAdmin
-    const isAmbassadorRole = user.role === 'Staff' || user.role === 'Parent'
+    const isAmbassadorRole = user.role === 'Staff' || user.role === 'Parent' || user.role === 'Alumni'
 
     const navItems = []
     const permissions = await getMyPermissions()
 
     if (permissions) {
+        const isFinanceAdmin = user.role === 'Finance Admin'
         // Dashboard Link (Role-specific destination)
-        const dashboardHref = isSuperAdmin ? '/superadmin' : (isCampusHead ? '/campus' : (isRegularAdmin ? '/admin' : '/dashboard'))
+        const dashboardHref = isSuperAdmin ? '/superadmin' : (isCampusHead ? '/campus' : (isFinanceAdmin ? '/finance' : (isRegularAdmin ? '/admin' : '/dashboard')))
         navItems.push({ label: 'Home', href: dashboardHref, icon: <Home /> })
 
         // Admin Modules
@@ -99,57 +100,35 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
 
     return (
-        <div className="flex min-h-screen text-text-primary relative" style={{
-            backgroundImage: "url('/bg-pattern.png')",
-            backgroundSize: 'cover',
-            backgroundAttachment: 'fixed',
-            backgroundPosition: 'center'
-        }}>
-            <div className="absolute inset-0" style={{
-                backgroundColor: 'rgba(255,255,255,0.85)',
-                zIndex: 0,
-                backdropFilter: 'blur(2px)',
-                WebkitBackdropFilter: 'blur(2px)'
-            }}></div>
+        <div className="flex min-h-screen text-text-primary relative bg-[url('/bg-pattern.png')] bg-cover bg-fixed bg-center">
+            <div className="absolute inset-0 bg-white/85 z-0 backdrop-blur-[2px]"></div>
 
             {/* Desktop Sidebar (Permanent) */}
-            <aside className="desktop-sidebar hidden xl:flex flex-col border-r border-white/5 p-4 sticky top-0 h-screen relative z-10" style={{
-                width: '280px',
-                background: 'linear-gradient(195deg, #1A0000 0%, #3D0000 100%)',
-                boxShadow: '10px 0 50px rgba(0,0,0,0.5)',
-                borderRight: '1px solid rgba(255,255,255,0.05)',
-                flexShrink: 0
-            }}>
+            <aside className="desktop-sidebar hidden xl:flex flex-col w-[280px] shrink-0 border-r border-white/5 p-4 sticky top-0 h-screen z-20 bg-gradient-to-br from-[#1A0000] to-[#3D0000] shadow-2xl shadow-black/50">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
 
                 <div className="flex flex-col items-center border-b border-white/5 pb-8 pt-4 mb-8">
-                    <div className="relative group">
+                    <div className="relative group cursor-pointer hover:scale-105 transition-transform duration-300">
                         <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-amber-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                         <img
                             src="/achariya_25_logo.jpg"
                             alt="Achariya 25th Year"
-                            className="relative object-contain rounded-2xl shadow-2xl bg-white p-1 border border-white/10"
-                            style={{ height: '100px', width: 'auto', maxWidth: '220px' }}
+                            className="relative object-contain rounded-2xl shadow-2xl bg-white p-1 border border-white/10 h-[100px] w-auto max-w-[220px]"
                         />
                     </div>
-                    <div className="mt-4 text-center">
+                    <div className="mt-6 text-center">
                         <p className="text-[10px] uppercase tracking-[0.3em] font-black text-red-500/80 mb-1">Achariya Group</p>
-                        <h2 className="text-white text-lg font-black tracking-tight">5-Star Ambassador</h2>
+                        <h2 className="text-white text-lg font-black tracking-tight drop-shadow-lg">5-Star Ambassador</h2>
                     </div>
                 </div>
-                <div className="flex-1 overflow-hidden custom-scrollbar">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar -mr-2 pr-2">
                     <MobileMenu navItems={navItems} user={{ fullName: user.fullName, role: user.role }} logoutAction={logout} />
                 </div>
             </aside>
 
             {/* Mobile Topbar */}
-            <div className="mobile-topbar xl:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/20 z-50 flex items-center justify-between px-4" style={{
-                background: 'rgba(255, 255, 255, 0.85)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
-            }}>
+            <div className="mobile-topbar xl:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/20 z-50 flex items-center justify-between px-4 bg-white/85 backdrop-blur-xl shadow-sm">
                 <div className="flex items-center gap-3">
                     {/* Hamburger Menu Trigger */}
                     <MobileSidebarWrapper>
@@ -165,8 +144,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
                     <img
                         src="/achariya_25_logo.jpg"
                         alt="Achariya 25th Year"
-                        className="rounded-lg shadow-sm bg-white p-1"
-                        style={{ height: '40px', width: 'auto' }}
+                        className="rounded-lg shadow-sm bg-white p-1 h-10 w-auto"
                     />
                 </div>
 
@@ -177,7 +155,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             </div>
 
             <main
-                className="flex-1 p-4 pt-20 xl:p-8 xl:pt-8 pb-20 xl:pb-8 w-full max-w-[1600px] m-auto relative z-10"
+                className="flex-1 p-4 pt-20 xl:p-8 xl:pt-8 pb-20 xl:pb-8 w-full max-w-[1600px] mx-auto relative z-10"
             >
                 {/* Desktop Notification Header */}
                 <header className="hidden xl:flex justify-end mb-4 absolute top-4 right-8 z-20">

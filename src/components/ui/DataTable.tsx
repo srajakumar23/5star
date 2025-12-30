@@ -158,8 +158,8 @@ export function DataTable<T>({
     return (
         <div className={`space-y-6 ${className}`}>
             {searchKey && (
-                <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-600 transition-colors" size={18} />
+                <div className="relative group max-w-sm ml-1">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={20} />
                     <input
                         type="text"
                         placeholder={searchPlaceholder}
@@ -170,14 +170,14 @@ export function DataTable<T>({
                             onSearchChange?.(val)
                             setCurrentPage(1)
                         }}
-                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-red-600/5 focus:border-red-600 transition-all text-sm shadow-sm font-medium"
+                        className="w-full pl-14 pr-6 py-4 bg-white border-transparent ring-1 ring-gray-200 rounded-[20px] outline-none focus:ring-2 focus:ring-red-500 focus:shadow-lg focus:shadow-red-500/10 transition-all text-sm font-bold text-gray-700 placeholder:text-gray-400 placeholder:font-medium"
                     />
                 </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden premium-border" style={{ minHeight: '300px' }}>
+            <div className="bg-white rounded-[32px] border border-gray-100/50 shadow-2xl shadow-gray-200/40 overflow-hidden backdrop-blur-xl" style={{ minHeight: '300px' }}>
                 <table className="w-full border-collapse block md:table">
-                    <thead className="bg-gray-50/50 hidden md:table-header-group">
+                    <thead className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 hidden md:table-header-group">
                         <tr>
                             {columns.map((column, i) => {
                                 const isFiltered = isColumnFiltered(i)
@@ -185,17 +185,17 @@ export function DataTable<T>({
                                     <th
                                         key={i}
                                         className={`
-                                            p-5 text-left text-[11px] font-black uppercase tracking-widest border-b border-gray-100 bg-gray-50/50 relative whitespace-nowrap
-                                            ${isFiltered ? 'text-red-700' : 'text-gray-500'}
+                                            p-6 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 relative whitespace-nowrap group hover:bg-gray-50/80 transition-colors first:pl-8
+                                            ${isFiltered ? 'text-red-600 bg-red-50/30' : ''}
                                         `}
                                     >
-                                        <div className="flex items-center gap-2 justify-between">
+                                        <div className="flex items-center gap-3 justify-between">
                                             <div
                                                 className={`${column.sortable ? 'cursor-pointer hover:text-gray-900 select-none' : ''} flex items-center gap-2`}
                                                 onClick={() => column.sortable && typeof column.accessorKey === 'string' && handleSort(column.accessorKey as keyof T)}
                                             >
                                                 {column.header}
-                                                {column.sortable && <ArrowUpDown size={12} className="opacity-50" />}
+                                                {column.sortable && <ArrowUpDown size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400" />}
                                             </div>
 
                                             {column.filterable && (
@@ -206,31 +206,31 @@ export function DataTable<T>({
                                                             setOpenFilterColumn(openFilterColumn === i ? null : i)
                                                             setFilterSearchTerm('')
                                                         }}
-                                                        className={`p-1.5 rounded-md transition-colors ${isFiltered ? 'bg-red-50 text-red-600' : 'hover:bg-gray-200 text-gray-400'}`}
+                                                        className={`p-2 rounded-lg transition-all ${isFiltered ? 'bg-red-100 text-red-600 shadow-sm' : 'hover:bg-white hover:shadow-sm text-gray-300 hover:text-gray-500'}`}
                                                         suppressHydrationWarning
                                                     >
-                                                        <Filter size={14} fill={isFiltered ? "currentColor" : "none"} />
+                                                        <Filter size={14} fill={isFiltered ? "currentColor" : "none"} strokeWidth={2.5} />
                                                     </button>
 
                                                     {/* Filter Dropdown Popover */}
                                                     {openFilterColumn === i && (
                                                         <div
                                                             ref={filterRef}
-                                                            className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-200"
-                                                            style={{ minWidth: '200px' }}
+                                                            className="absolute top-full right-0 mt-3 w-64 bg-white/95 backdrop-blur-xl rounded-[24px] shadow-2xl shadow-gray-200/50 border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+                                                            style={{ minWidth: '240px' }}
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
-                                                            <div className="p-3 border-b border-gray-50 flex justify-between items-center">
-                                                                <span className="text-xs font-bold text-gray-500">Filter {column.header}</span>
-                                                                <button onClick={() => setOpenFilterColumn(null)} className="text-gray-400 hover:text-gray-600" suppressHydrationWarning><X size={14} /></button>
+                                                            <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                                                                <span className="text-xs font-black uppercase tracking-wider text-gray-500">Filter {column.header}</span>
+                                                                <button onClick={() => setOpenFilterColumn(null)} className="text-gray-400 hover:text-red-500 transition-colors" suppressHydrationWarning><X size={16} /></button>
                                                             </div>
-                                                            <div className="p-2 border-b border-gray-50">
+                                                            <div className="p-3 border-b border-gray-50">
                                                                 <div className="relative">
-                                                                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={12} />
+                                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                                                                     <input
                                                                         type="text"
-                                                                        placeholder="Search..."
-                                                                        className="w-full pl-7 pr-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+                                                                        placeholder="Search values..."
+                                                                        className="w-full pl-9 pr-3 py-2 text-xs font-bold border-none bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 text-gray-700 placeholder:text-gray-400"
                                                                         onClick={(e) => e.stopPropagation()}
                                                                         value={filterSearchTerm}
                                                                         onChange={(e) => setFilterSearchTerm(e.target.value)}
@@ -239,13 +239,13 @@ export function DataTable<T>({
                                                                     />
                                                                 </div>
                                                             </div>
-                                                            <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+                                                            <div className="max-h-60 overflow-y-auto p-2 space-y-1 custom-scrollbar">
                                                                 {getUniqueValues(column)
                                                                     .filter(val => val.toLowerCase().includes(filterSearchTerm.toLowerCase()))
                                                                     .map(val => (
-                                                                        <label key={val} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer text-sm text-gray-700 select-none">
-                                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${activeFilters[String(i)]?.includes(val) ? 'bg-red-600 border-red-600 text-white' : 'border-gray-300 bg-white'}`}>
-                                                                                {activeFilters[String(i)]?.includes(val) && <Check size={10} strokeWidth={4} />}
+                                                                        <label key={val} className="flex items-center gap-3 p-2.5 hover:bg-red-50/50 rounded-xl cursor-pointer text-sm font-medium text-gray-700 select-none transition-colors group">
+                                                                            <div className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-all ${activeFilters[String(i)]?.includes(val) ? 'bg-red-600 border-red-600 text-white shadow-md shadow-red-500/30' : 'border-gray-200 bg-white group-hover:border-red-300'}`}>
+                                                                                {activeFilters[String(i)]?.includes(val) && <Check size={12} strokeWidth={4} />}
                                                                             </div>
                                                                             <input
                                                                                 type="checkbox"
@@ -254,21 +254,23 @@ export function DataTable<T>({
                                                                                 onChange={() => toggleFilterValue(i, val)}
                                                                                 suppressHydrationWarning
                                                                             />
-                                                                            <span className="truncate">{val}</span>
+                                                                            <span className="truncate flex-1">{val}</span>
                                                                         </label>
                                                                     ))}
                                                                 {getUniqueValues(column).filter(val => val.toLowerCase().includes(filterSearchTerm.toLowerCase())).length === 0 && (
-                                                                    <div className="p-4 text-center text-xs text-gray-400 font-medium">No values found</div>
+                                                                    <div className="p-8 text-center">
+                                                                        <p className="text-xs font-bold text-gray-300 uppercase tracking-widest">No matches</p>
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            <div className="p-2 border-t border-gray-50 bg-gray-50/30">
+                                                            <div className="p-3 border-t border-gray-50 bg-gray-50/30">
                                                                 <button
                                                                     onClick={() => {
                                                                         const { [String(i)]: _, ...rest } = activeFilters
                                                                         setActiveFilters(rest)
                                                                         setOpenFilterColumn(null)
                                                                     }}
-                                                                    className="w-full py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    className="w-full py-2.5 text-xs font-black uppercase tracking-widest text-red-600 hover:bg-red-50/80 rounded-xl transition-all active:scale-95"
                                                                     suppressHydrationWarning
                                                                 >
                                                                     Clear Filter
@@ -299,15 +301,19 @@ export function DataTable<T>({
                                                     setExpandedRows(next)
                                                 }
                                             }}
-                                            className={`group block md:table-row bg-white rounded-2xl md:rounded-none border border-gray-100 md:border-b md:border-x-0 md:border-t-0 mb-4 md:mb-0 shadow-sm md:shadow-none hover:bg-gray-50/80 transition-all ${renderExpandedRow ? 'cursor-pointer' : ''}`}
+                                            className={`
+                                                group block md:table-row bg-white rounded-[24px] md:rounded-none border border-gray-100 md:border-b md:border-x-0 md:border-t-0 mb-4 md:mb-0 shadow-sm md:shadow-none 
+                                                hover:bg-gradient-to-r hover:from-red-50/30 hover:to-white hover:scale-[1.002] hover:shadow-lg hover:shadow-gray-200/20 hover:z-10 relative transition-all duration-300
+                                                ${renderExpandedRow ? 'cursor-pointer' : ''}
+                                            `}
                                         >
                                             {columns.map((column, j) => (
                                                 <td
                                                     key={j}
-                                                    className="block md:table-cell p-4 md:p-5 text-sm text-gray-600 border-b last:border-0 md:border-none flex justify-between items-center md:block"
+                                                    className="block md:table-cell p-5 text-sm font-medium text-gray-600 border-b last:border-0 md:border-none md:first:pl-8 flex justify-between items-center md:block"
                                                 >
-                                                    <span className="md:hidden font-bold text-gray-400 text-xs uppercase tracking-wider">{column.header}</span>
-                                                    <div className="text-right md:text-left w-full md:w-auto pl-4 md:pl-0">
+                                                    <span className="md:hidden font-black text-gray-400 text-[10px] uppercase tracking-widest">{column.header}</span>
+                                                    <div className="text-right md:text-left w-full md:w-auto pl-4 md:pl-0 group-hover:text-gray-900 transition-colors">
                                                         {column.cell
                                                             ? column.cell(row)
                                                             : typeof column.accessorKey === 'function'
@@ -318,10 +324,12 @@ export function DataTable<T>({
                                             ))}
                                         </tr>
                                         {isExpanded && renderExpandedRow && (
-                                            <tr className="block md:table-row bg-gray-50/50">
-                                                <td colSpan={columns.length} className="block md:table-cell p-0">
-                                                    <div className="animate-in slide-in-from-top-2 duration-200">
-                                                        {renderExpandedRow(row)}
+                                            <tr className="block md:table-row">
+                                                <td colSpan={columns.length} className="block md:table-cell p-0 border-b border-gray-100">
+                                                    <div className="bg-gray-50/50 p-6 shadow-inner">
+                                                        <div className="animate-in slide-in-from-top-2 duration-300">
+                                                            {renderExpandedRow(row)}
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -331,12 +339,15 @@ export function DataTable<T>({
                             })
                         ) : (
                             <tr>
-                                <td colSpan={columns.length} className="p-16 text-center block md:table-cell">
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className="p-4 bg-gray-50 rounded-full text-gray-300">
-                                            <Search size={32} />
+                                <td colSpan={columns.length} className="p-24 text-center block md:table-cell">
+                                    <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-500">
+                                        <div className="p-6 bg-gray-50 rounded-full text-gray-300">
+                                            <Search size={48} strokeWidth={1.5} />
                                         </div>
-                                        <p className="text-sm font-bold text-gray-400">No matching records found.</p>
+                                        <div className="space-y-1">
+                                            <p className="text-lg font-black text-gray-900 tracking-tight">No records found</p>
+                                            <p className="text-sm font-medium text-gray-400">Try adjusting your search or filters.</p>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -345,66 +356,52 @@ export function DataTable<T>({
                 </table>
             </div>
 
-            {totalPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px' }}>
-                    <p style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        SHOWING <span style={{ color: '#111827' }}>{(currentPage - 1) * pageSize + 1} TO {Math.min(currentPage * pageSize, sortedData.length)}</span> OF <span style={{ color: '#111827' }}>{sortedData.length}</span>
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentPage === 1}
-                            style={{
-                                padding: '10px',
-                                borderRadius: '12px',
-                                border: '1px solid #E5E7EB',
-                                background: 'white',
-                                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                                opacity: currentPage === 1 ? 0.4 : 1
-                            }}
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {[...Array(totalPages)].map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                    style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        borderRadius: '12px',
-                                        fontSize: '14px',
-                                        fontWeight: '800',
-                                        cursor: 'pointer',
-                                        background: currentPage === i + 1 ? '#CC0000' : 'transparent',
-                                        color: currentPage === i + 1 ? 'white' : '#6B7280',
-                                        border: 'none',
-                                        boxShadow: currentPage === i + 1 ? '0 4px 6px -1px rgba(204, 0, 0, 0.4)' : 'none'
-                                    }}
-                                    suppressHydrationWarning
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
+            {
+                totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 mt-4 bg-gray-50/50 rounded-[24px] border border-gray-100">
+                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-2">
+                            SHOWING <span className="text-gray-900 ml-1">{(currentPage - 1) * pageSize + 1} TO {Math.min(currentPage * pageSize, sortedData.length)}</span> OF <span className="text-gray-900 ml-1">{sortedData.length}</span>
+                        </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className={`p-2.5 rounded-xl border transition-all duration-200 ${currentPage === 1
+                                    ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-600 hover:shadow-lg hover:shadow-red-500/10 active:scale-95'
+                                    }`}
+                            >
+                                <ChevronLeft size={18} strokeWidth={2.5} />
+                            </button>
+                            <div className="flex items-center gap-1.5">
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setCurrentPage(i + 1)}
+                                        className={`w-10 h-10 rounded-xl text-sm font-bold transition-all duration-200 ${currentPage === i + 1
+                                            ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-xl shadow-red-600/20 scale-105'
+                                            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                                            }`}
+                                        suppressHydrationWarning
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className={`p-2.5 rounded-xl border transition-all duration-200 ${currentPage === totalPages
+                                    ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-600 hover:shadow-lg hover:shadow-red-500/10 active:scale-95'
+                                    }`}
+                            >
+                                <ChevronRight size={18} strokeWidth={2.5} />
+                            </button>
                         </div>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentPage === totalPages}
-                            style={{
-                                padding: '10px',
-                                borderRadius: '12px',
-                                border: '1px solid #E5E7EB',
-                                background: 'white',
-                                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                                opacity: currentPage === totalPages ? 0.4 : 1
-                            }}
-                        >
-                            <ChevronRight size={18} />
-                        </button>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }

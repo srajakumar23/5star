@@ -14,6 +14,8 @@ import { getBenefitSlabs, updateBenefitSlab, addBenefitSlab, deleteBenefitSlab }
 import { addUser, addAdmin, removeUser, deleteAdmin, bulkAddUsers, updateUserStatus, updateAdminStatus, getSystemAnalytics, getUserGrowthTrend, getCampusComparison, getCampusDetails } from '@/app/superadmin-actions'
 import { addStudent, updateStudent, bulkAddStudents } from '@/app/student-actions'
 import { getRolePermissions, updateRolePermissions } from '@/app/permission-actions'
+import { PremiumHeader } from '@/components/premium/PremiumHeader'
+import { PremiumCard } from '@/components/premium/PremiumCard'
 import { MarketingManager } from '@/components/MarketingManager'
 import DashboardSettings from '@/components/DashboardSettings'
 import CSVUploader from '@/components/CSVUploader'
@@ -684,31 +686,17 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
     return (
         <>
             <div className="space-y-4">
-                {/* Dynamic Header - Premium Refinement */}
+                {/* Dynamic Header - Premium Library Component */}
                 {!['staff-dash', 'parent-dash'].includes(selectedView) && (
-                    <div className="bg-white rounded-3xl premium-shadow border border-gray-100 mb-8" style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '24px',
-                        padding: '32px',
-                        background: 'linear-gradient(to right, #ffffff, #f9fafb)'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            <div className="p-3 bg-red-50 rounded-2xl shadow-inner">
-                                <Building2 size={24} className="text-[#CC0000]" />
-                            </div>
-                            <div>
-                                <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: '900', color: '#111827', margin: 0, letterSpacing: '-0.04em', lineHeight: '1' }}>
-                                    {pageConfig[selectedView].title}
-                                </h1>
-                                <p style={{ fontSize: '14px', color: '#9CA3AF', marginTop: '8px', fontWeight: '600', letterSpacing: '0.01em' }}>
-                                    {pageConfig[selectedView].subtitle}
-                                </p>
-                            </div>
-                        </div>
-
+                    <PremiumHeader
+                        title={pageConfig[selectedView].title}
+                        subtitle={pageConfig[selectedView].subtitle}
+                        icon={Building2}
+                        iconColor="text-[#CC0000]"
+                        iconBgColor="bg-red-50"
+                        gradientFrom="from-red-600"
+                        gradientTo="to-red-600"
+                    >
                         {selectedView === 'analytics' && (
                             <div className="flex items-center gap-4">
                                 <div className="flex bg-gray-100/80 p-1.5 rounded-2xl border border-gray-200/50 backdrop-blur-sm">
@@ -736,7 +724,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </PremiumHeader>
                 )}
 
                 {/* Home View - Action Focused */}
@@ -1687,25 +1675,24 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
             {/* Settings View */}
             {
                 selectedView === 'settings' && settingsState && (
-                    <div className="space-y-6">
-                        {/* Settings Tabs */}
-                        <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-100">
+                    <div className="space-y-8 animate-fade-in">
+                        {/* Premium Tabs */}
+                        <div className="flex gap-2 p-2 bg-gray-100/80 rounded-[24px] overflow-x-auto border border-gray-200/50 backdrop-blur-sm mx-auto max-w-4xl">
                             {[
                                 { id: 'general', label: 'General', icon: Settings },
-                                { id: 'leads', label: 'Lead Management', icon: Users },
+                                { id: 'leads', label: 'Lead Rules', icon: Users },
                                 { id: 'security', label: 'Security', icon: ShieldCheck },
                                 { id: 'notifications', label: 'Notifications', icon: Bell }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveSettingsTab(tab.id as any)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${activeSettingsTab === tab.id
-                                        ? 'shadow-md'
-                                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                                    className={`flex items-center gap-3 px-6 py-4 rounded-[20px] text-sm font-bold transition-all whitespace-nowrap flex-1 justify-center ${activeSettingsTab === tab.id
+                                        ? 'bg-white text-red-600 shadow-lg shadow-gray-200/50 scale-[1.02]'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                                         }`}
-                                    style={activeSettingsTab === tab.id ? { background: '#CC0000', color: 'white' } : {}}
                                 >
-                                    <tab.icon size={16} />
+                                    <tab.icon size={18} strokeWidth={2.5} />
                                     {tab.label}
                                 </button>
                             ))}
@@ -1713,200 +1700,267 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
 
                         {/* General Settings */}
                         {activeSettingsTab === 'general' && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <Settings className="text-gray-400" size={20} />
-                                    System Configuration
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
-                                        <input
-                                            type="text"
-                                            value={settingsState.currentAcademicYear}
-                                            onChange={(e) => setSettingsState({ ...settingsState, currentAcademicYear: e.target.value })}
-                                            className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-primary-gold/50"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Default Student Fee</label>
-                                        <input
-                                            type="number"
-                                            value={settingsState.defaultStudentFee}
-                                            onChange={(e) => setSettingsState({ ...settingsState, defaultStudentFee: parseInt(e.target.value) })}
-                                            className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-primary-gold/50"
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                            <PremiumCard className="max-w-4xl mx-auto">
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
+                                        <div className="p-3 bg-red-50 rounded-2xl text-red-600">
+                                            <Settings size={28} />
+                                        </div>
                                         <div>
-                                            <p className="font-semibold text-gray-900">New Registrations</p>
-                                            <p className="text-xs text-gray-500">Allow new ambassadors/users to sign up</p>
-                                        </div>
-                                        <div
-                                            onClick={() => setRegistrationEnabled(!registrationEnabled)}
-                                            className={`w-12 h-6 rounded-full cursor-pointer transition-colors relative ${registrationEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
-                                        >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${registrationEnabled ? 'left-7' : 'left-1'}`} />
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">System Configuration</h3>
+                                            <p className="text-sm font-medium text-gray-500">Core operational defaults for the academic year.</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                        <div>
-                                            <p className="font-semibold text-gray-900">Maintenance Mode</p>
-                                            <p className="text-xs text-gray-500">Lock access for non-admins</p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Academic Year</label>
+                                            <input
+                                                type="text"
+                                                value={settingsState.currentAcademicYear}
+                                                onChange={(e) => setSettingsState({ ...settingsState, currentAcademicYear: e.target.value })}
+                                                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all font-bold text-gray-700"
+                                            />
                                         </div>
-                                        <div
-                                            onClick={() => setSettingsState({ ...settingsState, maintenanceMode: !settingsState.maintenanceMode })}
-                                            className={`w-12 h-6 rounded-full cursor-pointer transition-colors relative ${settingsState.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Default Student Fee (₹)</label>
+                                            <input
+                                                type="number"
+                                                value={settingsState.defaultStudentFee}
+                                                onChange={(e) => setSettingsState({ ...settingsState, defaultStudentFee: parseInt(e.target.value) })}
+                                                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all font-bold text-gray-700"
+                                            />
+                                        </div>
+
+                                        <div className="col-span-1 md:col-span-2 space-y-4">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Access Control</label>
+
+                                            <div className="flex items-center justify-between p-5 bg-gradient-to-r from-emerald-50 to-white border border-emerald-100 rounded-[24px]">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${registrationEnabled ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        <UserPlus size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-gray-900">New Registrations</p>
+                                                        <p className="text-xs text-emerald-700/70 font-medium">Allow new ambassadors to sign up</p>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    onClick={() => setRegistrationEnabled(!registrationEnabled)}
+                                                    className={`w-14 h-8 rounded-full cursor-pointer transition-all duration-300 relative shadow-inner ${registrationEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${registrationEnabled ? 'left-7' : 'left-1'}`} />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between p-5 bg-gradient-to-r from-red-50 to-white border border-red-100 rounded-[24px]">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${settingsState.maintenanceMode ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        <AlertTriangle size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-gray-900">Maintenance Mode</p>
+                                                        <p className="text-xs text-red-700/70 font-medium">Lock dashboard access for non-admins</p>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    onClick={() => setSettingsState({ ...settingsState, maintenanceMode: !settingsState.maintenanceMode })}
+                                                    className={`w-14 h-8 rounded-full cursor-pointer transition-all duration-300 relative shadow-inner ${settingsState.maintenanceMode ? 'bg-red-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${settingsState.maintenanceMode ? 'left-7' : 'left-1'}`} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
+                                        <button
+                                            onClick={handleUpdateSystemSettings}
+                                            disabled={loading}
+                                            className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-[20px] font-black text-sm shadow-xl shadow-red-600/20 hover:shadow-red-600/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
                                         >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settingsState.maintenanceMode ? 'left-7' : 'left-1'}`} />
-                                        </div>
+                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
+                                            {loading ? 'Saving...' : 'Save Configuration'}
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="mt-6 flex justify-end">
-                                    <button
-                                        onClick={handleUpdateSystemSettings}
-                                        disabled={loading}
-                                        className="px-6 py-2 text-white rounded-lg font-medium hover:bg-red-900 transition-colors"
-                                        style={{ background: '#CC0000' }}
-                                    >
-                                        {loading ? 'Saving...' : 'Save Configuration'}
-                                    </button>
-                                </div>
-                            </div>
+                            </PremiumCard>
                         )}
 
                         {/* Lead Settings */}
                         {activeSettingsTab === 'leads' && leadSettings && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <Users className="text-gray-400" size={20} />
-                                    Lead Management Rules
-                                </h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                                        <div>
-                                            <p className="font-semibold text-gray-900">Auto-Assign Leads</p>
-                                            <p className="text-xs text-gray-500">Automatically assign campus based on location/preference</p>
+                            <PremiumCard className="max-w-4xl mx-auto">
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
+                                        <div className="p-3 bg-blue-50 rounded-2xl text-blue-600">
+                                            <Users size={28} />
                                         </div>
-                                        <div
-                                            onClick={() => setLeadSettings({ ...leadSettings, autoAssignLeads: !leadSettings.autoAssignLeads })}
-                                            className={`w-12 h-6 rounded-full cursor-pointer transition-colors relative ${leadSettings.autoAssignLeads ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                        <div>
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Lead Management Rules</h3>
+                                            <p className="text-sm font-medium text-gray-500">Automation and escalation policies.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 bg-blue-50/50 rounded-[24px] border border-blue-100/50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600">
+                                                    <Target size={24} />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-900 text-lg">Auto-Assign Leads</p>
+                                                    <p className="text-sm text-gray-500">Automatically assign campus based on location logic</p>
+                                                </div>
+                                            </div>
+                                            <div
+                                                onClick={() => setLeadSettings({ ...leadSettings, autoAssignLeads: !leadSettings.autoAssignLeads })}
+                                                className={`w-14 h-8 rounded-full cursor-pointer transition-all duration-300 relative shadow-inner ${leadSettings.autoAssignLeads ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${leadSettings.autoAssignLeads ? 'left-7' : 'left-1'}`} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Stale Lead Threshold (Days)</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={leadSettings.leadStaleDays}
+                                                    onChange={(e) => setLeadSettings({ ...leadSettings, leadStaleDays: parseInt(e.target.value) })}
+                                                    className="w-full pl-5 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-700"
+                                                />
+                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">DAYS</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Escalation Timer (Days)</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={leadSettings.followupEscalationDays}
+                                                    onChange={(e) => setLeadSettings({ ...leadSettings, followupEscalationDays: parseInt(e.target.value) })}
+                                                    className="w-full pl-5 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-700"
+                                                />
+                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">DAYS</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
+                                        <button
+                                            onClick={handleUpdateLeadSettings}
+                                            disabled={loading}
+                                            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-[20px] font-black text-sm shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
                                         >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${leadSettings.autoAssignLeads ? 'left-7' : 'left-1'}`} />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Stale Lead Days</label>
-                                            <input
-                                                type="number"
-                                                value={leadSettings.leadStaleDays}
-                                                onChange={(e) => setLeadSettings({ ...leadSettings, leadStaleDays: parseInt(e.target.value) })}
-                                                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/30"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Days before a lead is marked as stale</p>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Follow-up Escalation</label>
-                                            <input
-                                                type="number"
-                                                value={leadSettings.followupEscalationDays}
-                                                onChange={(e) => setLeadSettings({ ...leadSettings, followupEscalationDays: parseInt(e.target.value) })}
-                                                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/30"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Days before notifying supervisors</p>
-                                        </div>
+                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
+                                            {loading ? 'Saving...' : 'Update Rules'}
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="mt-6 flex justify-end">
-                                    <button
-                                        onClick={handleUpdateLeadSettings}
-                                        disabled={loading}
-                                        className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                                    >
-                                        {loading ? 'Saving...' : 'Save Rules'}
-                                    </button>
-                                </div>
-                            </div>
+                            </PremiumCard>
                         )}
 
                         {/* Security Settings */}
                         {activeSettingsTab === 'security' && securitySettings && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <ShieldCheck className="text-gray-400" size={20} />
-                                    Security Policies
-                                </h3>
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Session Timeout (Minutes)</label>
-                                            <input
-                                                type="number"
-                                                value={securitySettings.sessionTimeoutMinutes}
-                                                onChange={(e) => setSecuritySettings({ ...securitySettings, sessionTimeoutMinutes: parseInt(e.target.value) })}
-                                                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500/30"
-                                            />
+                            <PremiumCard className="max-w-4xl mx-auto">
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
+                                        <div className="p-3 bg-purple-50 rounded-2xl text-purple-600">
+                                            <ShieldCheck size={28} />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Max Login Attempts</label>
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Security Policies</h3>
+                                            <p className="text-sm font-medium text-gray-500">Session and access control parameters.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Session Timeout (Minutes)</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={securitySettings.sessionTimeoutMinutes}
+                                                    onChange={(e) => setSecuritySettings({ ...securitySettings, sessionTimeoutMinutes: parseInt(e.target.value) })}
+                                                    className="w-full pl-5 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-gray-700"
+                                                />
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-purple-100 rounded-lg text-purple-600">
+                                                    <Clock size={16} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Max Login Attempts</label>
                                             <input
                                                 type="number"
                                                 value={securitySettings.maxLoginAttempts}
                                                 onChange={(e) => setSecuritySettings({ ...securitySettings, maxLoginAttempts: parseInt(e.target.value) })}
-                                                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-purple-500/30"
+                                                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-gray-700"
                                             />
                                         </div>
                                     </div>
+
+                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
+                                        <button
+                                            onClick={handleUpdateSecuritySettings}
+                                            disabled={loading}
+                                            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-[20px] font-black text-sm shadow-xl shadow-purple-600/20 hover:shadow-purple-600/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
+                                        >
+                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Shield size={20} />}
+                                            {loading ? 'Saving...' : 'Update Policies'}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="mt-6 flex justify-end">
-                                    <button
-                                        onClick={handleUpdateSecuritySettings}
-                                        disabled={loading}
-                                        className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
-                                    >
-                                        {loading ? 'Saving...' : 'Save Policies'}
-                                    </button>
-                                </div>
-                            </div>
+                            </PremiumCard>
                         )}
 
                         {/* Notification Settings */}
                         {activeSettingsTab === 'notifications' && notificationSettings && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <Bell className="text-gray-400" size={20} />
-                                    Notification Channels
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {[
-                                        { key: 'emailNotifications', label: 'Email Notifications' },
-                                        { key: 'smsNotifications', label: 'SMS Notifications' },
-                                        { key: 'whatsappNotifications', label: 'WhatsApp Notifications' },
-                                        { key: 'notifySuperAdminOnNewAdmins', label: 'Alert Super Admin on New Admin' },
-                                        { key: 'notifyCampusHeadOnNewLeads', label: 'Alert Campus Head on New Leads' }
-                                    ].map((item) => (
-                                        <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                            <span className="font-medium text-gray-700">{item.label}</span>
-                                            <div
-                                                onClick={() => setNotificationSettings({ ...notificationSettings, [item.key]: !notificationSettings[item.key] })}
-                                                className={`w-12 h-6 rounded-full cursor-pointer transition-colors relative ${notificationSettings[item.key] ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${notificationSettings[item.key] ? 'left-7' : 'left-1'}`} />
-                                            </div>
+                            <PremiumCard className="max-w-4xl mx-auto">
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
+                                        <div className="p-3 bg-amber-50 rounded-2xl text-amber-600">
+                                            <Bell size={28} />
                                         </div>
-                                    ))}
+                                        <div>
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Notification Channels</h3>
+                                            <p className="text-sm font-medium text-gray-500">Configure how alerts are delivered.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[
+                                            { key: 'emailNotifications', label: 'Email Notifications' },
+                                            { key: 'smsNotifications', label: 'SMS Notifications' },
+                                            { key: 'whatsappNotifications', label: 'WhatsApp Notifications' },
+                                            { key: 'notifySuperAdminOnNewAdmins', label: 'Alert Super Admin on New Admin' },
+                                            { key: 'notifyCampusHeadOnNewLeads', label: 'Alert Campus Head on New Leads' }
+                                        ].map((item) => (
+                                            <div key={item.key} className="flex items-center justify-between p-5 bg-gray-50 rounded-[24px] hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-gray-100 cursor-pointer" onClick={() => setNotificationSettings({ ...notificationSettings, [item.key]: !notificationSettings[item.key] })}>
+                                                <span className="font-bold text-gray-700">{item.label}</span>
+                                                <div
+                                                    className={`w-14 h-8 rounded-full transition-all duration-300 relative shadow-inner ${notificationSettings[item.key] ? 'bg-amber-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${notificationSettings[item.key] ? 'left-7' : 'left-1'}`} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
+                                        <button
+                                            onClick={handleUpdateNotificationSettings}
+                                            disabled={loading}
+                                            className="px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
+                                        >
+                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Bell size={20} />}
+                                            {loading ? 'Saving...' : 'Update Preferences'}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="mt-6 flex justify-end">
-                                    <button
-                                        onClick={handleUpdateNotificationSettings}
-                                        disabled={loading}
-                                        className="px-6 py-2 bg-primary-gold text-white rounded-lg font-medium hover:bg-yellow-500 transition-colors"
-                                    >
-                                        {loading ? 'Saving...' : 'Update Preferences'}
-                                    </button>
-                                </div>
-                            </div>
+                            </PremiumCard>
                         )}
                     </div>
                 )

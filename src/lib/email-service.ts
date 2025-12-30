@@ -121,6 +121,39 @@ export const EmailService = {
             // Don't block flow if email fails
             return { success: false, error };
         }
+    },
+
+    async sendReportEmail(to: string, subject: string, htmlBody: string, reportTitle: string) {
+        if (!process.env.RESEND_API_KEY) {
+            console.log(`[DEV MODE] Email Service: Sending Report "${subject}" to ${to}`);
+            return { success: true, id: 'mock-id' };
+        }
+
+        try {
+            await resend.emails.send({
+                from: 'Achariya Reports <reports@resend.dev>',
+                to: [to],
+                subject: subject,
+                html: `
+                    <div style="font-family: sans-serif; max-width: 800px; margin: 0 auto;">
+                        <div style="background: #CC0000; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                            <h1 style="color: white; margin: 0;">${reportTitle}</h1>
+                            <p style="color: #FCD34D; margin: 5px 0 0 0;">5-Star Ambassador Program</p>
+                        </div>
+                        <div style="padding: 20px; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 8px 8px;">
+                            ${htmlBody}
+                            <p style="margin-top: 30px; font-size: 12px; color: #6B7280; text-align: center;">
+                                Generated automatically by Achariya Portal.
+                            </p>
+                        </div>
+                    </div>
+                `
+            });
+            return { success: true };
+        } catch (error) {
+            console.error('Send Report Error:', error);
+            return { success: false, error };
+        }
     }
 };
 

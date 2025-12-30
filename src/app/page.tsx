@@ -19,6 +19,7 @@ export default function LoginPage() {
     }
     verify()
   }, [router])
+
   // Steps: 1: Mobile, 1.5: Password (Existing), 2: OTP (New), 3: Register Details, 4: Payment
   const [step, setStep] = useState(1)
   const [mobile, setMobile] = useState('')
@@ -57,17 +58,14 @@ export default function LoginPage() {
       setLoading(false)
       if (res && res.success) {
         if (res.exists && res.hasPassword) {
-          // Go to Password Login
           setStep(1.5)
         } else {
-          // Go to OTP Flow
           if (res.otp) {
             toast.success(`Your Verification Code is: ${res.otp}`, { duration: 6000 })
             console.log('MOCK OTP:', res.otp)
           } else {
             toast.success(`OTP Sent to ${mobile}`)
           }
-
           setIsNewUser(true)
           setStep(2)
         }
@@ -101,11 +99,9 @@ export default function LoginPage() {
       if (isNewUser) {
         setStep(3)
         setLoading(false)
-        // Fetch campuses
         const res = await getRegistrationCampuses()
         if (res.success && res.campuses) setCampuses(res.campuses)
       } else {
-        // Fallback or shouldn't happen if existing users have passwords now
         toast.info('Please use password to login')
         setStep(1.5)
         setLoading(false)
@@ -116,12 +112,10 @@ export default function LoginPage() {
   }
 
   const handleRegister = async () => {
-    // Validate
     if (!formData.fullName) return toast.error('Name Required')
     if (!formData.password) return toast.error('Password Required')
     if (formData.password !== formData.confirmPassword) return toast.error('Passwords do not match!')
 
-    // Strict Password Validation
     const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.*[A-Z])[a-zA-Z0-9!@#$%^&*]{8,}$/;
     if (!passwordRegex.test(formData.password)) {
       return toast.error('Password must have 1 Uppercase, 1 Special Char, 1 Number, and be 8+ chars.')
@@ -142,109 +136,85 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-premium-pink">
-      {/* Decorative background elements for "Elite" feel */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#DE0C78] opacity-20 blur-[120px] rounded-full"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#700124] opacity-30 blur-[120px] rounded-full"></div>
+    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-[#1A0000] to-[#2D0000]">
+      {/* Decorative background elements */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-red-600/20 blur-[150px] rounded-full animate-pulse-slow"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-amber-600/10 blur-[150px] rounded-full animate-pulse-slow delay-1000"></div>
+      <div className="absolute inset-0 bg-[url('/bg-pattern.png')] bg-cover opacity-10"></div>
 
-      <div className="relative z-10 w-full max-w-sm animate-fade-in mx-auto">
+      <div className="relative z-10 w-full max-w-sm animate-in fade-in zoom-in-95 duration-700 mx-auto">
         {/* Brand Header */}
-        <div className="text-center mb-10">
-          {/* Achariya Logo with premium elevation */}
-          <div className="mb-8 relative inline-block">
-            <div className="absolute inset-0 bg-white/10 blur-[20px] rounded-full"></div>
+        <div className="text-center mb-12">
+          <div className="mb-8 relative inline-block group cursor-default">
+            <div className="absolute inset-0 bg-white/10 blur-[30px] rounded-full group-hover:bg-white/20 transition-all duration-700"></div>
             <img
               src="/achariya_25_logo.jpg"
               alt="Achariya 25th Year Logo"
-              className="mx-auto relative z-10"
-              style={{
-                height: '150px',
-                width: 'auto',
-                filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.3))'
-              }}
+              className="mx-auto relative z-10 h-[150px] w-auto drop-shadow-2xl rounded-2xl hover:scale-105 transition-transform duration-500"
             />
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-3 mb-4">
+          <div className="flex flex-col items-center justify-center gap-3 mb-6">
             <div className="flex items-center gap-0 mb-4 justify-center -space-x-3">
               {[1, 2, 3, 4, 5].map((i, index) => {
-                // Pyramid sizing: Middle biggest, then neighbors, then ends
-                let size = 45; // Default (ends)
-                if (index === 2) size = 85;       // Middle
-                else if (index === 1 || index === 3) size = 60; // Inner neighbors
-
-                // Staggered delay for "wave" effect outward from center
+                let size = 45;
+                if (index === 2) size = 85;
+                else if (index === 1 || index === 3) size = 60;
                 const delay = Math.abs(index - 2) * 100;
 
                 return (
                   <div key={i} className="animate-pulse-gold relative" style={{ animationDelay: `${delay}ms` }}>
-                    <div className="absolute inset-0 bg-yellow-400 blur-md opacity-40 rounded-full scale-75"></div>
+                    <div className="absolute inset-0 bg-amber-400 blur-md opacity-40 rounded-full scale-75"></div>
                     <Star
                       size={size}
-                      fill="#FFD700"
+                      fill="#F59E0B"
                       stroke="none"
-                      className="gold-glow relative z-10"
+                      className="text-amber-500 relative z-10 drop-shadow-lg"
                     />
                   </div>
                 )
               })}
             </div>
-            <h1 style={{
-              fontSize: '3.5rem',
-              fontWeight: '700',
-              color: '#FFFFFF',
-              lineHeight: '1',
-              textShadow: '0 4px 12px rgba(0,0,0,0.5)',
-              fontFamily: 'var(--font-heading)',
-              margin: 0
-            }}>
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-amber-200 tracking-tight drop-shadow-sm font-heading leading-tight">
               Ambassador
             </h1>
           </div>
 
-          <div className="inline-block px-6 py-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm">
-            <p className="text-lg font-bold uppercase tracking-[3px]" style={{
-              background: 'linear-gradient(90deg, #FFD700, #FDB931, #FFD700)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>
+          <div className="inline-block px-8 py-2.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-xl">
+            <p className="text-lg font-bold uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300">
               25th Year Celebration
             </p>
           </div>
         </div>
 
-        {/* Form Section - No Card */}
+        {/* Form Section */}
         <div className="mt-8">
           <div className="relative">
             {step === 1 && (
-              <div className="animate-fade-in">
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '32px', textAlign: 'center', color: '#FFFFFF' }}>Member Access</h2>
+              <div className="animate-in slide-in-from-right-8 fade-in duration-500">
+                <h2 className="text-2xl font-bold mb-8 text-center text-white tracking-wide">Member Access</h2>
 
-                <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-                  <label style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' }}>Mobile Number</label>
+                <div className="mb-8 text-center group">
+                  <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-3 block group-focus-within:text-amber-400/80 transition-colors">Mobile Number</label>
                   <input
                     type="tel"
-                    className="bg-white/90 border border-white/20 rounded-full px-4 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-bold tracking-wide text-center backdrop-blur-md"
-                    style={{ width: '220px', maxWidth: '100%', borderRadius: '9999px', height: '56px', padding: '0', display: 'block', margin: '0 auto' }}
+                    className="block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 focus:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] transition-all text-xl font-bold tracking-[0.1em] text-center backdrop-blur-md"
                     placeholder="00000 00000"
                     value={mobile}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '')
-                      if (value.length <= 10) {
-                        setMobile(value)
-                      }
+                      if (value.length <= 10) setMobile(value)
                     }}
                     maxLength={10}
                   />
                   {mobile.length > 0 && mobile.length < 10 && (
-                    <p style={{ fontSize: '10px', color: '#F87171', marginTop: '8px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '-0.05em', padding: '0 4px' }}>Incomplete Identity Number</p>
+                    <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-wider animate-pulse">Incomplete Number</p>
                   )}
                 </div>
 
-                <div style={{ textAlign: 'center' }}>
+                <div className="text-center">
                   <button
-                    className="rounded-full transition-all active:scale-[0.98] bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] text-black font-bold tracking-widest text-sm uppercase hover:shadow-lg hover:shadow-orange-500/40 hover:scale-[1.02] flex items-center justify-center gap-2"
-                    style={{ width: '220px', maxWidth: '100%', borderRadius: '9999px', height: '50px', display: 'flex', margin: '0 auto', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+                    className="block mx-auto w-[280px] h-12 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-black font-black tracking-[0.15em] text-sm uppercase shadow-lg shadow-amber-900/40 hover:shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                     onClick={handleSendOtp}
                     disabled={loading}
                   >
@@ -252,57 +222,41 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ height: '1px', width: '100%', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent)', marginBottom: '24px' }}></div>
+                <div className="mt-8 flex flex-col items-center">
+                  <div className="h-px w-full max-w-[200px] bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8"></div>
                   <NativeLogin onMobileFill={setMobile} />
                 </div>
               </div>
             )}
 
             {step === 1.5 && (
-              <div className="animate-fade-in">
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px', textAlign: 'center', color: '#FFFFFF' }}>Welcome Back</h2>
-                <p style={{ fontSize: '12px', textAlign: 'center', marginBottom: '32px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>+91 {mobile}</p>
+              <div className="animate-in slide-in-from-right-8 fade-in duration-500">
+                <h2 className="text-2xl font-bold mb-2 text-center text-white tracking-wide">Welcome Back</h2>
+                <p className="text-xs text-center mb-8 text-white/40 tracking-[0.1em] uppercase">+91 {mobile}</p>
 
-                <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-                  <label style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' }}>Password</label>
-                  <div className="relative mx-auto" style={{ width: '250px', height: '56px' }}>
+                <div className="mb-8 text-center">
+                  <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-3 block">Password</label>
+                  <div className="relative mx-auto w-[250px]">
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="bg-white/90 border border-white/20 rounded-full px-4 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-bold tracking-wide text-center backdrop-blur-md"
-                      style={{ width: '100%', borderRadius: '9999px', height: '56px', padding: '0 40px 0 20px', display: 'block' }}
+                      className="w-full bg-white/5 border border-white/10 rounded-full px-6 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-xl font-bold tracking-widest text-center backdrop-blur-md"
                       placeholder="******"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
                     <button
                       type="button"
-                      className="text-gray-500 hover:text-[#CC0000] transition-colors z-20 flex items-center justify-center p-1"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-amber-400 transition-colors"
                       onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: 'absolute',
-                        right: '16px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
 
-                <div style={{ textAlign: 'center' }}>
+                <div className="text-center">
                   <button
-                    className="py-4 rounded-full transition-all active:scale-[0.98] bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] text-black font-bold tracking-widest text-sm uppercase hover:shadow-lg hover:shadow-orange-500/40 hover:scale-[1.02] flex items-center justify-center gap-2"
-                    style={{ width: '220px', maxWidth: '100%', borderRadius: '9999px', height: '50px', display: 'flex', margin: '0 auto', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+                    className="block mx-auto w-[280px] h-12 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-black font-black tracking-[0.15em] text-sm uppercase shadow-lg shadow-amber-900/40 hover:shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                     onClick={handleLoginPassword}
                     disabled={loading}
                   >
@@ -311,7 +265,7 @@ export default function LoginPage() {
                 </div>
 
                 <button
-                  style={{ width: '100%', marginTop: '16px', padding: '8px', color: 'rgba(255,255,255,0.4)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px', background: 'none', border: 'none', cursor: 'pointer' }}
+                  className="w-full mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 hover:text-white/60 transition-colors"
                   onClick={() => { setStep(1); setPassword(''); }}
                 >
                   Back to Mobile
@@ -320,30 +274,28 @@ export default function LoginPage() {
             )}
 
             {step === 2 && (
-              <div className="animate-fade-in">
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px', textAlign: 'center', color: '#FFFFFF' }}>Verify Secret</h2>
-                <p style={{ fontSize: '12px', textAlign: 'center', marginBottom: '32px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  {isNewUser ? 'New Identity' : 'Verify Identity'}: +91 {mobile}
+              <div className="animate-in slide-in-from-right-8 fade-in duration-500">
+                <h2 className="text-2xl font-bold mb-2 text-center text-white tracking-wide">Verify Identity</h2>
+                <p className="text-xs text-center mb-8 text-white/40 tracking-[0.1em] uppercase">
+                  {isNewUser ? 'New Identity' : 'Secure Login'}: +91 {mobile}
                 </p>
 
-                <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-                  <label style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' }}>OTP Code</label>
+                <div className="mb-8 text-center group">
+                  <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-3 block group-focus-within:text-amber-400/80 transition-colors">OTP Code</label>
                   <input
-                    type="password"
-                    className="bg-white/90 border border-white/50 rounded-full px-4 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-bold tracking-[1rem] text-center backdrop-blur-md"
-                    style={{ width: '220px', maxWidth: '100%', borderRadius: '9999px', height: '56px', padding: '0', display: 'block', margin: '0 auto' }}
+                    type="text"
+                    className="block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-2xl font-black tracking-[0.5em] text-center backdrop-blur-md"
                     placeholder="••••••"
                     maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                   />
-                  <p className="text-white/40 text-[10px] mt-4 tracking-widest uppercase">Check your messages</p>
+                  <p className="text-white/30 text-[10px] mt-4 tracking-widest uppercase">Check your messages</p>
                 </div>
 
-                <div style={{ textAlign: 'center' }}>
+                <div className="text-center">
                   <button
-                    className="py-4 rounded-full transition-all active:scale-[0.98] bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] text-black font-bold tracking-widest text-sm uppercase hover:shadow-lg hover:shadow-orange-500/40 hover:scale-[1.02] flex items-center justify-center gap-2"
-                    style={{ width: '220px', maxWidth: '100%', borderRadius: '9999px', height: '50px', display: 'flex', margin: '0 auto', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+                    className="block mx-auto w-[280px] h-12 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-black font-black tracking-[0.15em] text-sm uppercase shadow-lg shadow-amber-900/40 hover:shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                     onClick={handleVerifyOtp}
                     disabled={loading}
                   >
@@ -352,165 +304,102 @@ export default function LoginPage() {
                 </div>
 
                 <button
-                  style={{ width: '100%', marginTop: '16px', padding: '8px', color: 'rgba(255,255,255,0.4)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px', background: 'none', border: 'none', cursor: 'pointer' }}
+                  className="w-full mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 hover:text-white/60 transition-colors"
                   onClick={() => setStep(1)}
                 >
-                  Revise Identity Number
+                  Change Mobile Number
                 </button>
               </div>
             )}
 
             {step === 3 && (
-              <div className="animate-fade-in">
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px', textAlign: 'center', color: '#FFFFFF' }}>Elite Profile</h2>
-                <p style={{ fontSize: '10px', textAlign: 'center', marginBottom: '32px', color: '#FFD700', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '3px' }}>Welcome Ambassador</p>
+              <div className="animate-in slide-in-from-right-8 fade-in duration-500">
+                <h2 className="text-2xl font-bold mb-2 text-center text-white tracking-wide">Elite Profile</h2>
+                <p className="text-[10px] text-center mb-8 text-amber-400 font-bold uppercase tracking-[0.3em]">Welcome Ambassador</p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="flex flex-col gap-6">
 
                   {/* Password Set Field */}
                   <div>
-                    <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Create Password</label>
+                    <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Create Password</label>
                     <div className="relative w-full">
-                      <style jsx>{`
-                        input::-ms-reveal,
-                        input::-ms-clear {
-                          display: none !important;
-                        }
-                      `}</style>
                       <input
                         type={showRegisterPassword ? "text" : "password"}
-                        className="w-full bg-white/90 border border-white/20 rounded-xl pl-4 pr-12 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide appearance-none backdrop-blur-md"
-                        style={{ height: '56px' }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                         value={formData.password}
                         placeholder='Use a strong password'
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       />
                       <button
                         type="button"
-                        className="text-gray-500 hover:text-[#CC0000] transition-colors z-20 flex items-center justify-center p-1"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-amber-400 transition-colors"
                         onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '16px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          outline: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
                       >
-                        {showRegisterPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', marginTop: '6px', marginLeft: '4px' }}>
-                      At least 8 chars, 1 uppercase, 1 special char & 1 number.
-                    </p>
+                    <p className="text-white/30 text-[10px] mt-2 ml-1">At least 8 chars, 1 uppercase, 1 special char & 1 number.</p>
                   </div>
 
                   {/* Confirm Password Field */}
                   <div>
-                    <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Retype Password</label>
+                    <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Retype Password</label>
                     <div className="relative w-full">
                       <input
                         type={showConfirmPassword ? "text" : "password"}
-                        className="w-full bg-white/90 border border-white/20 rounded-xl pl-4 pr-12 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide appearance-none backdrop-blur-md"
-                        style={{ height: '56px' }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                         value={(formData as any).confirmPassword}
                         placeholder='Retype your password'
                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value } as any)}
                       />
-                      <button
-                        type="button"
-                        className="text-gray-500 hover:text-[#CC0000] transition-colors z-20 flex items-center justify-center p-1"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '16px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          outline: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
                     </div>
                   </div>
 
                   <div>
-                    <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Full Membership Name</label>
+                    <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Full Membership Name</label>
                     <input
-                      style={{ height: '56px' }}
-                      className="w-full bg-white/90 border border-white/20 rounded-xl px-4 py-2 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide backdrop-blur-md"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     />
                   </div>
 
                   <div>
-                    <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' }}>Membership Designation</label>
+                    <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Membership Designation</label>
                     <div className="flex gap-2">
-                      {/* Parent Option */}
-                      <div
-                        onClick={() => setFormData({ ...formData, role: 'Parent' })}
-                        className={`flex-1 flex flex-col items-center justify-center gap-2 py-4 rounded-xl cursor-pointer transition-all border ${formData.role === 'Parent' ? 'border-[#FFD700] bg-[#FFD700]/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
-                      >
-                        <User size={18} color={formData.role === 'Parent' ? '#FFD700' : 'rgba(255,255,255,0.4)'} />
-                        <span style={{ fontSize: '10px', fontWeight: '700', color: formData.role === 'Parent' ? '#FFFFFF' : 'rgba(255,255,255,0.4)' }}>Parent</span>
-                      </div>
-
-                      {/* Staff Option */}
-                      <div
-                        onClick={() => setFormData({ ...formData, role: 'Staff' })}
-                        className={`flex-1 flex flex-col items-center justify-center gap-2 py-4 rounded-xl cursor-pointer transition-all border ${formData.role === 'Staff' ? 'border-[#FFD700] bg-[#FFD700]/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
-                      >
-                        <ShieldCheck size={18} color={formData.role === 'Staff' ? '#FFD700' : 'rgba(255,255,255,0.4)'} />
-                        <span style={{ fontSize: '10px', fontWeight: '700', color: formData.role === 'Staff' ? '#FFFFFF' : 'rgba(255,255,255,0.4)' }}>Staff</span>
-                      </div>
-
-                      {/* Alumni Option */}
-                      <div
-                        onClick={() => setFormData({ ...formData, role: 'Alumni' })}
-                        className={`flex-1 flex flex-col items-center justify-center gap-2 py-4 rounded-xl cursor-pointer transition-all border ${formData.role === 'Alumni' ? 'border-[#FFD700] bg-[#FFD700]/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
-                      >
-                        <GraduationCap size={18} color={formData.role === 'Alumni' ? '#FFD700' : 'rgba(255,255,255,0.4)'} />
-                        <span style={{ fontSize: '10px', fontWeight: '700', color: formData.role === 'Alumni' ? '#FFFFFF' : 'rgba(255,255,255,0.4)' }}>Alumni/Other</span>
-                      </div>
+                      {['Parent', 'Staff', 'Alumni'].map((role) => (
+                        <div
+                          key={role}
+                          onClick={() => setFormData({ ...formData, role: role })}
+                          className={`flex-1 flex flex-col items-center justify-center gap-2 py-4 rounded-xl cursor-pointer transition-all border ${formData.role === role ? 'border-amber-400/50 bg-amber-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'
+                            }`}
+                        >
+                          {role === 'Parent' && <User size={18} className={formData.role === role ? 'text-amber-400' : 'text-white/40'} />}
+                          {role === 'Staff' && <ShieldCheck size={18} className={formData.role === role ? 'text-amber-400' : 'text-white/40'} />}
+                          {role === 'Alumni' && <GraduationCap size={18} className={formData.role === role ? 'text-amber-400' : 'text-white/40'} />}
+                          <span className={`text-[10px] font-bold uppercase ${formData.role === role ? 'text-white' : 'text-white/40'}`}>{role === 'Alumni' ? 'Alumni/Other' : role}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Use specific content based on Role */}
+                  {/* Role Specific Fields */}
                   {formData.role === 'Parent' && (
-                    /* Parent Form Flow */
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 animate-in slide-in-from-top-4 fade-in duration-300">
                       <div>
-                        <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Child EPR NO</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Child EPR NO</label>
                         <input
-                          style={{ height: '56px' }}
-                          className="w-full bg-white/90 border border-white/20 rounded-xl px-4 py-1 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide backdrop-blur-md"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                           placeholder="Enter Child EPR Number"
                           value={formData.childEprNo || ''}
                           onChange={(e) => setFormData({ ...formData, childEprNo: e.target.value })}
                         />
                       </div>
-
                       <div>
-                        <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Mail ID</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Mail ID</label>
                         <input
-                          style={{ height: '56px' }}
                           type="email"
-                          className="w-full bg-white/90 border border-white/20 rounded-xl px-4 py-2 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide backdrop-blur-md"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                           placeholder="parent@example.com"
                           value={formData.email || ''}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -520,36 +409,30 @@ export default function LoginPage() {
                   )}
 
                   {formData.role === 'Staff' && (
-                    /* Staff Form Flow */
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 animate-in slide-in-from-top-4 fade-in duration-300">
                       <div>
-                        <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Emp.ID</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Emp.ID</label>
                         <input
-                          style={{ height: '56px' }}
-                          className="w-full bg-white/90 border border-white/20 rounded-xl px-4 py-1 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide backdrop-blur-md"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                           placeholder="Enter Employee ID"
                           value={formData.empId || ''}
                           onChange={(e) => setFormData({ ...formData, empId: e.target.value })}
                         />
                       </div>
-
                       <div>
-                        <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Mail ID</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Mail ID</label>
                         <input
-                          style={{ height: '56px' }}
                           type="email"
-                          className="w-full bg-white/90 border border-white/20 rounded-xl px-4 py-2 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide backdrop-blur-md"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                           placeholder="staff@example.com"
                           value={formData.email || ''}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
                       </div>
-
                       <div>
-                        <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Campus Currently Working</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Campus Currently Working</label>
                         <select
-                          style={{ height: '56px' }}
-                          className="w-full bg-white/90 border border-white/20 rounded-xl px-4 py-1 text-black focus:outline-none focus:border-[#FFD700] transition-all text-[20px] appearance-none font-bold tracking-wide backdrop-blur-md"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md appearance-none"
                           value={formData.campusId}
                           onChange={(e) => setFormData({ ...formData, campusId: e.target.value })}
                         >
@@ -563,13 +446,11 @@ export default function LoginPage() {
                   )}
 
                   {formData.role === 'Alumni' && (
-                    /* Alumni/Other Form Flow */
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 animate-in slide-in-from-top-4 fade-in duration-300">
                       <div>
-                        <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Your Aadhar No</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Your Aadhar No</label>
                         <input
-                          style={{ height: '56px' }}
-                          className="w-full bg-white/90 border border-white/20 rounded-xl px-4 py-1 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-medium tracking-wide backdrop-blur-md"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                           placeholder="Enter 12-digit Aadhar Number"
                           maxLength={12}
                           value={formData.aadharNo || ''}
@@ -579,13 +460,11 @@ export default function LoginPage() {
                           }}
                         />
                       </div>
-
                       <div>
-                        <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', display: 'block' }}>Mail ID</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Mail ID</label>
                         <input
-                          style={{ height: '56px' }}
                           type="email"
-                          className="w-full bg-white border border-white/20 rounded-lg px-4 py-1 text-black placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-[20px] font-bold tracking-wide"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
                           placeholder="you@example.com"
                           value={formData.email || ''}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -595,43 +474,20 @@ export default function LoginPage() {
                   )}
 
                   <button
-                    style={{ height: '46px' }}
-                    className={`w-full relative group overflow-hidden rounded-xl transition-all active:scale-[0.98] mt-4 ${
-                      // Strict Validation Logic
-                      (!formData.fullName || !formData.email || !formData.password ||
-                        (formData.role === 'Parent' && !formData.childEprNo) ||
-                        (formData.role === 'Staff' && (!formData.empId || !formData.campusId)) ||
-                        (formData.role === 'Alumni' && !formData.aadharNo)
-                      ) ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                    className={`w-full relative group overflow-hidden rounded-xl h-14 transition-all active:scale-[0.98] mt-4 ${(!formData.fullName || !formData.email || !formData.password ||
+                      (formData.role === 'Parent' && !formData.childEprNo) ||
+                      (formData.role === 'Staff' && (!formData.empId || !formData.campusId)) ||
+                      (formData.role === 'Alumni' && !formData.aadharNo)
+                    ) ? 'opacity-50 cursor-not-allowed grayscale' : ''
                       }`}
                     onClick={() => {
-                      // Strict check before proceeding
-                      if (!formData.fullName) return;
-                      if (!formData.email) return;
-                      if (!formData.password) return;
-
-                      if (formData.role === 'Parent') {
-                        if (!formData.childEprNo) return;
-                      }
-                      else if (formData.role === 'Staff') {
-                        if (!formData.empId || !formData.campusId) return;
-                      }
-                      else if (formData.role === 'Alumni') {
-                        if (!formData.aadharNo) return;
-                      }
-
+                      // Minimal validation handled by button state, precise handled in handleRegister
                       setStep(4)
                     }}
-                    disabled={loading ||
-                      (!formData.fullName || !formData.email || !formData.password ||
-                        (formData.role === 'Parent' && !formData.childEprNo) ||
-                        (formData.role === 'Staff' && (!formData.empId || !formData.campusId)) ||
-                        (formData.role === 'Alumni' && !formData.aadharNo)
-                      )
-                    }
+                    disabled={loading}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] group-hover:scale-110 transition-transform duration-500"></div>
-                    <span className="relative z-10 text-black font-extrabold tracking-widest text-lg uppercase flex items-center justify-center gap-2 drop-shadow-sm">
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 group-hover:scale-110 transition-transform duration-500"></div>
+                    <span className="relative z-10 text-black font-black tracking-widest text-sm uppercase flex items-center justify-center gap-2 drop-shadow-sm">
                       Proceed to Payment &raquo;
                     </span>
                   </button>
@@ -640,50 +496,50 @@ export default function LoginPage() {
             )}
 
             {step === 4 && (
-              <div className="animate-fade-in">
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px', textAlign: 'center', color: '#FFFFFF' }}>Secure Payment</h2>
-                <p style={{ fontSize: '10px', textAlign: 'center', marginBottom: '24px', color: '#FFD700', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '3px' }}>Final Step</p>
+              <div className="animate-in slide-in-from-right-8 fade-in duration-500">
+                <h2 className="text-2xl font-bold mb-2 text-center text-white tracking-wide">Secure Payment</h2>
+                <p className="text-[10px] text-center mb-8 text-amber-400 font-bold uppercase tracking-[0.3em]">Final Step</p>
 
-                <div className="bg-white/10 p-6 rounded-2xl mb-6 text-center border border-white/10 backdrop-blur-md">
-                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-4">Scan to Pay Rs. 1000</p>
+                <div className="bg-white/5 p-8 rounded-[32px] mb-8 text-center border border-white/10 backdrop-blur-xl shadow-2xl">
+                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-6">Scan to Pay Rs. 1000</p>
 
-                  {/* Placeholder QR Code */}
-                  <div className="w-48 h-48 mx-auto bg-white p-2 rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 border-[4px] border-black opacity-10"></div>
-                    <div className="absolute top-2 left-2 w-10 h-10 border-[4px] border-black"></div>
-                    <div className="absolute top-2 right-2 w-10 h-10 border-[4px] border-black"></div>
-                    <div className="absolute bottom-2 left-2 w-10 h-10 border-[4px] border-black"></div>
-                    <p className="text-black font-bold text-xl tracking-widest">QR CODE</p>
+                  {/* QR Code */}
+                  <div className="w-56 h-56 mx-auto bg-white p-3 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden shadow-inner">
+                    <div className="absolute inset-0 border-[4px] border-black opacity-5"></div>
+                    <div className="absolute top-3 left-3 w-12 h-12 border-[4px] border-black rounded-lg"></div>
+                    <div className="absolute top-3 right-3 w-12 h-12 border-[4px] border-black rounded-lg"></div>
+                    <div className="absolute bottom-3 left-3 w-12 h-12 border-[4px] border-black rounded-lg"></div>
+                    <p className="text-black font-black text-2xl tracking-widest opacity-80">QR CODE</p>
                   </div>
 
-                  <p className="text-white text-xs font-bold">Achariya Educational Public Trust</p>
-                  <p className="text-[#FFD700] text-xs font-mono mt-1">UPI: achariya@okicici</p>
+                  <p className="text-white text-sm font-bold tracking-wide">Achariya Educational Public Trust</p>
+                  <p className="text-amber-400 text-xs font-mono mt-2 bg-amber-400/10 inline-block px-3 py-1 rounded-lg">UPI: achariya@okicici</p>
                 </div>
 
-                <div className="mb-6">
-                  <label className="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-2 block">Enter Transaction ID / Ref No.</label>
+                <div className="mb-8">
+                  <label className="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-3 block">Enter Transaction ID / Ref No.</label>
                   <input
-                    className="w-full bg-white border border-white/10 rounded-lg px-4 py-3 text-black focus:outline-none focus:border-[#FFD700]/40 transition-all font-mono text-center tracking-widest text-lg placeholder-black/50"
+                    className="w-full bg-white border border-white/10 rounded-xl px-4 h-14 text-black focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/20 transition-all font-mono text-center tracking-widest text-lg placeholder-gray-400 shadow-xl"
                     placeholder="e.g. 352627181920"
                     value={formData.transactionId || ''}
                     onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
                   />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                   <button
                     onClick={() => setStep(3)}
-                    className="flex-1 py-4 rounded-xl border border-white/10 text-white/60 font-bold text-xs uppercase hover:bg-white/5 transition-all"
+                    className="flex-1 h-14 rounded-xl border border-white/10 text-white/60 font-bold text-xs uppercase hover:bg-white/5 transition-all"
                   >
                     Back
                   </button>
                   <button
-                    className="flex-[2] relative group overflow-hidden py-4 rounded-xl transition-all active:scale-[0.98]"
+                    className="flex-[2] relative group overflow-hidden h-14 rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-amber-900/40"
                     onClick={handleRegister}
                     disabled={loading || !formData.transactionId}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] group-hover:scale-110 transition-transform duration-500"></div>
-                    <span className="relative z-10 text-black font-extrabold tracking-widest text-xs uppercase drop-shadow-sm">
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 group-hover:scale-110 transition-transform duration-500"></div>
+                    <span className="relative z-10 text-black font-black tracking-widest text-xs uppercase drop-shadow-sm">
                       {loading ? 'Finalizing...' : 'Complete Registration'}
                     </span>
                   </button>
@@ -694,10 +550,10 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info */}
-        <p style={{ marginTop: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.9)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '4px' }}>
-          © 2025 Achariya Group of Institutions
+        <p className="mt-12 text-center text-white/40 text-[10px] font-bold uppercase tracking-[0.4em]">
+          © 2025 Achariya Group
         </p>
       </div>
-    </main >
+    </main>
   )
 }

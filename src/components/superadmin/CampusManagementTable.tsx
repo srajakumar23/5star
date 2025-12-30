@@ -1,7 +1,8 @@
-import { MapPin, Edit, Trash, Plus } from 'lucide-react'
+import { MapPin, Edit, Trash, Plus, School } from 'lucide-react'
 import { DataTable } from '@/components/ui/DataTable'
 import { Badge } from '@/components/ui/Badge'
-import { Card } from '@/components/ui/Card'
+import { PremiumCard } from '@/components/premium/PremiumCard'
+import { PremiumHeader } from '@/components/premium/PremiumHeader'
 
 interface Campus {
     id: number
@@ -91,17 +92,11 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd }: Cam
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-white to-gray-50/50">
-                    <div>
-                        <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                            Campus Locations
-                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">
-                                Active
-                            </span>
-                        </h3>
-                        <p className="text-sm font-medium text-gray-400 mt-1">Manage physical school locations and their capacities</p>
-                    </div>
+            <PremiumHeader
+                title="Campus Locations"
+                subtitle="Manage physical school locations and their capacities"
+                icon={School}
+                action={
                     <button
                         onClick={onAdd}
                         className="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-xs shadow-lg shadow-gray-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2"
@@ -109,11 +104,11 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd }: Cam
                         <Plus size={16} strokeWidth={2.5} />
                         Add Campus
                     </button>
-                </div>
-            </div>
+                }
+            />
 
             {/* Table */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <PremiumCard noPadding>
                 <div className="overflow-x-auto max-w-full">
                     <DataTable
                         data={campuses}
@@ -123,7 +118,7 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd }: Cam
                         pageSize={10}
                     />
                 </div>
-            </div>
+            </PremiumCard>
         </div>
     )
 }

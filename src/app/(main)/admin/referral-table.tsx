@@ -1,7 +1,8 @@
 'use client'
 
-import { CheckCircle, Filter, ChevronDown, Clock, AlertCircle, Phone, MapPin, User } from 'lucide-react'
+import { CheckCircle, Filter, ChevronDown, Clock, AlertCircle, Phone, MapPin, User, Search } from 'lucide-react'
 import { useState, useMemo } from 'react'
+import { PremiumCard } from '@/components/premium/PremiumCard'
 
 interface ReferralTableProps {
     referrals: any[]
@@ -15,11 +16,6 @@ export function ReferralTable({ referrals, confirmReferral, initialRoleFilter, i
     const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || 'All')
     const [campusFilter, setCampusFilter] = useState<string>('All')
     const [searchQuery, setSearchQuery] = useState<string>('')
-
-    // Dropdown states for Excel-like filters
-    const [showRoleDropdown, setShowRoleDropdown] = useState(false)
-    const [showStatusDropdown, setShowStatusDropdown] = useState(false)
-    const [showCampusDropdown, setShowCampusDropdown] = useState(false)
 
     // Get unique values for filters
     const campuses = useMemo(() => {
@@ -42,329 +38,168 @@ export function ReferralTable({ referrals, confirmReferral, initialRoleFilter, i
         })
     }, [referrals, roleFilter, statusFilter, campusFilter, searchQuery])
 
-    // Excel-like filter dropdown component
-    const FilterDropdown = ({
-        show,
-        onClose,
-        options,
-        currentValue,
-        onChange
-    }: {
-        show: boolean
-        onClose: () => void
-        options: string[]
-        currentValue: string
-        onChange: (value: string) => void
-    }) => {
-        if (!show) return null
-
-        return (
-            <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                marginTop: '4px',
-                background: 'white',
-                border: '1px solid #E5E7EB',
-                borderRadius: '12px',
-                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
-                zIndex: 100,
-                minWidth: '180px',
-                overflow: 'hidden'
-            }}>
-                <div style={{ maxHeight: '256px', overflowY: 'auto' }}>
-                    <div
-                        style={{
-                            padding: '10px 16px',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                            background: currentValue === 'All' ? '#F9FAFB' : 'transparent',
-                            fontWeight: currentValue === 'All' ? '700' : '500',
-                            color: currentValue === 'All' ? '#EF4444' : '#374151',
-                            transition: 'all 0.2s'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.background = '#F3F4F6'}
-                        onMouseOut={(e) => e.currentTarget.style.background = currentValue === 'All' ? '#F9FAFB' : 'transparent'}
-                        onClick={() => {
-                            onChange('All')
-                            onClose()
-                        }}
-                    >
-                        All
-                    </div>
-                    {options.map(option => (
-                        <div
-                            key={option}
-                            style={{
-                                padding: '10px 16px',
-                                cursor: 'pointer',
-                                fontSize: '13px',
-                                background: currentValue === option ? '#F9FAFB' : 'transparent',
-                                fontWeight: currentValue === option ? '700' : '500',
-                                color: currentValue === option ? '#EF4444' : '#374151',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#F3F4F6'}
-                            onMouseOut={(e) => e.currentTarget.style.background = currentValue === option ? '#F9FAFB' : 'transparent'}
-                            onClick={() => {
-                                onChange(option)
-                                onClose()
-                            }}
-                        >
-                            {option}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )
-    }
-
     return (
-        <div style={{
-            background: 'white',
-            borderRadius: '20px',
-            border: '1px solid rgba(229, 231, 235, 0.5)',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01)',
-            overflow: 'hidden'
-        }}>
-            <div style={{
-                padding: '20px 24px',
-                borderBottom: '1px solid #F3F4F6',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#111827', margin: 0 }}>Active Referrals</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', background: '#F3F4F6', padding: '4px 10px', borderRadius: '20px' }}>
-                            {filteredReferrals.length} Leads Found
-                        </span>
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
-                        <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+        <PremiumCard title="Active Referrals" subTitle={`${filteredReferrals.length} Leads Found`} icon={User}>
+            <div className="space-y-6">
+                {/* Filters */}
+                <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 flex flex-wrap gap-4">
+                    <div className="flex-1 min-w-[240px] relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
                             type="text"
                             placeholder="Search by parent name or mobile..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            suppressHydrationWarning
-                            style={{
-                                width: '100%',
-                                padding: '10px 12px 10px 36px',
-                                background: '#F9FAFB',
-                                border: '1px solid #E5E7EB',
-                                borderRadius: '12px',
-                                fontSize: '14px',
-                                color: '#111827',
-                                transition: 'all 0.2s',
-                                outline: 'none'
-                            }}
-                            onFocus={(e) => {
-                                e.currentTarget.style.border = '1px solid #EF4444';
-                                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
-                                e.currentTarget.style.background = 'white';
-                            }}
-                            onBlur={(e) => {
-                                e.currentTarget.style.border = '1px solid #E5E7EB';
-                                e.currentTarget.style.boxShadow = 'none';
-                                e.currentTarget.style.background = '#F9FAFB';
-                            }}
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm font-medium"
                         />
                     </div>
+
+                    <select
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                        <option value="All">All Roles</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Staff">Staff</option>
+                    </select>
+
+                    <select
+                        value={campusFilter}
+                        onChange={(e) => setCampusFilter(e.target.value)}
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                        <option value="All">All Campuses</option>
+                        {campuses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                        <option value="All">All Status</option>
+                        <option value="New">New</option>
+                        <option value="Follow-up">Follow-up</option>
+                        <option value="Confirmed">Confirmed</option>
+                    </select>
                 </div>
-            </div>
 
-            <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
-                    <thead>
-                        <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #F3F4F6' }}>
-                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Referrer</th>
-                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', position: 'relative' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => setShowRoleDropdown(!showRoleDropdown)}>
-                                    Role <ChevronDown size={14} />
-                                </div>
-                                <FilterDropdown
-                                    show={showRoleDropdown}
-                                    onClose={() => setShowRoleDropdown(false)}
-                                    options={['Parent', 'Staff']}
-                                    currentValue={roleFilter}
-                                    onChange={setRoleFilter}
-                                />
-                            </th>
-                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lead Details</th>
-                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', position: 'relative' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => setShowCampusDropdown(!showCampusDropdown)}>
-                                    Campus <ChevronDown size={14} />
-                                </div>
-                                <FilterDropdown
-                                    show={showCampusDropdown}
-                                    onClose={() => setShowCampusDropdown(false)}
-                                    options={campuses}
-                                    currentValue={campusFilter}
-                                    onChange={setCampusFilter}
-                                />
-                            </th>
-                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Est. Multiplier</th>
-                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', position: 'relative' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => setShowStatusDropdown(!showStatusDropdown)}>
-                                    Status <ChevronDown size={14} />
-                                </div>
-                                <FilterDropdown
-                                    show={showStatusDropdown}
-                                    onClose={() => setShowStatusDropdown(false)}
-                                    options={['New', 'Follow-up', 'Confirmed']}
-                                    currentValue={statusFilter}
-                                    onChange={setStatusFilter}
-                                />
-                            </th>
-                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredReferrals.map((r: any) => {
-                            const isNew = r.leadStatus === 'New'
-                            const createdDate = new Date(r.createdAt)
-                            const hoursOld = (new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60)
-                            const isUrgent = isNew && hoursOld > 48
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-gray-50/50 border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Referrer</th>
+                                <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Lead Details</th>
+                                <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Campus</th>
+                                <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Est. Multiplier</th>
+                                <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {filteredReferrals.map((r: any) => {
+                                const isNew = r.leadStatus === 'New'
+                                const createdDate = new Date(r.createdAt)
+                                const hoursOld = (new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60)
+                                const isUrgent = isNew && hoursOld > 48
 
-                            return (
-                                <tr key={r.leadId} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#F9FAFB'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                                    <td style={{ padding: '16px 20px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: r.user.role === 'Staff' ? '#FEE2E2' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.user.role === 'Staff' ? '#EF4444' : '#3B82F6' }}>
-                                                <User size={16} />
-                                            </div>
-                                            <div>
-                                                <p style={{ fontSize: '14px', fontWeight: '700', color: '#111827', margin: 0 }}>{r.user.fullName}</p>
-                                                <p style={{ fontSize: '12px', color: '#6B7280', margin: 0, fontFamily: 'monospace' }}>{r.user.referralCode}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px 20px' }}>
-                                        <span style={{
-                                            fontSize: '11px',
-                                            fontWeight: '800',
-                                            padding: '4px 8px',
-                                            borderRadius: '6px',
-                                            background: r.user.role === 'Staff' ? '#FEF2F2' : '#F0F9FF',
-                                            color: r.user.role === 'Staff' ? '#DC2626' : '#0284C7',
-                                            textTransform: 'uppercase'
-                                        }}>
-                                            {r.user.role}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '16px 20px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <p style={{ fontSize: '14px', fontWeight: '700', color: '#111827', margin: 0 }}>{r.parentName}</p>
-                                                {isUrgent && (
-                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '10px', fontWeight: '800', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                                        <AlertCircle size={10} /> Urgent
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B7280' }}>
-                                                    <Phone size={12} />
-                                                    <span style={{ fontSize: '12px', fontWeight: '500' }}>{r.parentMobile}</span>
+                                return (
+                                    <tr key={r.leadId} className="hover:bg-gray-50/80 transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${r.user.role === 'Staff' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                    <User size={16} />
                                                 </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B7280' }}>
-                                                    <Clock size={12} />
-                                                    <span style={{ fontSize: '12px', fontWeight: '500' }}>
-                                                        {hoursOld < 24 ? `${Math.round(hoursOld)}h ago` : `${Math.round(hoursOld / 24)}d ago`}
-                                                    </span>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-900">{r.user.fullName}</p>
+                                                    <p className="text-xs text-gray-500 font-mono">{r.user.referralCode}</p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px 20px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#374151' }}>
-                                            <MapPin size={14} style={{ color: '#9CA3AF' }} />
-                                            <span style={{ fontSize: '13px', fontWeight: '500' }}>{r.campus || 'General'}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px 20px' }}>
-                                        <div style={{ background: '#F9FAFB', border: '1px dashed #E5E7EB', padding: '6px 10px', borderRadius: '8px', display: 'inline-block' }}>
-                                            <p style={{ fontSize: '14px', fontWeight: '800', color: '#EF4444', margin: 0 }}>
-                                                ₹{((r.user.studentFee || 60000) * (r.user.yearFeeBenefitPercent || 0) / 100).toLocaleString('en-IN')}
-                                            </p>
-                                            <p style={{ fontSize: '10px', fontWeight: '600', color: '#9CA3AF', margin: 0, textTransform: 'uppercase' }}>Multiplier</p>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px 20px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{
-                                                width: '8px',
-                                                height: '8px',
-                                                borderRadius: '50%',
-                                                background: r.leadStatus === 'Confirmed' ? '#10B981' : r.leadStatus === 'Follow-up' ? '#F59E0B' : '#6B7280'
-                                            }}></div>
-                                            <span style={{
-                                                fontSize: '13px',
-                                                fontWeight: '700',
-                                                color: r.leadStatus === 'Confirmed' ? '#059669' : r.leadStatus === 'Follow-up' ? '#D97706' : '#4B5563'
-                                            }}>
-                                                {r.leadStatus}
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide ${r.user.role === 'Staff' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                                {r.user.role}
                                             </span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                                        {r.leadStatus !== 'Confirmed' ? (
-                                            <form action={async () => {
-                                                await confirmReferral(r.leadId)
-                                            }}>
-                                                <button style={{
-                                                    padding: '8px 16px',
-                                                    background: '#EF4444',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '10px',
-                                                    fontSize: '13px',
-                                                    fontWeight: '700',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
-                                                }}
-                                                    onMouseOver={(e) => {
-                                                        e.currentTarget.style.background = '#DC2626';
-                                                        e.currentTarget.style.transform = 'translateY(-1px)';
-                                                        e.currentTarget.style.boxShadow = '0 4px 6px rgba(239, 68, 68, 0.3)';
-                                                    }}
-                                                    onMouseOut={(e) => {
-                                                        e.currentTarget.style.background = '#EF4444';
-                                                        e.currentTarget.style.transform = 'translateY(0)';
-                                                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
-                                                    }}
-                                                    suppressHydrationWarning
-                                                >
-                                                    Confirm
-                                                </button>
-                                            </form>
-                                        ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', color: '#10B981' }}>
-                                                <span style={{ fontSize: '13px', fontWeight: '700' }}>Verified</span>
-                                                <CheckCircle size={18} />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-bold text-gray-900">{r.parentName}</p>
+                                                    {isUrgent && (
+                                                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[10px] font-bold uppercase">
+                                                            <AlertCircle size={10} /> Urgent
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs text-gray-500">
+                                                    <div className="flex items-center gap-1">
+                                                        <Phone size={12} />
+                                                        <span>{r.parentMobile}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock size={12} />
+                                                        <span>
+                                                            {hoursOld < 24 ? `${Math.round(hoursOld)}h ago` : `${Math.round(hoursOld / 24)}d ago`}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        )}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-center gap-1.5 text-gray-600">
+                                                <MapPin size={14} className="text-gray-400" />
+                                                <span className="text-sm font-medium">{r.campus || 'General'}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="inline-flex flex-col items-center justify-center px-3 py-1.5 rounded-lg bg-gray-50 border border-dashed border-gray-200">
+                                                <p className="text-sm font-black text-red-600">
+                                                    ₹{((r.user.studentFee || 60000) * (r.user.yearFeeBenefitPercent || 0) / 100).toLocaleString('en-IN')}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Metric</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${r.leadStatus === 'Confirmed' ? 'bg-green-500' : r.leadStatus === 'Follow-up' ? 'bg-amber-500' : 'bg-gray-400'}`}></div>
+                                                <span className={`text-sm font-bold ${r.leadStatus === 'Confirmed' ? 'text-green-700' : r.leadStatus === 'Follow-up' ? 'text-amber-700' : 'text-gray-600'}`}>
+                                                    {r.leadStatus}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            {r.leadStatus !== 'Confirmed' ? (
+                                                <form action={async () => await confirmReferral(r.leadId)}>
+                                                    <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                                                        Confirm
+                                                    </button>
+                                                </form>
+                                            ) : (
+                                                <div className="flex items-center justify-end gap-1.5 text-green-600">
+                                                    <span className="text-xs font-bold">Verified</span>
+                                                    <CheckCircle size={16} />
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                            {filteredReferrals.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="py-12 text-center text-gray-400">
+                                        <Filter size={48} className="mx-auto mb-4 opacity-20" />
+                                        <p className="text-sm font-bold">No matching referrals found</p>
+                                        <p className="text-xs">Try adjusting your filters</p>
                                     </td>
                                 </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            </div>
-
-            {filteredReferrals.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px 24px', color: '#9CA3AF' }}>
-                    <Filter size={48} style={{ margin: '0 auto 16px', opacity: 0.2 }} />
-                    <p style={{ fontSize: '16px', fontWeight: '600', margin: 0 }}>No matching referrals found</p>
-                    <p style={{ fontSize: '14px', margin: '4px 0 0' }}>Try adjusting your filters or search terms</p>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
-        </div>
+            </div>
+        </PremiumCard>
     )
 }

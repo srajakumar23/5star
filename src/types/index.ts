@@ -1,4 +1,4 @@
-export type Role = 'Super Admin' | 'Admission Admin' | 'Campus Head' | 'Campus Admin' | 'Staff' | 'Parent' | 'Finance Admin'
+export type Role = 'Super Admin' | 'Admission Admin' | 'Campus Head' | 'Campus Admin' | 'Staff' | 'Parent' | 'Finance Admin' | 'Alumni'
 
 export interface ModulePermission {
     access: boolean
@@ -187,6 +187,6 @@ export interface BulkStudentData {
 export interface BulkUserData {
     fullName: string
     mobileNumber: string
-    role: 'Parent' | 'Staff'
+    role: 'Parent' | 'Staff' | 'Alumni'
     assignedCampus?: string
 }

@@ -1,4 +1,5 @@
 import { Users, UserPlus, CheckCircle, TrendingUp, Wallet, BookOpen, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { PremiumStatCard } from '../premium/PremiumStatCard'
 
 interface StatsCardsProps {
     analytics: {
@@ -75,55 +76,29 @@ export function StatsCards({ analytics }: StatsCardsProps) {
 
     return (
         <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '16px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '24px',
             marginBottom: '40px'
         }}>
             {stats.map((stat, i) => (
-                <div
+                <PremiumStatCard
                     key={i}
-                    style={{
-                        flex: '1 1 280px',
-                        padding: '28px',
-                        borderRadius: '24px',
-                        transition: 'all 0.3s ease',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        background: stat.grad === 'bg-grad-crimson' ? 'linear-gradient(135deg, #FF1E1E 0%, #A30000 100%)' :
-                            stat.grad === 'bg-grad-sapphire' ? 'linear-gradient(135deg, #3B82F6 0%, #172554 100%)' :
-                                stat.grad === 'bg-grad-emerald' ? 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)' :
-                                    stat.grad === 'bg-grad-amber' ? 'linear-gradient(135deg, #F59E0B 0%, #78350F 100%)' :
-                                        stat.grad === 'bg-grad-violet' ? 'linear-gradient(135deg, #8B5CF6 0%, #4C1D95 100%)' :
-                                            'linear-gradient(135deg, #EC4899 0%, #831843 100%)',
-                        boxShadow: '0 15px 30px -10px rgba(0,0,0,0.3)',
-                        border: '1px solid rgba(255,255,255,0.1)'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                    {/* Decorative Glass Overlay */}
-                    <div style={{ position: 'absolute', top: 0, right: 0, width: '120px', height: '120px', background: 'rgba(255,255,255,0.15)', borderRadius: '60px', transform: 'translate(40%, -40%)' }} />
-
-                    <div style={{ position: 'relative', zIndex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(10px)', borderRadius: '14px' }}>
-                                <stat.icon size={22} color="white" />
-                            </div>
-                            {stat.change !== undefined && stat.change !== null && (
-                                <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md shadow-sm border border-white/20 ${stat.change >= 0 ? 'bg-emerald-500/30 text-emerald-100' : 'bg-rose-500/30 text-rose-100'}`}>
-                                    {stat.change >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                    {Math.abs(stat.change).toFixed(1)}%
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <p style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '32px', fontWeight: '950', color: '#FFFFFF', margin: '4px 0', letterSpacing: '-0.02em' }}>{stat.value}</h3>
-                            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)', fontWeight: '700' }}>{stat.sub}</p>
-                        </div>
-                    </div>
-                </div>
+                    title={stat.label}
+                    value={stat.value}
+                    icon={<stat.icon size={24} color="white" strokeWidth={2} />}
+                    gradient={
+                        stat.grad === 'bg-grad-crimson' ? 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)' :
+                            stat.grad === 'bg-grad-sapphire' ? 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)' :
+                                stat.grad === 'bg-grad-emerald' ? 'linear-gradient(135deg, #059669 0%, #064E3B 100%)' :
+                                    stat.grad === 'bg-grad-amber' ? 'linear-gradient(135deg, #D97706 0%, #92400E 100%)' :
+                                        stat.grad === 'bg-grad-violet' ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' :
+                                            'linear-gradient(135deg, #DB2777 0%, #9D174D 100%)'
+                    }
+                    shadowColor="rgba(0,0,0,0.25)"
+                    change={stat.change ? { value: Math.abs(stat.change).toFixed(1), isIncrease: stat.change >= 0 } : undefined}
+                    subtext={stat.sub}
+                />
             ))}
         </div>
     )

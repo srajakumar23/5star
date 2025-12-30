@@ -889,20 +889,23 @@ a {
 
 /* Custom Scrollbar for Sidebar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
+  /* Even thinner for premium feel */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.1);
+  /* Very subtle track */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(204, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  /* White-ish thumb on dark sidebar */
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(204, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Forceful Sidebar/Topbar Visibility Overrides */
