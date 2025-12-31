@@ -24,7 +24,9 @@ export default async function DashboardPage() {
     const settings = systemSettings as any
 
     // Build WhatsApp share URL
-    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://5starv1.vercel.app'
+    // Build WhatsApp share URL - ALWAYS use production URL for sharing
+    // process.env.NEXT_PUBLIC_APP_URL often points to preview URLs on Vercel, which we don't want for public sharing
+    let baseUrl = 'https://5starv1.vercel.app'
 
     // Check if we are in development to help the user test locally
     if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_APP_URL) {
