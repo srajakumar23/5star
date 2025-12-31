@@ -68,6 +68,17 @@ export function UserTable({
             )
         },
         {
+            header: 'EMP ID',
+            accessorKey: 'empId',
+            sortable: true,
+            filterable: true,
+            cell: (user: User) => (
+                <span className="text-[10px] font-bold text-gray-500 font-mono tracking-wider">
+                    {user.empId || '-'}
+                </span>
+            )
+        },
+        {
             header: 'Campus',
             accessorKey: 'assignedCampus',
             sortable: true,

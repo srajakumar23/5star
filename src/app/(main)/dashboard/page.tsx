@@ -62,7 +62,9 @@ export default async function DashboardPage() {
                     referralCode: userData.referralCode,
                     confirmedReferralCount: userData.confirmedReferralCount || 0,
                     yearFeeBenefitPercent: userData.yearFeeBenefitPercent || 0,
-                    benefitStatus: userData.benefitStatus || 'Active'
+                    benefitStatus: userData.benefitStatus || 'Active',
+                    empId: userData.empId,
+                    assignedCampus: userData.assignedCampus
                 }}
                 recentReferrals={recentReferrals}
                 whatsappUrl={whatsappUrl}

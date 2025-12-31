@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useMemo } from 'react'
 import { submitReferral, sendReferralOtp, verifyReferralOtp, getAmbassadorName } from '@/app/referral-actions'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronRight, Lock, User, School, GraduationCap, Users, Smartphone, AlertCircle, CheckCircle2, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+
+import { getRegistrationCampuses } from '@/app/actions'
 
 export default function ReferPage() {
     return (
@@ -40,20 +42,60 @@ function ReferralFormContent() {
         parentName: '',
         parentMobile: '',
         studentName: '',
-        campus: 'ASM-VILLIANUR(9-12)',
+        campus: '',
         gradeInterested: ''
     })
 
-    // Official Campus List (Top 10)
-    const campuses = [
-        "ASM-VILLIANUR(9-12)", "ASM-VILLIANUR(MONT-8)", "ASM-VILLUPURAM", "ASM-ALAPAKKAM",
-        "ADYAR", "AKLAVYA-RP", "KKNAGAR", "VALASARAVAKKAM", "ASM-MP", "ASM-TKM"
-    ]
+    // Official Campus List (from DB)
+    const [campuses, setCampuses] = useState<{ id: number; campusName: string; grades: string }[]>([])
+
+    useEffect(() => {
+        getRegistrationCampuses().then(res => {
+            if (res.success && res.campuses) {
+                setCampuses(res.campuses as any)
+            }
+        })
+    }, [])
 
     const updateFormData = (key: string, value: string) => {
         setFormData(prev => ({ ...prev, [key]: value }))
         if (error) setError(null)
     }
+
+    // Dynamic Grades based on Campus Selection
+    const availableGrades = useState(() => {
+        return [] as string[]
+    })[0] // Dummy for initial render, effectively
+
+    // Helper to parse complex grade string
+    // Format: "Pre - Mont, Mont - I, Mont - II, Grade - 1, 2, 3..."
+    const parseGrades = (gradeString: string) => {
+        if (!gradeString) return []
+        const rawItems = gradeString.split(',').map(s => s.trim())
+        const finalGrades: string[] = []
+
+        rawItems.forEach(item => {
+            // Check if it's just a number like "2", "3"
+            if (/^\d+$/.test(item)) {
+                finalGrades.push(`Grade - ${item}`)
+            }
+            // Check if it's "Grade - 1" or others
+            else if (item.toLowerCase().startsWith('grade -')) {
+                finalGrades.push(item)
+            }
+            // Other formats like "Pre - Mont"
+            else {
+                finalGrades.push(item)
+            }
+        })
+        return finalGrades
+    }
+
+    const currentCampusGrades = useMemo(() => {
+        const selected = campuses.find(c => c.campusName === formData.campus)
+        if (!selected || !selected.grades) return []
+        return parseGrades(selected.grades)
+    }, [formData.campus, campuses])
 
     const handleSendOtp = async () => {
         setError(null)
@@ -356,7 +398,8 @@ function ReferralFormContent() {
                                             value={formData.campus}
                                             onChange={(e) => updateFormData('campus', e.target.value)}
                                         >
-                                            {campuses.map(c => <option key={c}>{c}</option>)}
+                                            <option value="" disabled>Select Campus</option>
+                                            {campuses.map(c => <option key={c.id} value={c.campusName}>{c.campusName}</option>)}
                                         </select>
                                     </div>
                                 </div>
@@ -374,9 +417,13 @@ function ReferralFormContent() {
                                             onChange={(e) => updateFormData('gradeInterested', e.target.value)}
                                         >
                                             <option value="" disabled>Select Grade</option>
-                                            {['Pre Mont', 'Mont-1', 'Mont-2', ...Array.from({ length: 9 }, (_, i) => `Grade-${i + 1}`), 'Grade-11'].map(g => (
-                                                <option key={g} value={g}>{g}</option>
-                                            ))}
+                                            {currentCampusGrades.length > 0 ? (
+                                                currentCampusGrades.map(g => (
+                                                    <option key={g} value={g}>{g}</option>
+                                                ))
+                                            ) : (
+                                                <option disabled>Select a Campus first</option>
+                                            )}
                                         </select>
                                     </div>
                                 </div>

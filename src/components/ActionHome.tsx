@@ -11,6 +11,8 @@ interface ActionHomeProps {
         confirmedReferralCount: number
         yearFeeBenefitPercent: number
         benefitStatus: string
+        empId?: string
+        assignedCampus?: string
     }
     recentReferrals: {
         id: number
@@ -55,6 +57,24 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
                             ? 'Welcome back to your Alumni Ambassador Dashboard'
                             : 'Welcome back to your Ambassador Dashboard'}
                     </p>
+
+                    {/* Staff Details Badge */}
+                    {user.role === 'Staff' && (
+                        <div className="flex flex-wrap gap-3 mb-6 animate-in fade-in slide-in-from-left-4 duration-500">
+                            {user.empId && (
+                                <div className="px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-red-100/60 uppercase tracking-widest">EMP.ID</span>
+                                    <span className="text-sm font-bold text-white tracking-wide">{user.empId}</span>
+                                </div>
+                            )}
+                            {user.assignedCampus && (
+                                <div className="px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-red-100/60 uppercase tracking-widest">CAMPUS</span>
+                                    <span className="text-sm font-bold text-white tracking-wide">{user.assignedCampus}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Quick Stats Row */}
                     <div className="flex flex-wrap gap-4">

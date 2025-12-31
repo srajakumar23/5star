@@ -31,5 +31,16 @@ export const getCurrentUser = cache(async () => {
         where: { userId: Number(session.userId) }
     })
 
+    if (user && !user.assignedCampus && user.campusId) {
+        // Resolve campus name if missing but ID exists (Legacy/Registration compatibility)
+        const campus = await prisma.campus.findUnique({
+            where: { id: user.campusId },
+            select: { campusName: true }
+        })
+        if (campus) {
+            return { ...user, assignedCampus: campus.campusName }
+        }
+    }
+
     return user
 })

@@ -40,6 +40,7 @@ export interface User {
     yearFeeBenefitPercent: number
     longTermBenefitPercent: number
     createdAt: Date
+    empId?: string | null
 }
 
 export interface Student {

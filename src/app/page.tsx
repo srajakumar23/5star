@@ -45,7 +45,7 @@ export default function LoginPage() {
     password: '',
     childInAchariya: 'Yes',
     childName: '',
-    grade: 'Grade 1',
+    grade: '',
     campusId: '',
     bankAccountDetails: '',
     transactionId: '',
@@ -468,6 +468,19 @@ export default function LoginPage() {
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
                       </div>
+                      <div>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Choose Your Campus</label>
+                        <select
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md appearance-none"
+                          value={formData.campusId}
+                          onChange={(e) => setFormData({ ...formData, campusId: e.target.value })}
+                        >
+                          <option value="" className="text-gray-500">Select Campus</option>
+                          {campuses.map(c => (
+                            <option key={c.id} value={c.id} className="text-black">{c.campusName}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   )}
 
@@ -533,6 +546,28 @@ export default function LoginPage() {
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
                       </div>
+                      <div>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Year of Passout</label>
+                        <input
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
+                          placeholder="e.g. 2020"
+                          value={formData.grade || ''} // Using grade field map
+                          onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Campus Studied</label>
+                        <select
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md appearance-none"
+                          value={formData.campusId}
+                          onChange={(e) => setFormData({ ...formData, campusId: e.target.value })}
+                        >
+                          <option value="" className="text-gray-500">Select Campus</option>
+                          {campuses.map(c => (
+                            <option key={c.id} value={c.id} className="text-black">{c.campusName}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   )}
 
@@ -552,9 +587,9 @@ export default function LoginPage() {
 
                   <button
                     className={`w-full relative group overflow-hidden rounded-xl h-14 transition-all active:scale-[0.98] mt-4 ${(!formData.fullName || !formData.email || !formData.password || !agreedToPrivacy ||
-                      (formData.role === 'Parent' && !formData.childEprNo) ||
+                      (formData.role === 'Parent' && (!formData.childEprNo || !formData.campusId)) ||
                       (formData.role === 'Staff' && (!formData.empId || !formData.campusId)) ||
-                      (formData.role === 'Alumni' && !formData.aadharNo)
+                      (formData.role === 'Alumni' && (!formData.aadharNo || !formData.grade || !formData.campusId))
                     ) ? 'opacity-50 cursor-not-allowed grayscale' : ''
                       }`}
                     onClick={() => {

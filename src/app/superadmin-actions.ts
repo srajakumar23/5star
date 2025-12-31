@@ -456,13 +456,19 @@ export async function getAllUsers(): Promise<UserRecord[]> {
             status: true,
             confirmedReferralCount: true,
             referralCode: true,
-            createdAt: true
+            createdAt: true,
+            empId: true
         },
         orderBy: { createdAt: 'desc' }
     })
 
+    // Fetch all campuses to map IDs to Names
+    const campuses = await prisma.campus.findMany({ select: { id: true, campusName: true } })
+    const campusMap = new Map(campuses.map(c => [c.id, c.campusName]))
+
     return users.map(u => ({
         ...u,
+        assignedCampus: u.assignedCampus || (u.campusId ? campusMap.get(u.campusId) || null : null),
         referralCount: u.confirmedReferralCount
     }))
 }

@@ -175,7 +175,7 @@ export function DataTable<T>({
                 </div>
             )}
 
-            <div className="bg-white rounded-[32px] border border-gray-100/50 shadow-2xl shadow-gray-200/40 overflow-hidden backdrop-blur-xl" style={{ minHeight: '300px' }}>
+            <div className="bg-white rounded-[32px] border border-gray-100/50 shadow-2xl shadow-gray-200/40 overflow-x-auto backdrop-blur-xl" style={{ minHeight: '300px' }}>
                 <table className="w-full border-collapse block md:table">
                     <thead className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 hidden md:table-header-group">
                         <tr>
@@ -185,7 +185,7 @@ export function DataTable<T>({
                                     <th
                                         key={i}
                                         className={`
-                                            p-6 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 relative whitespace-nowrap group hover:bg-gray-50/80 transition-colors first:pl-8
+                                            p-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 relative whitespace-nowrap group hover:bg-gray-50/80 transition-colors first:pl-6
                                             ${isFiltered ? 'text-red-600 bg-red-50/30' : ''}
                                         `}
                                     >
@@ -310,7 +310,7 @@ export function DataTable<T>({
                                             {columns.map((column, j) => (
                                                 <td
                                                     key={j}
-                                                    className="block md:table-cell p-5 text-sm font-medium text-gray-600 border-b last:border-0 md:border-none md:first:pl-8 flex justify-between items-center md:block"
+                                                    className="block md:table-cell p-4 text-sm font-medium text-gray-600 border-b last:border-0 md:border-none md:first:pl-6 flex justify-between items-center md:block"
                                                 >
                                                     <span className="md:hidden font-black text-gray-400 text-[10px] uppercase tracking-widest">{column.header}</span>
                                                     <div className="text-right md:text-left w-full md:w-auto pl-4 md:pl-0 group-hover:text-gray-900 transition-colors">

@@ -222,7 +222,7 @@ export async function getRegistrationCampuses() {
     try {
         const campuses = await prisma.campus.findMany({
             where: { isActive: true },
-            select: { id: true, campusName: true },
+            select: { id: true, campusName: true, grades: true },
             orderBy: { campusName: 'asc' }
         })
         return { success: true, campuses }
