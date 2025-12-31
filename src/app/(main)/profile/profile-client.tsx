@@ -386,6 +386,43 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                 </div>
             )}
 
+            {/* Integrity / System Data */}
+            <div style={{ marginTop: '48px' }}>
+                <div className="flex items-center gap-3 mb-6">
+                    <div style={{ width: '4px', height: '24px', background: 'var(--primary-red)', borderRadius: '2px' }} />
+                    <h2 style={{ fontSize: '22px', fontWeight: '800' }}>Account Details</h2>
+                </div>
+
+                <div className="card" style={{ padding: '0', borderRadius: '24px', overflow: 'hidden' }}>
+                    <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '700' }}>System Verified Information</h3>
+                    </div>
+                    <div style={{ padding: '8px 32px' }}>
+                        {[
+                            { label: 'Role Type', value: user.role, color: 'var(--primary-red)' },
+                            { label: 'Network Code', value: user.referralCode || 'N/A', mono: true },
+                            { label: 'Campus Association', value: user.assignedCampus || 'Network Wide' },
+                            { label: 'Profile Verified', value: 'Yes', check: true }
+                        ].map((item, idx) => (
+                            <div key={idx} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                padding: '20px 0',
+                                borderBottom: idx === 3 ? 'none' : '1px solid var(--border-color)'
+                            }}>
+                                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{item.label}</span>
+                                <span style={{
+                                    fontSize: '15px',
+                                    fontWeight: '700',
+                                    color: item.color || 'var(--text-primary)',
+                                    fontFamily: item.mono ? 'monospace' : 'inherit'
+                                }}>{item.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             {/* Account Management (Google Compliance) */}
             <div style={{ marginTop: '64px', paddingTop: '32px', borderTop: '1px solid var(--border-color)' }}>
                 <div className="flex items-center gap-3 mb-6">
@@ -419,43 +456,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                         </div>
                         <ArrowRight size={16} />
                     </button>
-                </div>
-            </div>
-
-            {/* Integrity / System Data */}
-            <div style={{ marginTop: '48px' }}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div style={{ width: '4px', height: '24px', background: 'var(--primary-red)', borderRadius: '2px' }} />
-                    <h2 style={{ fontSize: '22px', fontWeight: '800' }}>Account Details</h2>
-                </div>
-
-                <div className="card" style={{ padding: '0', borderRadius: '24px', overflow: 'hidden' }}>
-                    <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700' }}>System Verified Information</h3>
-                    </div>
-                    <div style={{ padding: '8px 32px' }}>
-                        {[
-                            { label: 'Role Type', value: user.role, color: 'var(--primary-red)' },
-                            { label: 'Network Code', value: user.referralCode || 'N/A', mono: true },
-                            { label: 'Campus Association', value: user.assignedCampus || 'Network Wide' },
-                            { label: 'Profile Verified', value: 'Yes', check: true }
-                        ].map((item, idx) => (
-                            <div key={idx} style={{
-                                display: 'flex',
-                                justifyComtent: 'space-between',
-                                padding: '20px 0',
-                                borderBottom: idx === 3 ? 'none' : '1px solid var(--border-color)'
-                            }}>
-                                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{item.label}</span>
-                                <span style={{
-                                    fontSize: '15px',
-                                    fontWeight: '700',
-                                    color: item.color || 'var(--text-primary)',
-                                    fontFamily: item.mono ? 'monospace' : 'inherit'
-                                }}>{item.value}</span>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </div>
             <PrivacyModal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
