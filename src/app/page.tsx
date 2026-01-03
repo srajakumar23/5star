@@ -199,8 +199,8 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm animate-in fade-in zoom-in-95 duration-700 mx-auto">
         {/* Brand Header */}
-        <div className="text-center mb-12">
-          <div className="mb-8 relative inline-block group cursor-default">
+        <div className="text-center mb-6">
+          <div className="mb-4 relative inline-block group cursor-default">
             <div className="absolute inset-0 bg-white/10 blur-[30px] rounded-full group-hover:bg-white/20 transition-all duration-700"></div>
             <img
               src="/achariya_25_logo.jpg"
@@ -209,8 +209,8 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-3 mb-6">
-            <div className="flex items-center gap-0 mb-4 justify-center -space-x-3">
+          <div className="flex flex-col items-center justify-center gap-2 mb-4">
+            <div className="flex items-center gap-0 mb-3 justify-center -space-x-3">
               {[1, 2, 3, 4, 5].map((i, index) => {
                 let size = 45;
                 if (index === 2) size = 85;
@@ -243,17 +243,17 @@ export default function LoginPage() {
         </div>
 
         {/* Form Section */}
-        <div className="mt-8">
+        <div className="mt-4">
           <div className="relative">
             {step === 1 && (
               <div className="animate-in slide-in-from-right-8 fade-in duration-500">
-                <h2 className="text-2xl font-bold mb-8 text-center text-white tracking-wide">Member Access</h2>
+                <h2 className="text-2xl font-bold mb-4 text-center text-white tracking-wide">Member Access</h2>
 
-                <div className="mb-8 text-center group">
-                  <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-3 block group-focus-within:text-amber-400/80 transition-colors">Mobile Number</label>
+                <div className="mb-6 text-center group">
+                  <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-2 block group-focus-within:text-amber-400/80 transition-colors">Mobile Number</label>
                   <input
                     type="tel"
-                    className="block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 focus:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] transition-all text-xl font-bold tracking-[0.1em] text-center backdrop-blur-md"
+                    className="block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-12 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 focus:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] transition-all text-xl font-bold tracking-[0.1em] text-center backdrop-blur-md"
                     placeholder="00000 00000"
                     value={mobile}
                     onChange={(e) => {
@@ -287,14 +287,14 @@ export default function LoginPage() {
             {step === 1.5 && (
               <div className="animate-in slide-in-from-right-8 fade-in duration-500">
                 <h2 className="text-2xl font-bold mb-2 text-center text-white tracking-wide">Welcome Back</h2>
-                <p className="text-xs text-center mb-8 text-white/40 tracking-[0.1em] uppercase">+91 {mobile}</p>
+                <p className="text-xs text-center mb-6 text-white/40 tracking-[0.1em] uppercase">+91 {mobile}</p>
 
-                <div className="mb-8 text-center">
-                  <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-3 block">Password</label>
+                <div className="mb-6 text-center">
+                  <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-2 block">Password</label>
                   <div className="relative mx-auto w-[250px]">
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="w-full bg-white/5 border border-white/10 rounded-full px-6 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-xl font-bold tracking-widest text-center backdrop-blur-md"
+                      className="w-full bg-white/5 border border-white/10 rounded-full px-6 h-12 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-xl font-bold tracking-widest text-center backdrop-blur-md"
                       placeholder="******"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -450,10 +450,10 @@ export default function LoginPage() {
                   {formData.role === 'Parent' && (
                     <div className="flex flex-col gap-4 animate-in slide-in-from-top-4 fade-in duration-300">
                       <div>
-                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Child EPR NO</label>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Child ERP NO</label>
                         <input
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
-                          placeholder="Enter Child EPR Number"
+                          placeholder="Enter Child ERP Number"
                           value={formData.childEprNo || ''}
                           onChange={(e) => setFormData({ ...formData, childEprNo: e.target.value })}
                         />
@@ -467,6 +467,19 @@ export default function LoginPage() {
                           value={formData.email || ''}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
+                      </div>
+                      <div>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Choose Your Campus</label>
+                        <select
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md appearance-none"
+                          value={formData.campusId}
+                          onChange={(e) => setFormData({ ...formData, campusId: e.target.value })}
+                        >
+                          <option value="" className="text-gray-500">Select Campus</option>
+                          {campuses.map(c => (
+                            <option key={c.id} value={c.id} className="text-black">{c.campusName}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   )}
@@ -532,6 +545,28 @@ export default function LoginPage() {
                           value={formData.email || ''}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
+                      </div>
+                      <div>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Year of Passout</label>
+                        <input
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md"
+                          placeholder="e.g. 2020"
+                          value={formData.grade || ''} // Using grade field map
+                          onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white/60 text-[10px] font-bold uppercase tracking-[0.1em] mb-2 block">Campus Studied</label>
+                        <select
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-14 text-white focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-lg font-medium tracking-wide backdrop-blur-md appearance-none"
+                          value={formData.campusId}
+                          onChange={(e) => setFormData({ ...formData, campusId: e.target.value })}
+                        >
+                          <option value="" className="text-gray-500">Select Campus</option>
+                          {campuses.map(c => (
+                            <option key={c.id} value={c.id} className="text-black">{c.campusName}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   )}
