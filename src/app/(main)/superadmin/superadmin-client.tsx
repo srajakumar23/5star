@@ -1151,6 +1151,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                         onDownloadReport={handleDownloadReport}
                         generateLeadPipelineReport={generateLeadPipelineReport}
                         onWeeklyReport={handleWeeklyReport}
+                        campusesFull={campuses}
                     />
                 )}
 

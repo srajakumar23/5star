@@ -5,7 +5,10 @@ import { generatePDFReport } from '@/lib/pdf-export'
 import { PremiumCard } from '@/components/premium/PremiumCard'
 import { emailReport } from '@/app/reporting-actions'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { GlobalFilterBar } from '@/components/analytics/GlobalFilterBar'
+import { InteractiveDataTable } from '@/components/analytics/InteractiveDataTable'
+import { getExplorationData } from '@/app/analytics-actions'
 
 interface ReportsPanelProps {
     users?: any[]
@@ -15,6 +18,7 @@ interface ReportsPanelProps {
     onDownloadReport: (reportFunction: () => Promise<{ success: boolean; csv?: string; filename?: string; error?: string }>) => Promise<void>
     generateLeadPipelineReport: () => Promise<{ success: boolean; csv?: string; filename?: string; error?: string }>
     onWeeklyReport?: () => Promise<void>
+    campusesFull?: any[]
 }
 
 export function ReportsPanel({
@@ -24,9 +28,41 @@ export function ReportsPanel({
     campusComparison = [],
     onDownloadReport,
     generateLeadPipelineReport,
-    onWeeklyReport
+    onWeeklyReport,
+    campusesFull = []
 }: ReportsPanelProps) {
     const [emailingId, setEmailingId] = useState<string | null>(null)
+    const [explorationMode, setExplorationMode] = useState<string | null>(null)
+    const [explorationData, setExplorationData] = useState<any[]>([])
+    const [explorerLoading, setExplorerLoading] = useState(false)
+    const [filters, setFilters] = useState({
+        dateRange: { preset: 'all' as const },
+        campus: 'All',
+        role: 'All'
+    })
+
+    const campusNames = useMemo(() =>
+        Array.from(new Set(campusesFull.map(c => c.campusName || c.campus).filter(Boolean))),
+        [campusesFull])
+
+    const handleExplore = async (reportId: string) => {
+        setExplorationMode(reportId)
+        setExplorerLoading(true)
+        const result = await getExplorationData(reportId, filters)
+        if (result.success && result.data) {
+            setExplorationData(result.data)
+        } else {
+            toast.error(result.error || 'Failed to load exploration data')
+        }
+        setExplorerLoading(false)
+    }
+
+    // Refresh data when filters change if in exploration mode
+    useEffect(() => {
+        if (explorationMode) {
+            handleExplore(explorationMode)
+        }
+    }, [filters])
 
     const handleEmailReport = async (reportId: string) => {
         setEmailingId(reportId)
@@ -106,6 +142,7 @@ export function ReportsPanel({
             text: 'text-red-700',
             border: 'border-red-200',
             pdfType: 'users' as const,
+            exploreId: 'users',
             action: async () => {
                 const headers = ['User ID', 'Full Name', 'Mobile', 'Role', 'Campus', 'Referrals', 'Status', 'Created']
                 const rows = users.map(u => [u.userId, u.fullName, u.mobileNumber, u.role, u.assignedCampus || '-', u.referralCount, u.status, new Date(u.createdAt).toLocaleDateString()])
@@ -168,6 +205,7 @@ export function ReportsPanel({
             bg: 'bg-amber-50',
             text: 'text-amber-700',
             border: 'border-amber-200',
+            exploreId: 'pipeline',
             action: generateLeadPipelineReport
         },
         {
@@ -184,6 +222,96 @@ export function ReportsPanel({
             action: onWeeklyReport
         }
     ]
+
+    if (explorationMode) {
+        return (
+            <div className="space-y-8 animate-fade-in pb-20">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <button
+                            onClick={() => {
+                                setExplorationMode(null)
+                                setExplorationData([])
+                            }}
+                            className="flex items-center gap-2 text-sm font-black text-gray-400 hover:text-red-600 transition-colors uppercase tracking-widest mb-2"
+                        >
+                            <ArrowRight className="rotate-180" size={16} />
+                            Back to Reports
+                        </button>
+                        <h2 className="text-3xl font-black text-gray-900 flex items-center gap-3">
+                            <span className="p-3 rounded-2xl bg-gray-900 text-white shadow-xl">
+                                <FileText size={28} />
+                            </span>
+                            {explorationMode === 'users' ? 'User Directory Explorer' : 'Lead Pipeline Explorer'}
+                        </h2>
+                    </div>
+
+                    <GlobalFilterBar
+                        filters={filters}
+                        onFilterChange={setFilters}
+                        campuses={campusNames}
+                    />
+                </div>
+
+                {explorerLoading ? (
+                    <div className="h-[500px] flex flex-col items-center justify-center bg-white rounded-[32px] border border-dashed border-gray-200">
+                        <div className="animate-spin w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full mb-4" />
+                        <p className="font-black text-gray-400 uppercase tracking-widest">Compiling Analytics...</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-8">
+                        <InteractiveDataTable
+                            title={explorationMode === 'users' ? 'Users' : 'Leads'}
+                            data={explorationData}
+                            columns={explorationMode === 'users' ? [
+                                { header: 'User Name', key: 'fullName' },
+                                { header: 'Mobile', key: 'mobileNumber' },
+                                { header: 'Role', key: 'role' },
+                                { header: 'Campus', key: 'assignedCampus' },
+                                { header: 'Ref Count', key: 'confirmedReferralCount' },
+                                {
+                                    header: 'Status',
+                                    key: 'status',
+                                    render: (val) => (
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${val === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'
+                                            }`}>
+                                            {val}
+                                        </span>
+                                    )
+                                },
+                                {
+                                    header: 'Joined',
+                                    key: 'createdAt',
+                                    render: (val) => new Date(val).toLocaleDateString()
+                                }
+                            ] : [
+                                { header: 'Lead Name', key: 'name' },
+                                { header: 'Mobile', key: 'mobile' },
+                                { header: 'Campus', key: 'campus' },
+                                { header: 'Grade', key: 'grade' },
+                                {
+                                    header: 'Status',
+                                    key: 'status',
+                                    render: (val) => (
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${val === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                            {val}
+                                        </span>
+                                    )
+                                },
+                                { header: 'Referred By', key: 'referredBy' },
+                                {
+                                    header: 'Created',
+                                    key: 'createdAt',
+                                    render: (val) => new Date(val).toLocaleDateString()
+                                }
+                            ]}
+                        />
+                    </div>
+                )}
+            </div>
+        )
+    }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
@@ -255,6 +383,16 @@ export function ReportsPanel({
                                 </button>
                             ) : (
                                 <div className="col-span-1" /> // Spacer if no PDF
+                            )}
+
+                            {'exploreId' in group && (
+                                <button
+                                    onClick={() => handleExplore(group.exploreId as string)}
+                                    className="col-span-2 mt-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-200 hover:border-red-500 hover:bg-red-50 text-gray-500 hover:text-red-700 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    <TrendingUp size={14} />
+                                    <span>View Interactive Explorer</span>
+                                </button>
                             )}
                         </div>
                     </div>
