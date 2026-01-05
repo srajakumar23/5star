@@ -1,7 +1,5 @@
-
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { sendReferralOtp } from '../src/app/referral-actions'
+import prisma from '../src/lib/prisma'
 
 async function main() {
     console.log('🌱 Seeding Pending Settlements...')
@@ -20,7 +18,9 @@ async function main() {
                 mobileNumber: '9999988888',
                 role: 'Staff',
                 referralCode: 'TEST-REF-001',
-                bankAccountDetails: 'HDFC0001234 - 501002345678'
+                bankAccountDetails: 'HDFC0001234 - 501002345678',
+                childInAchariya: false,
+                academicYear: '2025-2026'
             }
         })
     }

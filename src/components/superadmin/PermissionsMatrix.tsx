@@ -32,6 +32,8 @@ const SECTIONS = [
             { key: 'settings', label: 'System Settings', icon: Settings },
             { key: 'deletionHub', label: 'Account Deletion Hub', icon: Trash },
             { key: 'referralTracking', label: 'Global Referral Module', icon: List },
+            { key: 'feeManagement', label: 'Fee Management', icon: Wallet },
+            { key: 'engagementCentre', label: 'Engagement Centre', icon: Users },
         ]
     },
     {

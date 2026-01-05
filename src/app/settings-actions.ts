@@ -39,7 +39,8 @@ export async function getSystemSettings() {
         const settings = await prisma.systemSettings.findFirst()
 
         // Fetch current academic year from the consolidated source of truth
-        const currentYearRecord = await (prisma as any).academicYear.findFirst({
+        // @ts-ignore - Stale Prisma synchronization issue
+        const currentYearRecord = await prisma.academicYear.findFirst({
             where: { isCurrent: true }
         })
 
@@ -134,7 +135,8 @@ export async function updateSystemSettings(rawData: any) {
 
 export async function getAcademicYears() {
     try {
-        const years = await (prisma as any).academicYear.findMany({
+        // @ts-ignore - Stale Prisma synchronization issue
+        const years = await prisma.academicYear.findMany({
             orderBy: { startDate: 'desc' }
         })
         return { success: true, data: years }
@@ -149,7 +151,8 @@ export async function addAcademicYear(data: { year: string; startDate: Date; end
         const user = await getCurrentUser()
         if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
 
-        await (prisma as any).academicYear.create({
+        // @ts-ignore - Stale Prisma synchronization issue
+        await prisma.academicYear.create({
             data: {
                 year: data.year,
                 startDate: data.startDate,
@@ -174,12 +177,14 @@ export async function setCurrentAcademicYear(yearString: string) {
         // SystemSettings no longer stores a duplicate string.
         await prisma.$transaction(async (tx) => {
             // Unset current for all
-            await (tx as any).academicYear.updateMany({
+            // @ts-ignore - Stale Prisma synchronization issue
+            await tx.academicYear.updateMany({
                 data: { isCurrent: false }
             })
 
             // Set specific year as current
-            await (tx as any).academicYear.update({
+            // @ts-ignore - Stale Prisma synchronization issue
+            await tx.academicYear.update({
                 where: { year: yearString },
                 data: { isCurrent: true }
             })

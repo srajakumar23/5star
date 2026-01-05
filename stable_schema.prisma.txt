@@ -12,16 +12,19 @@ model User {
   userId                 Int             @id @default(autoincrement())
   fullName               String
   mobileNumber           String          @unique
+  role                   String
   childInAchariya        Boolean
   childName              String?
   grade                  String?
   campusId               Int?
   bankAccountDetails     String?
   referralCode           String          @unique
+  status                 String          @default("Active")
   confirmedReferralCount Int             @default(0)
   yearFeeBenefitPercent  Float           @default(0)
   longTermBenefitPercent Float           @default(0)
   lastActiveYear         Int?
+  benefitStatus          String          @default("Active")
   isFiveStarMember       Boolean         @default(false)
   assignedCampus         String?
   studentFee             Int             @default(60000)
@@ -38,9 +41,6 @@ model User {
   empId                  String?
   password               String?
   deletionRequestedAt    DateTime?
-  role                   UserRole        @default(Parent)
-  status                 AccountStatus   @default(Active)
-  benefitStatus          AccountStatus   @default(Active)
   notifications          Notification[]
   referrals              ReferralLead[]
   settlements            Settlement[]
@@ -57,6 +57,7 @@ model Student {
   grade           String
   section         String?
   rollNumber      String?
+  admissionNumber String?       @unique
   academicYear    String        @default("2025-2026")
   status          String        @default("Active")
   baseFee         Int           @default(60000)
@@ -65,7 +66,6 @@ model Student {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   ambassadorId    Int?
-  admissionNumber String?       @unique
   ambassador      User?         @relation("StudentAmbassador", fields: [ambassadorId], references: [userId])
   campus          Campus        @relation(fields: [campusId], references: [id])
   parent          User          @relation("StudentParent", fields: [parentId], references: [userId])
@@ -74,11 +74,10 @@ model Student {
   @@index([parentId])
   @@index([campusId])
   @@index([ambassadorId])
-  @@index([createdAt])
 }
 
 model ReferralLead {
-  leadId          Int        @id @default(autoincrement())
+  leadId          Int       @id @default(autoincrement())
   userId          Int
   parentName      String
   parentMobile    String
@@ -86,17 +85,16 @@ model ReferralLead {
   campus          String?
   gradeInterested String?
   admittedYear    String?
+  leadStatus      String    @default("New")
   confirmedDate   DateTime?
-  createdAt       DateTime   @default(now())
+  createdAt       DateTime  @default(now())
   studentName     String?
-  leadStatus      LeadStatus @default(New)
-  user            User       @relation(fields: [userId], references: [userId])
+  user            User      @relation(fields: [userId], references: [userId])
   student         Student?
 
   @@index([userId])
   @@index([campus])
   @@index([leadStatus])
-  @@index([createdAt])
 }
 
 model BenefitSlab {
@@ -113,14 +111,14 @@ model Admin {
   adminId        Int            @id @default(autoincrement())
   adminName      String
   adminMobile    String         @unique
+  role           String
   assignedCampus String?
+  status         String         @default("Active")
   createdAt      DateTime       @default(now())
   profileImage   String?
   email          String?
   address        String?
   password       String?
-  role           AdminRole      @default(Admission_Admin)
-  status         AccountStatus  @default(Active)
   notifications  Notification[]
 
   @@index([role])
@@ -136,10 +134,10 @@ model SystemSettings {
   parentReferralText    String?  @default("Hello 👋 I’m part of Achariya’s 5-Star Ambassador Program (25th Year Celebration). I recommend you to explore admission for your child. Click here: ${referralLink} – Achariya Ambassador")
   staffWelcomeMessage   String?  @default("Welcome to the Staff Ambassador Dashboard")
   parentWelcomeMessage  String?  @default("Welcome to the Parent Ambassador Dashboard")
-  updatedAt             DateTime @updatedAt
-  updatedBy             String?
   alumniReferralText    String?  @default("Hello 👋 I'm part of Achariya's 5-Star Ambassador Program (25th Year Celebration). I recommend you to explore admission for your child. Click here: ${referralLink} – Achariya Ambassador")
   alumniWelcomeMessage  String?  @default("Welcome to the Alumni Ambassador Dashboard")
+  updatedAt             DateTime @updatedAt
+  updatedBy             String?
 }
 
 model AcademicYear {
@@ -230,10 +228,6 @@ model RolePermissions {
   deletionHubScope         String   @default("none")
   passwordResetAccess      Boolean  @default(false)
   passwordResetScope       String   @default("none")
-  feeManagementAccess      Boolean  @default(false)
-  feeManagementScope       String   @default("none")
-  engagementCentreAccess   Boolean  @default(false)
-  engagementCentreScope    String   @default("none")
 }
 
 model Settlement {
@@ -272,10 +266,10 @@ model ActivityLog {
   module      String
   targetId    String?
   description String
+  metadata    Json?
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime @default(now())
-  metadata    Json?
 }
 
 model SupportTicket {
@@ -343,12 +337,12 @@ model CampusTarget {
 }
 
 model GradeFee {
-  id           Int    @id @default(autoincrement())
-  grade        String
-  annualFee    Int
+  id           Int      @id @default(autoincrement())
   campusId     Int
-  academicYear String @default("2025-2026")
-  campus       Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  grade        String
+  academicYear String   @default("2025-2026")
+  annualFee    Int
+  campus       Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
 
   @@unique([campusId, grade, academicYear])
 }
@@ -401,36 +395,4 @@ model Notification {
   createdAt DateTime @default(now())
   admin     Admin?   @relation(fields: [adminId], references: [adminId])
   user      User?    @relation(fields: [userId], references: [userId])
-}
-
-enum AccountStatus {
-  Active
-  Inactive
-  Pending
-  Suspended
-}
-
-enum AdminRole {
-  Super_Admin     @map("Super Admin")
-  Finance_Admin   @map("Finance Admin")
-  Campus_Head     @map("Campus Head")
-  Admission_Admin @map("Admission Admin")
-}
-
-enum LeadStatus {
-  New
-  Interested
-  Contacted
-  Follow_up  @map("Follow-up")
-  Confirmed
-  Admitted
-  Closed
-  Rejected
-}
-
-enum UserRole {
-  Parent
-  Staff
-  Alumni
-  Others
 }

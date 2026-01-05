@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, useMemo } from 'react'
 import { submitReferral, sendReferralOtp, verifyReferralOtp, getAmbassadorName } from '@/app/referral-actions'
+import { saveOfflineLead, getUnsyncedLeads, markLeadSynced } from '@/lib/offline-storage'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronRight, Lock, User, School, GraduationCap, Users, Smartphone, AlertCircle, CheckCircle2, Star } from 'lucide-react'
 import { toast } from 'sonner'
@@ -29,6 +30,19 @@ function ReferralFormContent() {
     const [error, setError] = useState<string | null>(null)
     const [ambassadorName, setAmbassadorName] = useState<string | null>(null)
     const [otpDestination, setOtpDestination] = useState<{ isAmbassador: boolean, name: string } | null>(null)
+    const [isOffline, setIsOffline] = useState(false)
+
+    useEffect(() => {
+        setIsOffline(!navigator.onLine)
+        const handleOnline = () => setIsOffline(false)
+        const handleOffline = () => setIsOffline(true)
+        window.addEventListener('online', handleOnline)
+        window.addEventListener('offline', handleOffline)
+        return () => {
+            window.removeEventListener('online', handleOnline)
+            window.removeEventListener('offline', handleOffline)
+        }
+    }, [])
 
     useEffect(() => {
         if (refCode) {
@@ -150,6 +164,23 @@ function ReferralFormContent() {
         }
 
         setLoading(true)
+
+        if (isOffline) {
+            try {
+                await saveOfflineLead({ ...formData, referralCode: refCode || undefined })
+                toast.success('Lead saved offline!', {
+                    description: 'It will sync once you are back online. / இணையம் வந்தவுடன் தானாக பதிவாகும்.'
+                })
+                setLoading(false)
+                router.push('/dashboard')
+                return
+            } catch (err) {
+                setError('Failed to save lead locally')
+                setLoading(false)
+                return
+            }
+        }
+
         const res = await submitReferral(formData, refCode || undefined)
         setLoading(false)
 
@@ -267,15 +298,23 @@ function ReferralFormContent() {
                                 </div>
                                 <button
                                     className="btn btn-primary w-full flex items-center justify-center gap-2 py-4 text-lg shadow-xl shadow-primary-maroon/20 hover:shadow-2xl hover:shadow-primary-maroon/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-300"
-                                    onClick={handleSendOtp}
+                                    onClick={isOffline ? () => setStep(3) : handleSendOtp}
                                     disabled={loading}
                                 >
                                     {loading ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
-                                        <>Get OTP <ChevronRight size={20} strokeWidth={2.5} /></>
+                                        <>
+                                            {isOffline ? 'Offline Collection' : 'Get OTP'}
+                                            <ChevronRight size={20} strokeWidth={2.5} />
+                                        </>
                                     )}
                                 </button>
+                                {isOffline && (
+                                    <p className="text-center text-xs text-amber-600 font-bold mt-4">
+                                        You are currently offline. OTP is bypassed for field collection.
+                                    </p>
+                                )}
                             </div>
                         )}
 

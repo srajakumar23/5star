@@ -154,6 +154,35 @@ export const EmailService = {
             console.error('Send Report Error:', error);
             return { success: false, error };
         }
+    },
+
+    async sendReengagementEmail(to: string, name: string, badgeTier: string) {
+        if (!process.env.RESEND_API_KEY) {
+            console.log(`[DEV MODE] Email Service: Sending Re-engagement to ${to}`);
+            return { success: true, id: 'mock-id' };
+        }
+
+        try {
+            const { data, error } = await resend.emails.send({
+                from: process.env.EMAIL_FROM || 'Achariya Ambassador <community@resend.dev>',
+                to: [to],
+                subject: 'We miss you at Achariya! 🚀',
+                html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h1 style="color: #B91C1C;">We miss you, ${name}!</h1>
+                        <p>It's been a while since your last referral. Your current rank is <strong>${badgeTier}</strong>.</p>
+                        <p>Join our 25th Year Celebration journey and help more students experience the 5-Star Education while earning exclusive benefits.</p>
+                        <br/>
+                        <a href="https://ambassador.achariya.in" style="background: #D97706; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Return to Dashboard</a>
+                    </div>
+                `
+            });
+
+            if (error) return { success: false, error };
+            return { success: true, data };
+        } catch (error) {
+            return { success: false, error };
+        }
     }
 };
 

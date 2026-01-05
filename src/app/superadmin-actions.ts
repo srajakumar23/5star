@@ -7,14 +7,12 @@ import { logAction } from "@/lib/audit-logger"
 import { registerSchema, mobileSchema } from "@/lib/validators"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
-import { hasModuleAccess, getDataScope } from "@/lib/permissions"
+import { hasModuleAccess, getDataScope, getPrismaScopeFilter } from "@/lib/permissions"
 import { generateSmartReferralCode } from "@/lib/referral-service"
+import { UserRole, AdminRole, AccountStatus, LeadStatus } from "@prisma/client"
+import { revalidatePath } from 'next/cache'
+import { toAdminRole, toLeadStatus, toUserRole, toAccountStatus } from "@/lib/enum-utils"
 
-
-// Type definitions
-type Campus = string
-type Role = 'Staff' | 'Parent'
-type LeadStatus = 'New' | 'Follow-up' | 'Confirmed'
 
 interface SystemAnalytics {
     totalAmbassadors: number
@@ -94,6 +92,9 @@ export async function getSystemAnalytics(timeRange: '7d' | '30d' | 'all' = 'all'
         prevDateFilter = { createdAt: { gte: prevStart, lt: start } };
     }
 
+    const scopeFilterUsers = getPrismaScopeFilter(user, 'userManagement')
+    const scopeFilterLeads = getPrismaScopeFilter(user, 'analytics')
+
     const [
         totalAmbassadors,
         totalLeads,
@@ -102,12 +103,12 @@ export async function getSystemAnalytics(timeRange: '7d' | '30d' | 'all' = 'all'
         prevLeads,
         prevConfirmed
     ] = await Promise.all([
-        prisma.user.count({ where: dateFilter }),
-        prisma.referralLead.count({ where: dateFilter }),
-        prisma.referralLead.count({ where: { leadStatus: 'Confirmed', ...dateFilter } }),
-        prevDateFilter ? prisma.user.count({ where: prevDateFilter }) : Promise.resolve(undefined),
-        prevDateFilter ? prisma.referralLead.count({ where: prevDateFilter }) : Promise.resolve(undefined),
-        prevDateFilter ? prisma.referralLead.count({ where: { leadStatus: 'Confirmed', ...prevDateFilter } }) : Promise.resolve(undefined),
+        prisma.user.count({ where: { ...dateFilter, ...scopeFilterUsers } }),
+        prisma.referralLead.count({ where: { ...dateFilter, ...scopeFilterLeads } }),
+        prisma.referralLead.count({ where: { leadStatus: LeadStatus.Confirmed, ...dateFilter, ...scopeFilterLeads } }),
+        prevDateFilter ? prisma.user.count({ where: { ...prevDateFilter, ...scopeFilterUsers } }) : Promise.resolve(undefined),
+        prevDateFilter ? prisma.referralLead.count({ where: { ...prevDateFilter, ...scopeFilterLeads } }) : Promise.resolve(undefined),
+        prevDateFilter ? prisma.referralLead.count({ where: { leadStatus: LeadStatus.Confirmed, ...prevDateFilter, ...scopeFilterLeads } }) : Promise.resolve(undefined),
     ])
 
     const globalConversionRate = totalLeads > 0
@@ -165,8 +166,8 @@ export async function getSystemAnalytics(timeRange: '7d' | '30d' | 'all' = 'all'
     }))
 
     const totalStudents = await prisma.student.count()
-    const staffCount = userRoles.find(u => u.role === 'Staff')?._count.role || 0
-    const parentCount = userRoles.find(u => u.role === 'Parent')?._count.role || 0
+    const staffCount = userRoles.find(u => u.role === UserRole.Staff)?._count.role || 0
+    const parentCount = userRoles.find(u => u.role === UserRole.Parent)?._count.role || 0
 
     // --- Phase 2: Enhanced Analytics ---
     const avgLeadsPerAmbassador = totalAmbassadors > 0
@@ -314,7 +315,7 @@ export async function getCampusComparison(timeRange: '7d' | '30d' | 'all' = 'all
         // 3. Pending Leads per Campus
         prisma.referralLead.groupBy({
             by: ['campus'],
-            where: { campus: { not: null }, leadStatus: { in: ['New', 'Follow-up'] }, ...dateFilter },
+            where: { campus: { not: null }, leadStatus: { in: [LeadStatus.New, LeadStatus.Follow_up] }, ...dateFilter },
             _count: { _all: true }
         }),
         // 4. Unique Ambassadors per Campus
@@ -408,7 +409,7 @@ export async function getCampusDetails(campusName: string) {
     try {
         // 1. Top Ambassadors in this campus
         const topAmbassadors = await prisma.user.findMany({
-            where: { assignedCampus: campusName, role: { not: 'Staff' } },
+            where: { assignedCampus: campusName, role: { not: UserRole.Staff } },
             orderBy: { confirmedReferralCount: 'desc' },
             take: 5,
             select: {
@@ -439,11 +440,12 @@ export async function getCampusDetails(campusName: string) {
 }
 export async function getAllUsers(): Promise<UserRecord[]> {
     const user = await getCurrentUser()
-    if (!user || !user.role.includes('Super Admin')) {
-        throw new Error('Unauthorized')
-    }
+    if (!user) throw new Error('Unauthorized')
+
+    const scopeFilter = getPrismaScopeFilter(user, 'userManagement')
 
     const users = await prisma.user.findMany({
+        where: scopeFilter,
         select: {
             userId: true,
             fullName: true,
@@ -473,17 +475,14 @@ export async function getAllUsers(): Promise<UserRecord[]> {
     }))
 }
 
-/**
- * Retrieves all administrator records.
- * @returns Array of Admin records
- */
 export async function getAllAdmins() {
     const user = await getCurrentUser()
-    if (!user || !user.role.includes('Super Admin')) {
-        throw new Error('Unauthorized')
-    }
+    if (!user) throw new Error('Unauthorized')
+
+    const scopeFilter = getPrismaScopeFilter(user, 'adminManagement')
 
     return await prisma.admin.findMany({
+        where: scopeFilter,
         orderBy: { createdAt: 'desc' }
     })
 }
@@ -494,11 +493,12 @@ export async function getAllAdmins() {
  */
 export async function getAllStudents() {
     const user = await getCurrentUser()
-    if (!user || !user.role.includes('Super Admin')) {
-        throw new Error('Unauthorized')
-    }
+    if (!user) throw new Error('Unauthorized')
+
+    const scopeFilter = getPrismaScopeFilter(user, 'studentManagement')
 
     return await prisma.student.findMany({
+        where: scopeFilter,
         include: {
             parent: { select: { fullName: true, mobileNumber: true } },
             ambassador: { select: { fullName: true, mobileNumber: true, referralCode: true, role: true } },
@@ -522,12 +522,14 @@ export async function assignUserToCampus(userId: number, campus: string | null) 
         throw new Error('Unauthorized')
     }
 
+    const previousUser = await prisma.user.findUnique({ where: { userId } })
+
     const updatedUser = await prisma.user.update({
         where: { userId },
         data: { assignedCampus: campus }
     })
 
-    await logAction('UPDATE', 'user', `Assigned user ${userId} to campus: ${campus}`, userId.toString())
+    await logAction('UPDATE', 'user', `Assigned user ${userId} to campus: ${campus}`, userId.toString(), null, { previous: previousUser, next: updatedUser })
 
     return updatedUser
 }
@@ -539,21 +541,24 @@ export async function assignUserToCampus(userId: number, campus: string | null) 
  * @param role - New role name
  * @param campus - Campus name or null
  */
+
 export async function updateAdminRole(adminId: number, role: string, campus: string | null) {
     const user = await getCurrentUser()
     if (!user || !user.role.includes('Super Admin')) {
         throw new Error('Unauthorized')
     }
 
+    const previousAdmin = await prisma.admin.findUnique({ where: { adminId } })
+
     const updatedAdmin = await prisma.admin.update({
         where: { adminId },
         data: {
-            role,
+            role: toAdminRole(role),
             assignedCampus: campus
         }
     })
 
-    await logAction('UPDATE', 'admin', `Updated admin ${adminId} role to ${role}`, adminId.toString())
+    await logAction('UPDATE', 'admin', `Updated admin ${adminId} role to ${role}`, adminId.toString(), null, { previous: previousAdmin, next: updatedAdmin })
 
     return updatedAdmin
 }
@@ -592,7 +597,7 @@ export async function deleteUser(userId: number) {
 export async function addUser(data: {
     fullName: string
     mobileNumber: string
-    role: 'Parent' | 'Staff' | 'Alumni'
+    role: UserRole
     childInAchariya?: string
     childName?: string
     assignedCampus?: string
@@ -670,7 +675,7 @@ export async function removeUser(userId: number) {
 export async function bulkAddUsers(users: Array<{
     fullName: string
     mobileNumber: string
-    role: 'Parent' | 'Staff'
+    role: UserRole
     email: string
     assignedCampus: string
     empId?: string
@@ -794,7 +799,7 @@ export async function addAdmin(data: {
             data: {
                 adminName: data.adminName,
                 adminMobile: data.adminMobile,
-                role: data.role,
+                role: data.role === 'CampusHead' ? AdminRole.Campus_Head : AdminRole.Admission_Admin,
                 assignedCampus: data.assignedCampus
             }
         })
@@ -931,7 +936,7 @@ export async function bulkAddAdmins(admins: Array<{
                 data: {
                     adminName: adminData.adminName,
                     adminMobile: adminData.adminMobile,
-                    role: adminData.role,
+                    role: toAdminRole(adminData.role),
                     assignedCampus: adminData.assignedCampus
                 }
             })
@@ -952,7 +957,7 @@ export async function bulkAddAdmins(admins: Array<{
  * @param status - New status.
  * @returns Object indicating success.
  */
-export async function updateUserStatus(userId: number, status: 'Active' | 'Inactive') {
+export async function updateUserStatus(userId: number, status: AccountStatus) {
     const admin = await getCurrentUser()
     if (!admin || !admin.role.includes('Admin')) {
         return { success: false, error: 'Unauthorized' }
@@ -977,7 +982,7 @@ export async function updateUserStatus(userId: number, status: 'Active' | 'Inact
  * @param status - New status.
  * @returns Object indicating success.
  */
-export async function updateAdminStatus(adminId: number, status: 'Active' | 'Inactive') {
+export async function updateAdminStatus(adminId: number, status: AccountStatus) {
     const admin = await getCurrentUser()
     if (!admin || admin.role !== 'Super Admin') {
         return { success: false, error: 'Only Super Admin can update admin status' }

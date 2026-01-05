@@ -4,6 +4,8 @@ import "./fonts.css";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SWRegistration } from "@/components/SWRegistration";
+import { OfflineSync } from "@/components/OfflineSync";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -60,7 +62,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico",
+    apple: "/icon-192x192.png",
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -73,6 +77,8 @@ export default function RootLayout({
       <body className="antialiased font-sans" suppressHydrationWarning>
         <ThemeProvider>
           <Toaster position="top-center" richColors />
+          <SWRegistration />
+          <OfflineSync />
           {children}
         </ThemeProvider>
       </body>

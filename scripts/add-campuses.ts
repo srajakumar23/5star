@@ -54,22 +54,25 @@ async function main() {
 
         // Add Grade Fees
         for (const grade of GRADES) {
-            await prisma.gradeFee.upsert({
-                where: {
-                    campusId_grade: {
-                        campusId: campus.id,
-                        grade: grade
-                    }
-                },
-                update: {
-                    annualFee: getFeeForGrade(grade)
-                },
-                create: {
-                    campusId: campus.id,
-                    grade: grade,
-                    annualFee: getFeeForGrade(grade)
-                }
+            const existingGf = await prisma.gradeFee.findFirst({
+                where: { campusId: campus.id, grade: grade }
             })
+
+            if (existingGf) {
+                await prisma.gradeFee.update({
+                    where: { id: existingGf.id },
+                    data: { annualFee: getFeeForGrade(grade) }
+                })
+            } else {
+                await prisma.gradeFee.create({
+                    data: {
+                        campusId: campus.id,
+                        grade: grade,
+                        annualFee: getFeeForGrade(grade),
+                        academicYear: '2025-2026'
+                    }
+                })
+            }
         }
     }
 

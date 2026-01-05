@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth-service'
 import { EmailService } from '@/lib/email-service'
 import { logAction } from '@/lib/audit-logger'
 import { revalidatePath } from 'next/cache'
+import { decrypt } from '@/lib/encryption'
 
 // --- Registration Transactions ---
 
@@ -87,7 +88,16 @@ export async function getSettlements(status: string = 'Pending') {
             orderBy: { createdAt: 'desc' }
         })
 
-        return { success: true, data: settlements }
+        // Decrypt bank details before returning
+        const decryptedSettlements = settlements.map(s => ({
+            ...s,
+            user: {
+                ...s.user,
+                bankAccountDetails: s.user.bankAccountDetails ? decrypt(s.user.bankAccountDetails) : null
+            }
+        }))
+
+        return { success: true, data: decryptedSettlements }
     } catch (error) {
         console.error('Get Settlements Error:', error)
         return { success: false, error: 'Failed to fetch settlements' }

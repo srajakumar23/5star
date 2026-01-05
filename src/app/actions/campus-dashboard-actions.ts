@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-service'
 import { revalidatePath } from 'next/cache'
 import { canEdit, hasPermission } from '@/lib/permission-service'
+import { LeadStatus } from '@prisma/client'
+import { toLeadStatus } from '@/lib/enum-utils'
 
 // --- Helper: Verify Campus Admin Access ---
 async function verifyCampusAccess() {
@@ -77,21 +79,21 @@ export async function getCampusStats(days: number = 30) {
             prisma.referralLead.count({
                 where: {
                     ...referralWhere,
-                    leadStatus: 'New',
+                    leadStatus: LeadStatus.New,
                     ...(dateFilter ? { createdAt: dateFilter } : {})
                 }
             }),
             prisma.referralLead.count({
                 where: {
                     ...referralWhere,
-                    leadStatus: 'Follow-up',
+                    leadStatus: LeadStatus.Follow_up,
                     ...(dateFilter ? { createdAt: dateFilter } : {})
                 }
             }),
             prisma.referralLead.count({
                 where: {
                     ...referralWhere,
-                    leadStatus: 'Confirmed',
+                    leadStatus: LeadStatus.Confirmed,
                     ...(dateFilter ? { confirmedDate: dateFilter } : { confirmedDate: { not: null } })
                 }
             }),
@@ -105,7 +107,7 @@ export async function getCampusStats(days: number = 30) {
             prisma.referralLead.count({
                 where: {
                     ...referralWhere,
-                    leadStatus: 'Confirmed',
+                    leadStatus: LeadStatus.Confirmed,
                     ...(prevDateFilter ? { confirmedDate: prevDateFilter } : { confirmedDate: { not: null } })
                 }
             })
@@ -273,7 +275,7 @@ export async function getCampusRecentActivity() {
 
         // Get recent confirmations
         const recentConfirmations = await prisma.referralLead.findMany({
-            where: { ...whereClause, leadStatus: 'Confirmed', confirmedDate: { not: null } },
+            where: { ...whereClause, leadStatus: LeadStatus.Confirmed, confirmedDate: { not: null } },
             orderBy: { confirmedDate: 'desc' },
             take: 5,
             include: { user: { select: { fullName: true } } }
@@ -318,11 +320,11 @@ export async function getCampusFinance(days: number = 30) {
     // For campus-specific filtering, check both campusId and campus name string
     const whereClause = access.isSuperAdmin
         ? {
-            leadStatus: 'Confirmed',
+            leadStatus: LeadStatus.Confirmed,
             ...(dateFilter ? { confirmedDate: dateFilter } : { confirmedDate: { not: null } })
         }
         : {
-            leadStatus: 'Confirmed',
+            leadStatus: LeadStatus.Confirmed,
             ...(dateFilter ? { confirmedDate: dateFilter } : { confirmedDate: { not: null } }),
             OR: [
                 { campusId: access.campusId },
@@ -406,8 +408,9 @@ export async function updateLeadStatus(leadId: number, newStatus: 'New' | 'Follo
         }
 
         // Update the lead status
-        const updateData: any = { leadStatus: newStatus }
-        if (newStatus === 'Confirmed') {
+        const statusEnum = toLeadStatus(newStatus)
+        const updateData: any = { leadStatus: statusEnum }
+        if (statusEnum === LeadStatus.Confirmed) {
             updateData.confirmedDate = new Date()
         }
 
@@ -417,10 +420,10 @@ export async function updateLeadStatus(leadId: number, newStatus: 'New' | 'Follo
         })
 
         // If confirming, also update the ambassador's count and benefits
-        if (newStatus === 'Confirmed') {
+        if (statusEnum === LeadStatus.Confirmed) {
             const userId = lead.userId
             const count = await prisma.referralLead.count({
-                where: { userId, leadStatus: 'Confirmed' }
+                where: { userId, leadStatus: LeadStatus.Confirmed }
             })
 
             // Get benefit slab

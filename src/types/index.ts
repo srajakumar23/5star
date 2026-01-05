@@ -25,6 +25,9 @@ export interface RolePermissions {
     referralTracking: ModulePermission
     savingsCalculator: ModulePermission
     rulesAccess: ModulePermission
+    passwordReset: ModulePermission
+    feeManagement: ModulePermission
+    engagementCentre: ModulePermission
 }
 
 export interface User {

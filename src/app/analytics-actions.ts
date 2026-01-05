@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-service'
+import { hasModuleAccess, getPrismaScopeFilter } from '@/lib/permissions'
 import { startOfDay, endOfDay, subDays } from 'date-fns'
 
 export interface ExplorationFilters {
@@ -14,13 +15,21 @@ export interface ExplorationFilters {
     role?: string
 }
 
+export interface ExplorationResponse {
+    success: boolean
+    data?: any[]
+    error?: string
+}
+
 /**
  * Optimized server action for the Interactive Data Explorer.
  * Returns a flat structure suitable for data tables and charts.
  */
-export async function getExplorationData(reportId: string, filters: ExplorationFilters) {
+export async function getExplorationData(reportId: string, filters: ExplorationFilters): Promise<ExplorationResponse> {
     const user = await getCurrentUser()
-    if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    if (!hasModuleAccess(user.role, 'analytics')) return { success: false, error: 'Unauthorized' }
 
     try {
         // 1. Calculate Date Filters
@@ -37,10 +46,13 @@ export async function getExplorationData(reportId: string, filters: ExplorationF
 
         const dateFilter = startDate ? { gte: startDate, lte: endDate } : undefined
 
+        const scopeFilter = getPrismaScopeFilter(user, 'analytics')
+
         // 2. Fetch Data based on Report ID
         if (reportId === 'users') {
             const users = await prisma.user.findMany({
                 where: {
+                    ...scopeFilter,
                     ...(dateFilter && { createdAt: dateFilter }),
                     ...(filters.campus && filters.campus !== 'All' && { assignedCampus: filters.campus }),
                     ...(filters.role && filters.role !== 'All' && { role: filters.role as any })
@@ -64,6 +76,7 @@ export async function getExplorationData(reportId: string, filters: ExplorationF
         if (reportId === 'leads' || reportId === 'pipeline') {
             const leads = await prisma.referralLead.findMany({
                 where: {
+                    ...scopeFilter,
                     ...(dateFilter && { createdAt: dateFilter }),
                     ...(filters.campus && filters.campus !== 'All' && { campus: filters.campus })
                 },

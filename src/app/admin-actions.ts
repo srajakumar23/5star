@@ -5,6 +5,8 @@ import { getCurrentUser } from '@/lib/auth-service'
 import { getScopeFilter, canEdit, hasPermission } from '@/lib/permission-service'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit-logger'
+import { LeadStatus, UserRole, AccountStatus } from '@prisma/client'
+import { mapLeadStatus, mapUserRole, mapAccountStatus } from '@/lib/enum-utils'
 
 /**
  * Fetches all referral leads with ambassador information.
@@ -71,12 +73,12 @@ export async function getAdminAnalytics() {
 
     // Basic counts
     const totalLeads = referrals.length
-    const confirmedLeads = referrals.filter(r => r.leadStatus === 'Confirmed').length
+    const confirmedLeads = referrals.filter(r => r.leadStatus === LeadStatus.Confirmed).length
     const pendingLeads = totalLeads - confirmedLeads
     const conversionRate = totalLeads > 0 ? ((confirmedLeads / totalLeads) * 100).toFixed(1) : '0'
 
     // Ambassadors
-    const totalAmbassadors = users.filter(u => u.role === 'Parent' || u.role === 'Staff').length
+    const totalAmbassadors = users.filter(u => u.role === UserRole.Parent || u.role === UserRole.Staff).length
     const avgReferralsPerAmbassador = totalAmbassadors > 0 ? (totalLeads / totalAmbassadors).toFixed(1) : '0'
 
     // Total estimated savings/incentives
@@ -99,8 +101,8 @@ export async function getAdminAnalytics() {
     }))
 
     // Role breakdown
-    const parentReferrals = referrals.filter(r => r.user.role === 'Parent').length
-    const staffReferrals = referrals.filter(r => r.user.role === 'Staff').length
+    const parentReferrals = referrals.filter(r => r.user.role === UserRole.Parent).length
+    const staffReferrals = referrals.filter(r => r.user.role === UserRole.Staff).length
     const roleBreakdown = {
         parent: { count: parentReferrals, percentage: totalLeads > 0 ? ((parentReferrals / totalLeads) * 100).toFixed(1) : '0' },
         staff: { count: staffReferrals, percentage: totalLeads > 0 ? ((staffReferrals / totalLeads) * 100).toFixed(1) : '0' }
@@ -109,7 +111,7 @@ export async function getAdminAnalytics() {
     // Status breakdown
     const statusMap: Record<string, number> = {}
     referrals.forEach(r => {
-        const status = r.leadStatus || 'New'
+        const status = r.leadStatus || LeadStatus.New
         statusMap[status] = (statusMap[status] || 0) + 1
     })
     const statusBreakdown = Object.entries(statusMap).map(([status, count]) => ({
@@ -169,62 +171,66 @@ export async function confirmReferral(leadId: number) {
     }
 
     try {
-        // 1. Update Lead
-        const lead = await prisma.referralLead.update({
-            where: { leadId },
-            data: {
-                leadStatus: 'Confirmed',
-                confirmedDate: new Date()
+        const result = await prisma.$transaction(async (tx) => {
+            // 1. Update Lead
+            const lead = await tx.referralLead.update({
+                where: { leadId },
+                include: { user: true },
+                data: {
+                    leadStatus: LeadStatus.Confirmed,
+                    confirmedDate: new Date()
+                }
+            })
+
+            // 2. Update User Counts & Benefits (Automation)
+            const userId = lead.userId
+
+            // Count confirmed referrals
+            const count = await tx.referralLead.count({
+                where: {
+                    userId,
+                    leadStatus: LeadStatus.Confirmed
+                }
+            })
+
+            // Determine Benefit % based on Flyer Logic
+            const lookupCount = Math.min(count, 5) // Cap at 5 for slab lookup
+
+            // Slabs (Fetch from DB with fallback)
+            const slab = await tx.benefitSlab.findFirst({
+                where: { referralCount: lookupCount }
+            })
+
+            // Fallback defaults if DB is empty
+            const defaultSlabs: Record<number, number> = { 1: 5, 2: 10, 3: 25, 4: 30, 5: 50 };
+            const yearFeeBenefit = slab ? slab.yearFeeBenefitPercent : (defaultSlabs[lookupCount] || 0);
+
+            // Long Term Benefit Logic
+            // Prereq: Must be Five Star Member (5 referrals in previous year)
+            // AND Must have at least 1 referral this year
+            let longTermTotal = 0;
+            const user = await tx.user.findUnique({ where: { userId } });
+
+            if (user?.isFiveStarMember && count >= 1) {
+                // Base 15% + (5% per referral) OR use DB Logic if available
+                const slabExtra = slab ? slab.longTermExtraPercent : 5; // Default 5% extra per referral
+                const baseLongTerm = slab ? slab.baseLongTermPercent : 15; // Default base 15%
+                longTermTotal = baseLongTerm + (count * slabExtra);
             }
-        })
 
-        // 2. Update User Counts & Benefits (Automation)
-        const userId = lead.userId
+            // Update User
+            await tx.user.update({
+                where: { userId },
+                data: {
+                    confirmedReferralCount: count,
+                    yearFeeBenefitPercent: yearFeeBenefit,
+                    longTermBenefitPercent: longTermTotal,
+                    benefitStatus: count >= 1 ? AccountStatus.Active : AccountStatus.Inactive,
+                    lastActiveYear: 2025
+                }
+            })
 
-        // Count confirmed referrals
-        const count = await prisma.referralLead.count({
-            where: {
-                userId,
-                leadStatus: 'Confirmed'
-            }
-        })
-
-        // Determine Benefit % based on Flyer Logic
-        const lookupCount = Math.min(count, 5) // Cap at 5 for slab lookup
-
-        // Slabs (Fetch from DB with fallback)
-        const slab = await prisma.benefitSlab.findFirst({
-            where: { referralCount: lookupCount }
-        })
-
-        // Fallback defaults if DB is empty
-        const defaultSlabs: Record<number, number> = { 1: 5, 2: 10, 3: 25, 4: 30, 5: 50 };
-        const yearFeeBenefit = slab ? slab.yearFeeBenefitPercent : (defaultSlabs[lookupCount] || 0);
-
-        // Long Term Benefit Logic
-        // Prereq: Must be Five Star Member (5 referrals in previous year)
-        // AND Must have at least 1 referral this year
-        let longTermTotal = 0;
-        const user = await prisma.user.findUnique({ where: { userId } });
-
-        if (user?.isFiveStarMember && count >= 1) {
-            // Base 15% + (5% per referral) OR use DB Logic if available
-            // 1->20, 2->25...
-            const slabExtra = slab ? slab.longTermExtraPercent : 5; // Default 5% extra per referral
-            const baseLongTerm = slab ? slab.baseLongTermPercent : 15; // Default base 15%
-            longTermTotal = baseLongTerm + (count * slabExtra);
-        }
-
-        // Update User
-        await prisma.user.update({
-            where: { userId },
-            data: {
-                confirmedReferralCount: count,
-                yearFeeBenefitPercent: yearFeeBenefit,
-                longTermBenefitPercent: longTermTotal,
-                benefitStatus: count >= 1 ? 'Active' : 'Inactive',
-                lastActiveYear: 2025
-            }
+            return { leadId, userId }
         })
 
         revalidatePath('/admin')
@@ -232,7 +238,7 @@ export async function confirmReferral(leadId: number) {
         revalidatePath('/referrals')
 
         // Log the action (1.5)
-        await logAction('UPDATE', 'referral', `Confirmed referral lead: ${leadId}`, leadId.toString(), { userId })
+        await logAction('UPDATE', 'referral', `Confirmed referral lead: ${result.leadId}`, result.leadId.toString(), { userId: result.userId })
 
         return { success: true }
     } catch (e) {
@@ -391,11 +397,11 @@ export async function getAdminCampusPerformance() {
             })
 
             const confirmed = await prisma.referralLead.count({
-                where: { campus, leadStatus: 'Confirmed' }
+                where: { campus, leadStatus: LeadStatus.Confirmed }
             })
 
             const pending = await prisma.referralLead.count({
-                where: { campus, leadStatus: { in: ['New', 'Follow-up'] } }
+                where: { campus, leadStatus: { in: [LeadStatus.New, LeadStatus.Follow_up] } }
             })
 
             const conversionRate = totalLeads > 0

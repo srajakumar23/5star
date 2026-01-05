@@ -60,7 +60,10 @@ export async function getRolePermissions(role: string) {
                     referralSubmission: { access: (dbPerms as any).referralSubmissionAccess, scope: (dbPerms as any).referralSubmissionScope || 'none' },
                     referralTracking: { access: (dbPerms as any).referralTrackingAccess, scope: (dbPerms as any).referralTrackingScope || 'none' },
                     savingsCalculator: { access: (dbPerms as any).savingsCalculatorAccess, scope: (dbPerms as any).savingsCalculatorScope || 'none' },
-                    rulesAccess: { access: (dbPerms as any).rulesAccessAccess, scope: (dbPerms as any).rulesAccessScope || 'none' }
+                    rulesAccess: { access: (dbPerms as any).rulesAccessAccess, scope: (dbPerms as any).rulesAccessScope || 'none' },
+                    passwordReset: { access: (dbPerms as any).passwordResetAccess, scope: (dbPerms as any).passwordResetScope || 'none' },
+                    feeManagement: { access: (dbPerms as any).feeManagementAccess, scope: (dbPerms as any).feeManagementScope || 'none' },
+                    engagementCentre: { access: (dbPerms as any).engagementCentreAccess, scope: (dbPerms as any).engagementCentreScope || 'none' }
                 }
             }
         }
@@ -133,6 +136,12 @@ export async function updateRolePermissions(role: string, permissions: RolePermi
                 savingsCalculatorScope: permissions.savingsCalculator?.scope ?? 'none',
                 rulesAccessAccess: permissions.rulesAccess?.access ?? false,
                 rulesAccessScope: permissions.rulesAccess?.scope ?? 'none',
+                passwordResetAccess: permissions.passwordReset?.access ?? false,
+                passwordResetScope: permissions.passwordReset?.scope ?? 'none',
+                feeManagementAccess: permissions.feeManagement?.access ?? false,
+                feeManagementScope: permissions.feeManagement?.scope ?? 'none',
+                engagementCentreAccess: permissions.engagementCentre?.access ?? false,
+                engagementCentreScope: permissions.engagementCentre?.scope ?? 'none',
                 updatedBy: admin.fullName
             } as any,
             update: {
@@ -177,6 +186,12 @@ export async function updateRolePermissions(role: string, permissions: RolePermi
                 savingsCalculatorScope: permissions.savingsCalculator?.scope ?? 'none',
                 rulesAccessAccess: permissions.rulesAccess?.access ?? false,
                 rulesAccessScope: permissions.rulesAccess?.scope ?? 'none',
+                passwordResetAccess: permissions.passwordReset?.access ?? false,
+                passwordResetScope: permissions.passwordReset?.scope ?? 'none',
+                feeManagementAccess: permissions.feeManagement?.access ?? false,
+                feeManagementScope: permissions.feeManagement?.scope ?? 'none',
+                engagementCentreAccess: permissions.engagementCentre?.access ?? false,
+                engagementCentreScope: permissions.engagementCentre?.scope ?? 'none',
                 updatedBy: admin.fullName
             } as any
         })

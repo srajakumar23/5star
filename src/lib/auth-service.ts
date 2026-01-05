@@ -3,6 +3,8 @@ import { getSession } from './session'
 import prisma from './prisma'
 import { cache } from 'react'
 
+import { mapAdminRole, mapUserRole } from './enum-utils'
+
 export const getCurrentUser = cache(async () => {
     const session: any = await getSession()
     if (!session || !session.userId) return null
@@ -18,11 +20,8 @@ export const getCurrentUser = cache(async () => {
                 userId: admin.adminId, // Map for compatibility
                 fullName: admin.adminName,
                 mobileNumber: admin.adminMobile,
-                // Keep role as-is - don't modify it
-                // Super Admin should stay "Super Admin"
-                // CampusHead should stay "CampusHead"
-                // Admission Admin can stay "Admission Admin"
-                role: admin.role
+                // Map role back to legacy string
+                role: mapAdminRole(admin.role)
             }
         }
     }
@@ -31,16 +30,24 @@ export const getCurrentUser = cache(async () => {
         where: { userId: Number(session.userId) }
     })
 
-    if (user && !user.assignedCampus && user.campusId) {
-        // Resolve campus name if missing but ID exists (Legacy/Registration compatibility)
-        const campus = await prisma.campus.findUnique({
-            where: { id: user.campusId },
-            select: { campusName: true }
-        })
-        if (campus) {
-            return { ...user, assignedCampus: campus.campusName }
+    if (user) {
+        let finalUser = {
+            ...user,
+            role: mapUserRole(user.role)
         }
+
+        if (!user.assignedCampus && user.campusId) {
+            // Resolve campus name if missing but ID exists (Legacy/Registration compatibility)
+            const campus = await prisma.campus.findUnique({
+                where: { id: user.campusId },
+                select: { campusName: true }
+            })
+            if (campus) {
+                return { ...finalUser, assignedCampus: campus.campusName }
+            }
+        }
+        return finalUser
     }
 
-    return user
+    return null
 })

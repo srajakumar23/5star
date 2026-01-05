@@ -70,15 +70,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     return (
         <ErrorBoundary>
             <AdminClient
-                referrals={serializeData(referrals.success ? referrals.referrals : []) || []}
+                referrals={serializeData(referrals.success ? referrals.referrals : []) as any}
                 analytics={analytics.success ? analytics : {} as any}
                 confirmReferral={confirmReferral}
                 initialView={view}
-                campuses={campusesResult.success ? campusesResult.campuses : []}
-                users={serializeData(users) || []}
-                students={serializeData(students) || []}
-                admins={serializeData(admins) || []}
-                campusPerformance={serializeData(campusPerformance) || []}
+                campuses={(campusesResult.success ? campusesResult.campuses : []) as any}
+                users={serializeData(users) as any}
+                students={serializeData(students) as any}
+                admins={serializeData(admins) as any}
+                campusPerformance={serializeData(campusPerformance) as any}
                 permissions={permissions || undefined}
             />
         </ErrorBoundary>

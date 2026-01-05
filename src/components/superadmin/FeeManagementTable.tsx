@@ -8,7 +8,11 @@ import { getAcademicYears } from '@/app/settings-actions'
 import CSVUploader from '@/components/CSVUploader'
 import { toast } from 'sonner'
 
-export function FeeManagementTable() {
+interface FeeManagementTableProps {
+    academicYears?: any[]
+}
+
+export function FeeManagementTable({ academicYears: initialAcademicYears = [] }: FeeManagementTableProps) {
     const [fees, setFees] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [search, setSearch] = useState('')
@@ -16,7 +20,7 @@ export function FeeManagementTable() {
 
     // Filters
     const [campuses, setCampuses] = useState<any[]>([])
-    const [academicYears, setAcademicYears] = useState<any[]>([])
+    const [academicYears, setAcademicYears] = useState<any[]>(initialAcademicYears)
     const [selectedAY, setSelectedAY] = useState('')
     const [selectedCampus, setSelectedCampus] = useState('')
     const [selectedGrade, setSelectedGrade] = useState('')

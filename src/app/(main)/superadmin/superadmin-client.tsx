@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react'
 import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Search, Filter, TrendingUp, Users, Target, Building2, IndianRupee, BarChart3, Settings, X, Upload, Trash2, Star, Calendar, Bell, Shield, Database, GanttChartSquare, AlertTriangle, BookOpen, Check, Pencil, MessageSquare, Download, ShieldCheck, RefreshCw, Trophy, UserPlus, List, Wallet, Edit, Trash, Phone, ArrowRight, Clock, CheckCircle, Plus } from 'lucide-react'
+import { Search, Filter, TrendingUp, Users, Target, Building2, IndianRupee, BarChart3, Settings, X, Upload, Trash2, Star, Calendar, Bell, Shield, Database, GanttChartSquare, AlertTriangle, BookOpen, Check, Pencil, MessageSquare, Download, ShieldCheck, RefreshCw, Trophy, UserPlus, List, Wallet, Edit, Trash, Phone, ArrowRight, Clock, CheckCircle, Plus, Zap } from 'lucide-react'
 import {
     getSystemSettings,
     updateSystemSettings,
@@ -55,6 +55,7 @@ const BenefitSlabTable = dynamic(() => import('@/components/superadmin/BenefitSl
 const AuditTrailTable = dynamic(() => import('@/components/superadmin/AuditTrailTable').then(m => m.AuditTrailTable), { ssr: false })
 const DeletionRequestsTable = dynamic(() => import('@/components/superadmin/DeletionRequestsTable').then(m => m.DeletionRequestsTable), { ssr: false })
 const FeeManagementTable = dynamic(() => import('@/components/superadmin/FeeManagementTable').then(m => m.FeeManagementTable), { ssr: false })
+const EngagementPanel = dynamic(() => import('@/components/superadmin/EngagementPanel').then(m => m.EngagementPanel), { ssr: false })
 
 import { User, Student, ReferralLead, RolePermissions, SystemAnalytics, CampusPerformance, Admin, Campus, SystemSettings, MarketingAsset, BulkStudentData, BulkUserData } from '@/types'
 
@@ -231,12 +232,12 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
     }
 
     // Map URL view param to internal view state
-    const mapViewParam = (view: string): 'home' | 'analytics' | 'users' | 'admins' | 'campuses' | 'settings' | 'reports' | 'students' | 'settlements' | 'marketing' | 'audit' | 'support' | 'permissions' | 'staff-dash' | 'parent-dash' | 'deletion-requests' | 'referrals' | 'fees' => {
-        const validViews = ['home', 'analytics', 'users', 'admins', 'campuses', 'settings', 'reports', 'students', 'settlements', 'marketing', 'audit', 'support', 'permissions', 'staff-dash', 'parent-dash', 'deletion-requests', 'referrals', 'fees']
+    const mapViewParam = (view: string): 'home' | 'analytics' | 'users' | 'admins' | 'campuses' | 'settings' | 'reports' | 'students' | 'settlements' | 'marketing' | 'audit' | 'support' | 'permissions' | 'staff-dash' | 'parent-dash' | 'deletion-requests' | 'referrals' | 'fees' | 'engagement' => {
+        const validViews = ['home', 'analytics', 'users', 'admins', 'campuses', 'settings', 'reports', 'students', 'settlements', 'marketing', 'audit', 'support', 'permissions', 'staff-dash', 'parent-dash', 'deletion-requests', 'referrals', 'fees', 'engagement']
         return (validViews.includes(view) ? view : 'home') as any
     }
 
-    const [selectedView, setSelectedView] = useState<'home' | 'analytics' | 'users' | 'admins' | 'campuses' | 'settings' | 'reports' | 'students' | 'settlements' | 'marketing' | 'audit' | 'support' | 'permissions' | 'staff-dash' | 'parent-dash' | 'deletion-requests' | 'referrals' | 'fees'>(mapViewParam(initialView))
+    const [selectedView, setSelectedView] = useState<'home' | 'analytics' | 'users' | 'admins' | 'campuses' | 'settings' | 'reports' | 'students' | 'settlements' | 'marketing' | 'audit' | 'support' | 'permissions' | 'staff-dash' | 'parent-dash' | 'deletion-requests' | 'referrals' | 'fees' | 'engagement'>(mapViewParam(initialView))
 
     // Unified Status & Settings States
     const [settingsState, setSettingsState] = useState<any>(systemSettings || null)
@@ -790,7 +791,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
     }
 
     // Dynamic page titles based on selected view
-    const pageConfig: Record<'home' | 'analytics' | 'users' | 'admins' | 'campuses' | 'settings' | 'reports' | 'students' | 'settlements' | 'marketing' | 'audit' | 'support' | 'permissions' | 'staff-dash' | 'parent-dash' | 'deletion-requests' | 'referrals' | 'fees', { title: string, subtitle: string }> = {
+    const pageConfig: Record<'home' | 'analytics' | 'users' | 'admins' | 'campuses' | 'settings' | 'reports' | 'students' | 'settlements' | 'marketing' | 'audit' | 'support' | 'permissions' | 'staff-dash' | 'parent-dash' | 'deletion-requests' | 'referrals' | 'fees' | 'engagement', { title: string, subtitle: string }> = {
         home: { title: 'Dashboard', subtitle: 'Quick overview and actions' },
         analytics: { title: 'Analytics Overview', subtitle: 'System-wide performance metrics and insights' },
         campuses: { title: 'Campus Performance', subtitle: 'Detailed metrics and comparison across all campuses' },
@@ -798,6 +799,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
         admins: { title: 'Admin Management', subtitle: 'Manage administrators and their roles' },
         students: { title: 'Student Management', subtitle: 'Manage system-wide student records and academic context' },
         reports: { title: 'Reports', subtitle: 'Download system data reports in CSV format' },
+        engagement: { title: 'Engagement Center', subtitle: 'Manage campaigns and ambassador retention' },
         'settings': { title: 'System Settings', subtitle: 'Global configuration and defaults' },
         'staff-dash': { title: 'Staff Dashboard Ctrl', subtitle: 'Configure staff perspective and assets' },
         'parent-dash': { title: 'Parent Dashboard Ctrl', subtitle: 'Configure parent perspective and assets' },
@@ -909,6 +911,13 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                                 >
                                     <BarChart3 size={24} className="text-purple-600" />
                                     <span className="text-xs font-bold text-gray-700">Full Analytics</span>
+                                </button>
+                                <button
+                                    onClick={() => router.push('/superadmin?view=engagement')}
+                                    className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                                >
+                                    <Zap size={24} className="text-amber-500" />
+                                    <span className="text-xs font-bold text-gray-700">Engagement</span>
                                 </button>
                             </div>
                         </div>
@@ -1151,16 +1160,12 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                         onDownloadReport={handleDownloadReport}
                         generateLeadPipelineReport={generateLeadPipelineReport}
                         onWeeklyReport={handleWeeklyReport}
-                        campusesFull={campuses}
                     />
                 )}
 
                 {/* Fee Management View */}
-                {selectedView === 'fees' && (
-                    <div className="animate-fade-in">
-                        <FeeManagementTable />
-                    </div>
-                )}
+                {selectedView === 'fees' && <FeeManagementTable academicYears={academicYears} />}
+                {selectedView === 'engagement' && <EngagementPanel />}
 
                 {/* User Management View */}
                 {selectedView === 'users' && (

@@ -2,13 +2,17 @@
 
 
 import prisma from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
 import { generateSmartReferralCode } from '@/lib/referral-service'
+import { encrypt, decrypt } from '@/lib/encryption'
 import { createSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import bcrypt from 'bcryptjs'
 
 import { smsService } from '@/lib/sms-service'
 import { getCurrentUser } from '@/lib/auth-service'
+import { UserRole, AccountStatus, LeadStatus } from '@prisma/client'
+import { mapUserRole, mapAdminRole, mapAccountStatus } from '@/lib/enum-utils'
 
 export async function checkSession() {
     const user = await getCurrentUser()
@@ -158,7 +162,7 @@ export async function loginWithPassword(mobile: string, password: string) {
         if (user.password) {
             const isValid = await bcrypt.compare(password, user.password)
             if (isValid) {
-                await createSession(user.userId, 'user', user.role)
+                await createSession(user.userId, 'user', mapUserRole(user.role))
                 return { success: true }
             }
         }
@@ -174,7 +178,7 @@ export async function loginWithPassword(mobile: string, password: string) {
         if (admin.password) {
             const isValid = await bcrypt.compare(password, admin.password)
             if (isValid) {
-                await createSession(admin.adminId, 'admin', admin.role)
+                await createSession(admin.adminId, 'admin', mapAdminRole(admin.role))
                 return { success: true }
             }
         }
@@ -196,20 +200,21 @@ export async function getLoginRedirect(mobile: string) {
     })
 
     if (admin) {
+        const adminRole = mapAdminRole(admin.role)
         // IMPORTANT: Check Super Admin FIRST (before generic Admin check)
-        if (admin.role === 'Super Admin') {
+        if (adminRole === 'Super Admin') {
             return '/superadmin'
         }
         // Finance Admin
-        else if (admin.role === 'Finance Admin') {
+        else if (adminRole === 'Finance Admin') {
             return '/finance'
         }
         // Then check Campus Head
-        else if (admin.role === 'Campus Head') {
+        else if (adminRole === 'Campus Head') {
             return '/campus'
         }
         // Finally, regular admins (like "Admission Admin")
-        else if (admin.role.includes('Admin')) {
+        else if (adminRole.includes('Admin')) {
             return '/admin'
         }
     }
@@ -245,15 +250,20 @@ export async function registerUser(formData: any) {
     // Format: ACH25-[ROLE-PREFIX][SEQUENCE] using shared service
     const referralCode = await generateSmartReferralCode(role)
 
+    // Fetch current academic year
+    const currentYearRecord = await prisma.academicYear.findFirst({
+        where: { isCurrent: true }
+    })
+    const currentYear = currentYearRecord?.year || "2025-2026"
+
     // Fetch fee based on campus and grade
     let studentFee = 60000
     if (childInAchariya === 'Yes' && campusId && grade) {
-        const gradeFee = await prisma.gradeFee.findUnique({
+        const gradeFee = await prisma.gradeFee.findFirst({
             where: {
-                campusId_grade: {
-                    campusId: parseInt(campusId),
-                    grade: grade
-                }
+                campusId: parseInt(campusId),
+                grade: grade,
+                academicYear: currentYear
             }
         })
         if (gradeFee) {
@@ -263,29 +273,30 @@ export async function registerUser(formData: any) {
 
     // Create
     try {
-        const currentYearRecord = await (prisma as any).academicYear.findFirst({
-            where: { isCurrent: true }
-        })
+        const userRole = (role === 'Parent' ? UserRole.Parent :
+            role === 'Staff' ? UserRole.Staff :
+                role === 'Alumni' ? UserRole.Alumni : UserRole.Others)
+
         const user = await prisma.user.create({
             data: {
                 fullName,
                 mobileNumber,
                 password: await bcrypt.hash(password || '123456', 10), // Hash password
-                role,
+                role: userRole,
                 childInAchariya: childInAchariya === 'Yes',
                 childName: childName || null,
                 grade: grade || null,
                 campusId: campusId ? parseInt(campusId) : null,
-                bankAccountDetails: bankAccountDetails || null,
+                bankAccountDetails: encrypt(bankAccountDetails) || null,
                 referralCode,
-                benefitStatus: 'Inactive', // Active only after admin approval or auto-check
+                benefitStatus: AccountStatus.Inactive,
                 studentFee,
                 academicYear: currentYearRecord?.year || '2025-2026',
                 // New Role Fields
                 email: email || null,
                 childEprNo: childEprNo || null,
                 empId: empId || null,
-                aadharNo: aadharNo || null,
+                aadharNo: encrypt(aadharNo) || null,
                 // Payment Info
                 paymentStatus: transactionId ? 'Completed' : 'Pending', // Dummy flow assumes completion
                 transactionId: transactionId || null,
@@ -293,7 +304,7 @@ export async function registerUser(formData: any) {
             }
         })
 
-        await createSession(user.userId, 'user', user.role)
+        await createSession(user.userId, 'user', mapUserRole(user.role))
         return { success: true }
     } catch (e: any) {
         console.error('Registration error:', e)

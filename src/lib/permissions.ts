@@ -33,6 +33,8 @@ export interface RolePermissions {
     referralTracking: ModulePermission
     savingsCalculator: ModulePermission
     rulesAccess: ModulePermission
+    feeManagement: ModulePermission
+    engagementCentre: ModulePermission
 }
 
 export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
@@ -53,7 +55,9 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: true, scope: 'all' },
         referralTracking: { access: true, scope: 'all' },
         savingsCalculator: { access: true, scope: 'all' },
-        rulesAccess: { access: true, scope: 'all' }
+        rulesAccess: { access: true, scope: 'all' },
+        feeManagement: { access: true, scope: 'all' },
+        engagementCentre: { access: true, scope: 'all' }
     },
     'Campus Head': {
         analytics: { access: true, scope: 'campus' },
@@ -72,7 +76,9 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: true, scope: 'campus' },
         referralTracking: { access: true, scope: 'campus' },
         savingsCalculator: { access: true, scope: 'campus' },
-        rulesAccess: { access: true, scope: 'campus' }
+        rulesAccess: { access: true, scope: 'campus' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     },
     'Finance Admin': {
         analytics: { access: true, scope: 'all' },
@@ -91,12 +97,14 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: false, scope: 'none' },
         referralTracking: { access: false, scope: 'none' },
         savingsCalculator: { access: false, scope: 'none' },
-        rulesAccess: { access: false, scope: 'none' }
+        rulesAccess: { access: false, scope: 'none' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     },
     'Admission Admin': {
         analytics: { access: true, scope: 'view-only' },
-        userManagement: { access: false, scope: 'none' },
-        studentManagement: { access: false, scope: 'none' },
+        userManagement: { access: true, scope: 'view-only' },
+        studentManagement: { access: true, scope: 'all', canCreate: true, canEdit: true },
         adminManagement: { access: false, scope: 'none' },
         campusPerformance: { access: false, scope: 'none' },
         reports: { access: true, scope: 'all', allowedReports: ['pending-leads', 'lead-pipeline', 'new-registrations'] },
@@ -110,7 +118,9 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: false, scope: 'none' },
         referralTracking: { access: true, scope: 'all' },
         savingsCalculator: { access: false, scope: 'none' },
-        rulesAccess: { access: true, scope: 'all' }
+        rulesAccess: { access: true, scope: 'all' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     },
     'Campus Admin': {
         analytics: { access: true, scope: 'campus' },
@@ -129,7 +139,9 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: false, scope: 'none' },
         referralTracking: { access: true, scope: 'campus' },
         savingsCalculator: { access: false, scope: 'none' },
-        rulesAccess: { access: false, scope: 'none' }
+        rulesAccess: { access: false, scope: 'none' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     },
     'Staff': {
         analytics: { access: true, scope: 'self' },
@@ -148,7 +160,9 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: true, scope: 'self' },
         referralTracking: { access: true, scope: 'self' },
         savingsCalculator: { access: true, scope: 'self' },
-        rulesAccess: { access: true, scope: 'all' }
+        rulesAccess: { access: true, scope: 'all' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     },
     'Parent': {
         analytics: { access: true, scope: 'self' },
@@ -167,7 +181,9 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: true, scope: 'self' },
         referralTracking: { access: true, scope: 'self' },
         savingsCalculator: { access: true, scope: 'self' },
-        rulesAccess: { access: true, scope: 'all' }
+        rulesAccess: { access: true, scope: 'all' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     },
     'Alumni': {
         analytics: { access: true, scope: 'self' },
@@ -186,7 +202,9 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: true, scope: 'self' },
         referralTracking: { access: true, scope: 'self' },
         savingsCalculator: { access: true, scope: 'self' },
-        rulesAccess: { access: true, scope: 'all' }
+        rulesAccess: { access: true, scope: 'all' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     }
 }
 
@@ -278,4 +296,33 @@ export function getPermissionDescription(permission: ModulePermission): string {
 
     if (actions.length === 0) return scope
     return `${scope} (${actions.join(', ')})`
+}
+/**
+ * Generates a Prisma where filter based on user role and module scope.
+ */
+export function getPrismaScopeFilter(user: any, module: keyof RolePermissions): any {
+    const scope = getDataScope(user.role, module)
+
+    if (scope === 'all') return {}
+
+    // Default filters for common models
+    if (scope === 'campus') {
+        const campusId = user.campusId || (user as any).adminCampusId
+        const campusName = user.assignedCampus
+
+        // Return a multi-field filter to cover different model structures
+        return {
+            OR: [
+                ...(campusId ? [{ campusId }] : []),
+                ...(campusName ? [{ campus: campusName }] : []),
+                ...(campusName ? [{ assignedCampus: campusName }] : [])
+            ]
+        }
+    }
+
+    if (scope === 'self') {
+        return { userId: user.userId }
+    }
+
+    return { userId: -1 } // Force empty result for unauthorized
 }

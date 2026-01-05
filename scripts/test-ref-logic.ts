@@ -1,6 +1,6 @@
 
-import { sendReferralOtp } from './src/app/referral-actions'
-import prisma from './src/lib/prisma'
+import { sendReferralOtp } from '../src/app/referral-actions'
+import prisma from '../src/lib/prisma'
 
 // Mocking dependencies if needed, but since we are running via ts-node in a context that loads actions might be tricky due to 'use server'
 // Instead, let's write a pure script that replicates the logic of sendReferralOtp EXACTLY.

@@ -78,11 +78,27 @@ export async function updateCampus(id: number, data: any) {
             // Update grade fees if provided
             if (gradeFees && Array.isArray(gradeFees)) {
                 for (const gf of gradeFees) {
-                    await tx.gradeFee.upsert({
-                        where: { campusId_grade: { campusId: id, grade: gf.grade } },
-                        update: { annualFee: gf.annualFee },
-                        create: { campusId: id, grade: gf.grade, annualFee: gf.annualFee }
+                    // Standard practice: first find, then update or create
+                    // This avoids composite key (campusId_grade) issues when academicYear is also part of uniqueness
+                    const existingGf = await tx.gradeFee.findFirst({
+                        where: { campusId: id, grade: gf.grade }
                     })
+
+                    if (existingGf) {
+                        await tx.gradeFee.update({
+                            where: { id: existingGf.id },
+                            data: { annualFee: gf.annualFee }
+                        })
+                    } else {
+                        await tx.gradeFee.create({
+                            data: {
+                                campusId: id,
+                                grade: gf.grade,
+                                annualFee: gf.annualFee,
+                                academicYear: '2025-2026' // Default or fetch current
+                            }
+                        })
+                    }
                 }
             }
         })

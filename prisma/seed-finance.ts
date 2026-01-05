@@ -31,10 +31,10 @@ async function main() {
     console.log('Seeding Grade Fees...')
     await prisma.gradeFee.deleteMany({}) // Clean slate for fees
 
-    const campuses = await prisma.campus.findMany()
+    const currentCampuses = await prisma.campus.findMany()
     const GRADES = ['KG 1', 'KG 2', 'Grade 1', 'Grade 5', 'Grade 10', 'Grade 12']
 
-    for (const campus of campuses) {
+    for (const campus of currentCampuses) {
         for (const grade of GRADES) {
             let baseFee = 45000
             if (grade.includes('Grade')) baseFee = 65000
@@ -44,7 +44,8 @@ async function main() {
                 data: {
                     campusId: campus.id,
                     grade: grade,
-                    annualFee: baseFee
+                    annualFee: baseFee,
+                    academicYear: "2025-2026"
                 }
             })
         }

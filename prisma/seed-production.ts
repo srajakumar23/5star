@@ -110,22 +110,25 @@ async function main() {
             if (grade.includes('Grade')) baseFee = 65000
             if (grade.includes('10') || grade.includes('12')) baseFee = 85000
 
-            await prisma.gradeFee.upsert({
-                where: {
-                    campusId_grade: {
-                        campusId: campus.id,
-                        grade: grade
-                    }
-                },
-                update: {
-                    annualFee: baseFee
-                },
-                create: {
-                    campusId: campus.id,
-                    grade: grade,
-                    annualFee: baseFee
-                }
+            const existingGf = await prisma.gradeFee.findFirst({
+                where: { campusId: campus.id, grade: grade }
             })
+
+            if (existingGf) {
+                await prisma.gradeFee.update({
+                    where: { id: existingGf.id },
+                    data: { annualFee: baseFee }
+                })
+            } else {
+                await prisma.gradeFee.create({
+                    data: {
+                        campusId: campus.id,
+                        grade: grade,
+                        annualFee: baseFee,
+                        academicYear: '2025-2026'
+                    }
+                })
+            }
         }
     }
 

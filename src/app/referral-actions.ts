@@ -8,6 +8,7 @@ import { EmailService } from '@/lib/email-service'
 import { getNotificationSettings } from './notification-actions'
 
 import { referralSchema } from '@/lib/validators'
+import { LeadStatus } from '@prisma/client'
 
 // --- New OTP Actions ---
 
@@ -251,10 +252,10 @@ export async function getMyComparisonStats() {
             where: { userId: user.userId, createdAt: { gte: lastMonthStart, lt: currentMonthStart } }
         }),
         prisma.referralLead.count({
-            where: { userId: user.userId, leadStatus: 'Confirmed', confirmedDate: { gte: currentMonthStart } }
+            where: { userId: user.userId, leadStatus: LeadStatus.Confirmed, confirmedDate: { gte: currentMonthStart } }
         }),
         prisma.referralLead.count({
-            where: { userId: user.userId, leadStatus: 'Confirmed', confirmedDate: { gte: lastMonthStart, lt: currentMonthStart } }
+            where: { userId: user.userId, leadStatus: LeadStatus.Confirmed, confirmedDate: { gte: lastMonthStart, lt: currentMonthStart } }
         })
     ])
 

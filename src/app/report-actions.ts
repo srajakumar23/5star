@@ -1,9 +1,11 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { LeadStatus } from '@prisma/client'
 import { cookies } from 'next/headers'
 
 import { getCurrentUser } from '@/lib/auth-service'
+import { UserRole } from '@prisma/client'
 
 // ===================== REPORT #1: REFERRAL PERFORMANCE =====================
 export async function generateReferralPerformanceReport() {
@@ -56,7 +58,7 @@ export async function generatePendingLeadsReport() {
     try {
         const pendingLeads = await prisma.referralLead.findMany({
             where: {
-                leadStatus: { in: ['New', 'Follow-up'] }
+                leadStatus: { in: [LeadStatus.New, LeadStatus.Follow_up] }
             },
             include: {
                 user: {
@@ -111,7 +113,7 @@ export async function generateMonthlyTrendsReport() {
 
             const confirmed = await prisma.referralLead.count({
                 where: {
-                    leadStatus: 'Confirmed',
+                    leadStatus: LeadStatus.Confirmed,
                     confirmedDate: { gte: monthStart, lte: monthEnd }
                 }
             })
@@ -187,7 +189,7 @@ export async function generateTopPerformersReport() {
             where: { isFiveStarMember: true },
             include: {
                 referrals: {
-                    where: { leadStatus: 'Confirmed' }
+                    where: { leadStatus: LeadStatus.Confirmed }
                 }
             },
             orderBy: { confirmedReferralCount: 'desc' },
@@ -238,7 +240,7 @@ export async function generateCampusDistributionReport() {
             })
 
             const confirmed = await prisma.referralLead.count({
-                where: { campus, leadStatus: 'Confirmed' }
+                where: { campus, leadStatus: LeadStatus.Confirmed }
             })
 
             const activeAmbassadors = await prisma.user.count({
@@ -342,7 +344,7 @@ export async function generateStaffVsParentReport() {
     }
 
     try {
-        const roles = ['Parent', 'Staff']
+        const roles = [UserRole.Parent, UserRole.Staff]
         let csv = 'Role,Total Ambassadors,Active,Inactive,Total Referrals,Avg Referrals/User,Total Confirmed,Avg Conversion Rate\n'
 
         for (const role of roles) {
@@ -386,7 +388,7 @@ export async function generateLeadPipelineReport() {
     }
 
     try {
-        const statuses = ['New', 'Follow-up', 'Confirmed']
+        const statuses = [LeadStatus.New, LeadStatus.Follow_up, LeadStatus.Confirmed]
         let csv = 'Lead Status,Count,Percentage,Avg Days in Stage\n'
 
         const totalLeads = await prisma.referralLead.count()

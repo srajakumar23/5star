@@ -242,7 +242,7 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
                                 </div>
                                 <div className="flex items-center justify-between p-4 bg-purple-50/50 border border-purple-100 rounded-2xl">
                                     <span className="text-sm font-bold text-gray-700">Est. Value</span>
-                                    <span className="text-xl font-black text-purple-600">₹{(analytics?.totalEstimatedValue || 0).toLocaleString()}</span>
+                                    <span className="text-xl font-black text-purple-600">₹{(analytics?.totalEstimatedValue || 0).toLocaleString('en-IN')}</span>
                                 </div>
                             </div>
                         </PremiumCard>
@@ -363,7 +363,7 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
                         />
                         <PremiumStatCard
                             title="Est. Value"
-                            value={`₹${(analytics?.totalEstimatedValue || 0).toLocaleString()}`}
+                            value={`₹${(analytics?.totalEstimatedValue || 0).toLocaleString('en-IN')}`}
                             icon={<IndianRupee size={24} />}
                             gradient="linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)"
                             subtext="Incentive Value"
