@@ -4,37 +4,62 @@ import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-service'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit-logger'
+import { z } from 'zod'
+
+// Validation Schema for Settings
+const SettingsUpdateSchema = z.object({
+    maintenanceMode: z.boolean().optional(),
+    allowNewRegistrations: z.boolean().optional(),
+    staffReferralText: z.string().max(500).optional(),
+    parentReferralText: z.string().max(500).optional(),
+    staffWelcomeMessage: z.string().max(100).optional(),
+    parentWelcomeMessage: z.string().max(100).optional(),
+    alumniReferralText: z.string().max(500).optional(),
+    alumniWelcomeMessage: z.string().max(100).optional(),
+})
 
 /**
  * Get current registration status (public - anyone can read)
+ * EXPERT: Fail-closed (false) implementation.
  */
 export async function getRegistrationStatus(): Promise<boolean> {
     try {
         const settings = await prisma.systemSettings.findFirst()
-        return settings?.allowNewRegistrations ?? true // Default to true if not found
+        // Fail-closed: default to FALSE if not found or on error
+        return settings?.allowNewRegistrations ?? false
     } catch (error) {
         console.error('Error fetching registration status:', error)
-        return true // Fail open - allow registration if there's an error
+        return false // Fail-closed
     }
 }
 
 export async function getSystemSettings() {
     try {
+        // Fetch global flags
         const settings = await prisma.systemSettings.findFirst()
-        if (!settings) {
-            // Return default settings if none exist
-            return {
-                allowNewRegistrations: true,
-                currentAcademicYear: '2025-2026',
-                defaultStudentFee: 60000,
-                maintenanceMode: false
-            }
+
+        // Fetch current academic year from the consolidated source of truth
+        const currentYearRecord = await (prisma as any).academicYear.findFirst({
+            where: { isCurrent: true }
+        })
+
+        const defaultSettings = {
+            allowNewRegistrations: false, // Fail-closed default
+            currentAcademicYear: currentYearRecord?.year || '2025-2026',
+            defaultStudentFee: 60000,
+            maintenanceMode: false
         }
-        return settings
+
+        if (!settings) return defaultSettings
+
+        return {
+            ...settings,
+            currentAcademicYear: currentYearRecord?.year || '2025-2026'
+        }
     } catch (error) {
         console.error('Error fetching system settings:', error)
         return {
-            allowNewRegistrations: true,
+            allowNewRegistrations: false,
             currentAcademicYear: '2025-2026',
             defaultStudentFee: 60000,
             maintenanceMode: false
@@ -43,20 +68,17 @@ export async function getSystemSettings() {
 }
 
 // Update System Settings
-export async function updateSystemSettings(data: {
-    currentAcademicYear?: string
-    maintenanceMode?: boolean
-    allowNewRegistrations?: boolean
-    staffReferralText?: string
-    parentReferralText?: string
-    staffWelcomeMessage?: string
-    parentWelcomeMessage?: string
-    alumniReferralText?: string
-    alumniWelcomeMessage?: string
-}) {
+export async function updateSystemSettings(rawData: any) {
     try {
         const user = await getCurrentUser()
         if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
+
+        // 1. Zod Validation
+        const validation = SettingsUpdateSchema.safeParse(rawData)
+        if (!validation.success) {
+            return { success: false, error: 'Invalid data format' }
+        }
+        const data = validation.data
 
         const existing = await prisma.systemSettings.findFirst()
         const id = existing?.id || 1
@@ -76,7 +98,6 @@ export async function updateSystemSettings(data: {
         const settings = await prisma.systemSettings.upsert({
             where: { id },
             update: {
-                ...(data.currentAcademicYear && { currentAcademicYear: data.currentAcademicYear }),
                 ...(data.maintenanceMode !== undefined && { maintenanceMode: data.maintenanceMode }),
                 ...(data.allowNewRegistrations !== undefined && { allowNewRegistrations: data.allowNewRegistrations }),
                 ...(data.staffReferralText !== undefined && { staffReferralText: data.staffReferralText }),
@@ -87,9 +108,8 @@ export async function updateSystemSettings(data: {
                 ...(data.alumniWelcomeMessage !== undefined && { alumniWelcomeMessage: data.alumniWelcomeMessage }),
             },
             create: {
-                currentAcademicYear: data.currentAcademicYear || '2025-2026',
                 maintenanceMode: data.maintenanceMode || false,
-                allowNewRegistrations: data.allowNewRegistrations ?? true,
+                allowNewRegistrations: data.allowNewRegistrations ?? false,
                 staffReferralText: data.staffReferralText,
                 parentReferralText: data.parentReferralText,
                 staffWelcomeMessage: data.staffWelcomeMessage,
@@ -129,8 +149,6 @@ export async function addAcademicYear(data: { year: string; startDate: Date; end
         const user = await getCurrentUser()
         if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
 
-        // Optionally set as current if it's the first one?
-        // For now just create
         await (prisma as any).academicYear.create({
             data: {
                 year: data.year,
@@ -152,17 +170,9 @@ export async function setCurrentAcademicYear(yearString: string) {
         const user = await getCurrentUser()
         if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
 
-        // 1. Transaction to update SystemSettings AND AcademicYear table
+        // EXPERT: Sole source of truth is now the AcademicYear table.
+        // SystemSettings no longer stores a duplicate string.
         await prisma.$transaction(async (tx) => {
-            // Update Settings
-            const settings = await tx.systemSettings.findFirst()
-            if (settings) {
-                await tx.systemSettings.update({
-                    where: { id: settings.id },
-                    data: { currentAcademicYear: yearString }
-                })
-            }
-
             // Unset current for all
             await (tx as any).academicYear.updateMany({
                 data: { isCurrent: false }
@@ -175,6 +185,7 @@ export async function setCurrentAcademicYear(yearString: string) {
             })
         })
 
+        revalidatePath('/superadmin')
         return { success: true }
     } catch (error) {
         console.error('Error setting current academic year:', error)

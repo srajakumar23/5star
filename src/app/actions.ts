@@ -263,7 +263,9 @@ export async function registerUser(formData: any) {
 
     // Create
     try {
-        const settings = await prisma.systemSettings.findFirst()
+        const currentYearRecord = await (prisma as any).academicYear.findFirst({
+            where: { isCurrent: true }
+        })
         const user = await prisma.user.create({
             data: {
                 fullName,
@@ -278,7 +280,7 @@ export async function registerUser(formData: any) {
                 referralCode,
                 benefitStatus: 'Inactive', // Active only after admin approval or auto-check
                 studentFee,
-                academicYear: settings?.currentAcademicYear || '2025-2026',
+                academicYear: currentYearRecord?.year || '2025-2026',
                 // New Role Fields
                 email: email || null,
                 childEprNo: childEprNo || null,

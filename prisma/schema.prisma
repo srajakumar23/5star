@@ -128,7 +128,6 @@ model Admin {
 model SystemSettings {
   id                    Int      @id @default(autoincrement())
   allowNewRegistrations Boolean  @default(true)
-  currentAcademicYear   String   @default("2025-2026")
   defaultStudentFee     Int      @default(60000)
   maintenanceMode       Boolean  @default(false)
   staffReferralText     String?  @default("Hello 👋 I’m part of Achariya’s 5-Star Ambassador Program (25th Year Celebration). I recommend you to explore admission for your child. Click here: ${referralLink} – Achariya Ambassador")

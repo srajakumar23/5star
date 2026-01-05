@@ -25,7 +25,6 @@ import { ReferralTable } from '../admin/referral-table'
 import { PremiumHeader } from '@/components/premium/PremiumHeader'
 import { PremiumCard } from '@/components/premium/PremiumCard'
 import { MarketingManager } from '@/components/MarketingManager'
-import DashboardSettings from '@/components/DashboardSettings'
 import CSVUploader from '@/components/CSVUploader'
 import { CampusBarChart, ConversionFunnelChart, GrowthTrendChart, GenericPieChart, CampusEfficiencyChart } from '@/components/analytics/analytics-components'
 import {
@@ -677,7 +676,6 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
         if (!settingsState) return
         setLoading(true)
         const result = await updateSystemSettings({
-            currentAcademicYear: settingsState.currentAcademicYear,
             allowNewRegistrations: registrationEnabled,
             maintenanceMode: settingsState.maintenanceMode
         })
