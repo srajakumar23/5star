@@ -1,5 +1,6 @@
 import { Users, UserPlus, CheckCircle, TrendingUp, Wallet, BookOpen, ArrowUpRight, ArrowDownRight, Target, IndianRupee } from 'lucide-react'
 import { PremiumStatCard } from '../premium/PremiumStatCard'
+import { Area, AreaChart, ResponsiveContainer } from 'recharts'
 
 interface StatsCardsProps {
     analytics: {
@@ -18,9 +19,10 @@ interface StatsCardsProps {
         avgLeadsPerAmbassador: number
         totalEstimatedRevenue: number
     }
+    growthTrend?: { date: string; users: number }[]
 }
 
-export function StatsCards({ analytics }: StatsCardsProps) {
+export function StatsCards({ analytics, growthTrend }: StatsCardsProps) {
     const calculateChange = (current: number, previous?: number) => {
         if (previous === undefined || previous === 0) return null
         const change = ((current - previous) / previous) * 100
@@ -34,7 +36,20 @@ export function StatsCards({ analytics }: StatsCardsProps) {
             sub: `${analytics.staffCount} Staff | ${analytics.parentCount} Parent`,
             icon: Users,
             grad: 'bg-grad-crimson',
-            change: calculateChange(analytics.totalAmbassadors, analytics.prevAmbassadors)
+            change: calculateChange(analytics.totalAmbassadors, analytics.prevAmbassadors),
+            chart: growthTrend ? (
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={growthTrend}>
+                        <defs>
+                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.5} />
+                                <stop offset="95%" stopColor="#ffffff" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <Area type="monotone" dataKey="users" stroke="#ffffff" fillOpacity={1} fill="url(#colorUsers)" strokeWidth={2} />
+                    </AreaChart>
+                </ResponsiveContainer>
+            ) : undefined
         },
         {
             label: 'Total Leads',
@@ -114,6 +129,7 @@ export function StatsCards({ analytics }: StatsCardsProps) {
                     shadowColor="rgba(0,0,0,0.25)"
                     change={stat.change ? { value: Math.abs(stat.change).toFixed(1), isIncrease: stat.change >= 0 } : undefined}
                     subtext={stat.sub}
+                    chart={stat.chart}
                 />
             ))}
         </div>

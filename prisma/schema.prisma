@@ -169,6 +169,7 @@ model SecuritySettings {
   maxLoginAttempts         Int      @default(5)
   passwordResetExpiryHours Int      @default(24)
   twoFactorAuthEnabled     Boolean  @default(false)
+  ipWhitelist              String?  @db.Text
   updatedAt                DateTime @updatedAt
   updatedBy                String?
 }
@@ -433,4 +434,31 @@ enum UserRole {
   Staff
   Alumni
   Others
+}
+
+model Campaign {
+  id             Int           @id @default(autoincrement())
+  name           String
+  subject        String
+  templateBody   String        @db.Text
+  type           String        @default("EMAIL")
+  status         String        @default("DRAFT")
+  targetAudience Json?
+  schedule       String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lastRunAt      DateTime?
+  logs           CampaignLog[]
+}
+
+model CampaignLog {
+  id             Int      @id @default(autoincrement())
+  campaignId     Int
+  runAt          DateTime @default(now())
+  status         String
+  recipientCount Int      @default(0)
+  sentCount      Int      @default(0)
+  failedCount    Int      @default(0)
+  errorLog       Json?
+  campaign       Campaign @relation(fields: [campaignId], references: [id])
 }

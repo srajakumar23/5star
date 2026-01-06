@@ -16,7 +16,7 @@ import { getSecuritySettings, updateSecuritySettings, getRetentionSettings, upda
 import { getNotificationSettings, updateNotificationSettings } from '@/app/notification-actions'
 import { getCampuses, updateCampus, addCampus, deleteCampus } from '@/app/campus-actions'
 import { getBenefitSlabs, updateBenefitSlab, addBenefitSlab, deleteBenefitSlab } from '@/app/benefit-actions'
-import { addUser, addAdmin, removeUser, deleteAdmin, bulkAddUsers, updateUserStatus, updateAdminStatus, getSystemAnalytics, getUserGrowthTrend, getCampusComparison, getCampusDetails, triggerWeeklyKPIReport, adminResetPassword } from '@/app/superadmin-actions'
+import { addUser, updateUser, addAdmin, removeUser, deleteAdmin, bulkAddUsers, updateUserStatus, updateAdminStatus, getSystemAnalytics, getUserGrowthTrend, getCampusComparison, getCampusDetails, triggerWeeklyKPIReport, adminResetPassword } from '@/app/superadmin-actions'
 import { getDeletionRequests } from '@/app/deletion-actions'
 import { addStudent, updateStudent, bulkAddStudents, convertLeadToStudent } from '@/app/student-actions'
 import { getRolePermissions, updateRolePermissions } from '@/app/permission-actions'
@@ -56,6 +56,11 @@ const AuditTrailTable = dynamic(() => import('@/components/superadmin/AuditTrail
 const DeletionRequestsTable = dynamic(() => import('@/components/superadmin/DeletionRequestsTable').then(m => m.DeletionRequestsTable), { ssr: false })
 const FeeManagementTable = dynamic(() => import('@/components/superadmin/FeeManagementTable').then(m => m.FeeManagementTable), { ssr: false })
 const EngagementPanel = dynamic(() => import('@/components/superadmin/EngagementPanel').then(m => m.EngagementPanel), { ssr: false })
+const AuditLogPanel = dynamic(() => import('@/components/superadmin/AuditLogPanel').then(m => m.AuditLogPanel), { ssr: false })
+const LiveTicker = dynamic(() => import('@/components/superadmin/LiveTicker').then(m => m.LiveTicker), { ssr: false })
+const LeaderboardWidget = dynamic(() => import('@/components/superadmin/LeaderboardWidget').then(m => m.LeaderboardWidget), { ssr: false })
+const SettingsPanel = dynamic(() => import('@/components/superadmin/SettingsPanel').then(m => m.SettingsPanel), { ssr: false })
+const RetentionHeatmap = dynamic(() => import('@/components/analytics/RetentionHeatmap').then(m => m.RetentionHeatmap), { ssr: false, loading: () => <div className="h-96 w-full animate-pulse bg-gray-100 rounded-3xl" /> })
 
 import { User, Student, ReferralLead, RolePermissions, SystemAnalytics, CampusPerformance, Admin, Campus, SystemSettings, MarketingAsset, BulkStudentData, BulkUserData } from '@/types'
 
@@ -150,7 +155,11 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
     const [modalLoading, setModalLoading] = useState(false)
 
     // Form states
-    const [userForm, setUserForm] = useState({ fullName: '', mobileNumber: '', role: 'Parent' as 'Parent' | 'Staff', assignedCampus: '' })
+    const [userForm, setUserForm] = useState({
+        fullName: '', mobileNumber: '', role: 'Parent' as 'Parent' | 'Staff', assignedCampus: '',
+        empId: '', childEprNo: '', isFiveStarMember: false,
+        yearFeeBenefitPercent: 0, longTermBenefitPercent: 0
+    })
     const [adminForm, setAdminForm] = useState({ adminName: '', adminMobile: '', role: 'CampusHead' as 'CampusHead' | 'CampusAdmin', assignedCampus: '' })
     const [studentForm, setStudentForm] = useState<any>({
         fullName: '',
@@ -202,6 +211,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
         }
     }
     const [editingStudent, setEditingStudent] = useState<any>(null)
+    const [editingUser, setEditingUser] = useState<any>(null)
 
     // Bulk upload state
     const [bulkUploadType, setBulkUploadType] = useState<'students' | 'users' | null>(null)
@@ -240,13 +250,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
     const [selectedView, setSelectedView] = useState<'home' | 'analytics' | 'users' | 'admins' | 'campuses' | 'settings' | 'reports' | 'students' | 'settlements' | 'marketing' | 'audit' | 'support' | 'permissions' | 'staff-dash' | 'parent-dash' | 'deletion-requests' | 'referrals' | 'fees' | 'engagement'>(mapViewParam(initialView))
 
     // Unified Status & Settings States
-    const [settingsState, setSettingsState] = useState<any>(systemSettings || null)
     const [campuses, setCampuses] = useState<any[]>([])
-    const [leadSettings, setLeadSettings] = useState<any>(null)
-    const [securitySettings, setSecuritySettings] = useState<any>(null)
-    const [retentionSettings, setRetentionSettings] = useState<any>(null)
-    const [notificationSettings, setNotificationSettings] = useState<any>(null)
-    const [registrationEnabled, setRegistrationEnabled] = useState(true)
     const [loading, setLoading] = useState(false)
     const [slabs, setSlabs] = useState<any[]>([])
 
@@ -300,26 +304,15 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
         async function loadData() {
             setLoading(true)
             try {
-                const [sys, cmp, lead, sec, ret, notif, slb] = await Promise.all([
-                    getSystemSettings(),
+                const [cmp, slb] = await Promise.all([
                     getCampuses(),
-                    getLeadSettings(),
-                    getSecuritySettings(),
-                    getRetentionSettings(),
-                    getNotificationSettings(),
                     getBenefitSlabs()
                 ])
 
-                setSettingsState(sys)
-                setRegistrationEnabled(sys.allowNewRegistrations)
                 if (cmp.success && cmp.campuses) setCampuses(cmp.campuses)
                 if (slb.success && slb.slabs) setSlabs(slb.slabs)
-                setLeadSettings(lead)
-                setSecuritySettings(sec)
-                setRetentionSettings(ret)
-                setNotificationSettings(notif)
             } catch (error) {
-                console.error('Failed to load settings:', error)
+                console.error('Failed to load initial data:', error)
             } finally {
                 setLoading(false)
             }
@@ -391,8 +384,8 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
         setLoading(false)
     }
 
-    // Add User Handler
-    const handleAddUser = async () => {
+    // Add/Update User Handler
+    const handleSaveUser = async () => {
         if (!userForm.fullName || !userForm.mobileNumber) {
             toast.error('Please fill in all required fields')
             return
@@ -402,20 +395,54 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
             return
         }
         setModalLoading(true)
-        const result = await addUser({
-            fullName: userForm.fullName,
-            mobileNumber: userForm.mobileNumber,
-            role: userForm.role,
-            assignedCampus: userForm.assignedCampus || undefined
-        })
+
+        let result
+        if (editingUser) {
+            result = await updateUser(editingUser.userId, {
+                fullName: userForm.fullName,
+                mobileNumber: userForm.mobileNumber,
+                role: userForm.role,
+                assignedCampus: userForm.assignedCampus || undefined,
+                empId: userForm.empId || undefined,
+                childEprNo: userForm.childEprNo || undefined,
+                isFiveStarMember: userForm.isFiveStarMember,
+                yearFeeBenefitPercent: Number(userForm.yearFeeBenefitPercent),
+                longTermBenefitPercent: Number(userForm.longTermBenefitPercent)
+            })
+        } else {
+            result = await addUser({
+                fullName: userForm.fullName,
+                mobileNumber: userForm.mobileNumber,
+                role: userForm.role,
+                assignedCampus: userForm.assignedCampus || undefined
+            })
+        }
+
         setModalLoading(false)
         if (result.success) {
             setShowAddUserModal(false)
-            setUserForm({ fullName: '', mobileNumber: '', role: 'Parent', assignedCampus: '' })
+            setEditingUser(null)
+            setUserForm({ fullName: '', mobileNumber: '', role: 'Parent', assignedCampus: '', empId: '', childEprNo: '' })
             router.refresh()
         } else {
-            toast.error(result.error || 'Failed to add user')
+            toast.error(result.error || 'Failed to save user')
         }
+    }
+
+    const openEditUserModal = (user: User) => {
+        setEditingUser(user)
+        setUserForm({
+            fullName: user.fullName || '',
+            mobileNumber: user.mobileNumber || '',
+            role: (user.role as any) || 'Parent',
+            assignedCampus: user.assignedCampus || '',
+            empId: user.empId || '',
+            childEprNo: user.childEprNo || '',
+            isFiveStarMember: user.isFiveStarMember || false,
+            yearFeeBenefitPercent: user.yearFeeBenefitPercent || 0,
+            longTermBenefitPercent: user.longTermBenefitPercent || 0
+        })
+        setShowAddUserModal(true)
     }
 
     // Open Edit Student Modal
@@ -713,38 +740,6 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
         }
     }
 
-    const handleUpdateLeadSettings = async () => {
-        if (!leadSettings) return
-        setLoading(true)
-        const result = await updateLeadSettings(leadSettings)
-        setLoading(false)
-        if (result) {
-            toast.success('Lead management rules updated')
-            setLeadSettings(result)
-        }
-    }
-
-    const handleUpdateSecuritySettings = async () => {
-        if (!securitySettings) return
-        setLoading(true)
-        const result = await updateSecuritySettings(securitySettings)
-        setLoading(false)
-        if (result) {
-            toast.success('Security settings updated')
-            setSecuritySettings(result)
-        }
-    }
-
-    const handleUpdateRetentionSettings = async () => {
-        if (!retentionSettings) return
-        setLoading(true)
-        const result = await updateRetentionSettings(retentionSettings)
-        setLoading(false)
-        if (result) {
-            toast.success('Data retention policy updated')
-            setRetentionSettings(result)
-        }
-    }
 
     // Bulk Upload Handler
     const handleBulkUpload = async (data: (BulkStudentData | BulkUserData)[]): Promise<{ success: boolean; added: number; failed: number; errors: string[] }> => {
@@ -860,6 +855,9 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                 {/* Home View - Action Focused */}
                 {selectedView === 'home' && (
                     <div className="space-y-6">
+                        <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                            <LiveTicker />
+                        </div>
                         {/* Quick Stats Row */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-5 text-white">
@@ -942,27 +940,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                                <h3 className="font-bold text-gray-900 mb-4">System Overview</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-                                        <span className="text-sm font-medium text-gray-700">Active Students</span>
-                                        <span className="text-lg font-bold text-blue-600">{analyticsData.totalStudents || students.length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
-                                        <span className="text-sm font-medium text-gray-700">Staff Ambassadors</span>
-                                        <span className="text-lg font-bold text-green-600">{users.filter(u => u.role === 'Staff').length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl">
-                                        <span className="text-sm font-medium text-gray-700">Parent Ambassadors</span>
-                                        <span className="text-lg font-bold text-purple-600">{users.filter(u => u.role === 'Parent').length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
-                                        <span className="text-sm font-medium text-gray-700">Total Campuses</span>
-                                        <span className="text-lg font-bold text-amber-600">{campuses.length}</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <LeaderboardWidget users={users} />
                         </div>
                     </div>
                 )}
@@ -970,7 +948,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                 {/* Analytics Overview View */}
                 {selectedView === 'analytics' && (
                     <>
-                        <StatsCards analytics={analyticsData} />
+                        <StatsCards analytics={analyticsData} growthTrend={trendData} />
 
                         <div style={{
                             display: 'grid',
@@ -1030,6 +1008,10 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                                         { stage: 'Admissions', count: analyticsData.totalConfirmed }
                                     ]} />
                                 </div>
+                            </div>
+
+                            <div className="lg:col-span-2">
+                                <RetentionHeatmap />
                             </div>
 
                             <div className="lg:col-span-2">
@@ -1174,7 +1156,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                             users={users}
                             searchTerm={searchQuery}
                             onSearchChange={setSearchQuery}
-                            onAddUser={() => setShowAddUserModal(true)}
+                            onAddUser={() => { setEditingUser(null); setUserForm({ fullName: '', mobileNumber: '', role: 'Parent', assignedCampus: '', empId: '', childEprNo: '', isFiveStarMember: false, yearFeeBenefitPercent: 0, longTermBenefitPercent: 0 }); setShowAddUserModal(true) }}
                             onBulkAdd={() => { setBulkUploadType('users'); setShowBulkUploadModal(true) }}
                             onDelete={(id, name) => handleDeleteUser(id, name)}
                             onToggleStatus={handleToggleUserStatus}
@@ -1184,6 +1166,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                                 router.push('/superadmin?view=referrals')
                             }}
                             onResetPassword={openResetModal}
+                            onEdit={openEditUserModal}
                         />
                     </div>
                 )}
@@ -1266,9 +1249,10 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                 )}
 
                 {/* Audit Trail View */}
+                {/* Audit Trail View */}
                 {selectedView === 'audit' && (
                     <div className="animate-fade-in">
-                        <AuditTrailTable logs={activityLogs} />
+                        <AuditLogPanel />
                     </div>
                 )}
 
@@ -1597,8 +1581,8 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>Add New User</h3>
-                                <button onClick={() => setShowAddUserModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>{editingUser ? 'Edit Ambassador' : 'Add New User'}</h3>
+                                <button onClick={() => { setShowAddUserModal(false); setEditingUser(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                                     <X size={20} />
                                 </button>
                             </div>
@@ -1644,19 +1628,73 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                                         placeholder="Campus name (optional)"
                                     />
                                 </div>
+                                {userForm.role === 'Staff' && (
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Employee ID *</label>
+                                        <input
+                                            type="text"
+                                            value={userForm.empId}
+                                            onChange={(e) => setUserForm({ ...userForm, empId: e.target.value })}
+                                            style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '14px' }}
+                                            placeholder="Enter Staff Employee ID"
+                                        />
+                                    </div>
+                                )}
+                                {userForm.role === 'Parent' && (
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Child ERP No</label>
+                                        <input
+                                            type="text"
+                                            value={userForm.childEprNo}
+                                            onChange={(e) => setUserForm({ ...userForm, childEprNo: e.target.value })}
+                                            style={{ width: '100%', padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '14px' }}
+                                            placeholder="Achariya Child ERP No"
+                                        />
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={userForm.isFiveStarMember}
+                                        onChange={(e) => setUserForm({ ...userForm, isFiveStarMember: e.target.checked })}
+                                        id="isFiveStar"
+                                        style={{ width: '16px', height: '16px' }}
+                                    />
+                                    <label htmlFor="isFiveStar" style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>5-Star Member Status</label>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Year Fee Benefit %</label>
+                                        <input
+                                            type="number"
+                                            value={userForm.yearFeeBenefitPercent}
+                                            onChange={(e) => setUserForm({ ...userForm, yearFeeBenefitPercent: Number(e.target.value) })}
+                                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '13px' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Long Term Benefit %</label>
+                                        <input
+                                            type="number"
+                                            value={userForm.longTermBenefitPercent}
+                                            onChange={(e) => setUserForm({ ...userForm, longTermBenefitPercent: Number(e.target.value) })}
+                                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '13px' }}
+                                        />
+                                    </div>
+                                </div>
                                 <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
                                     <button
-                                        onClick={() => setShowAddUserModal(false)}
+                                        onClick={() => { setShowAddUserModal(false); setEditingUser(null) }}
                                         style={{ flex: 1, padding: '10px', background: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
                                     >
                                         Cancel
                                     </button>
                                     <button
-                                        onClick={handleAddUser}
+                                        onClick={handleSaveUser}
                                         disabled={modalLoading}
                                         style={{ flex: 1, padding: '10px', background: '#DC2626', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
                                     >
-                                        {modalLoading ? 'Adding...' : 'Add User'}
+                                        {modalLoading ? 'Saving...' : (editingUser ? 'Update Details' : 'Add User')}
                                     </button>
                                 </div>
                             </div>
@@ -1906,304 +1944,9 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
             }
 
             {/* Settings View */}
-            {
-                selectedView === 'settings' && settingsState && (
-                    <div className="space-y-8 animate-fade-in">
-                        {/* Premium Tabs */}
-                        <div className="flex gap-2 p-2 bg-gray-100/80 rounded-[24px] overflow-x-auto border border-gray-200/50 backdrop-blur-sm mx-auto max-w-4xl">
-                            {[
-                                { id: 'general', label: 'General', icon: Settings },
-                                { id: 'leads', label: 'Lead Rules', icon: Users },
-                                { id: 'security', label: 'Security', icon: ShieldCheck },
-                                { id: 'notifications', label: 'Notifications', icon: Bell }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveSettingsTab(tab.id as any)}
-                                    className={`flex items-center gap-3 px-6 py-4 rounded-[20px] text-sm font-bold transition-all whitespace-nowrap flex-1 justify-center ${activeSettingsTab === tab.id
-                                        ? 'bg-white text-red-600 shadow-lg shadow-gray-200/50 scale-[1.02]'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
-                                        }`}
-                                >
-                                    <tab.icon size={18} strokeWidth={2.5} />
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* General Settings */}
-                        {activeSettingsTab === 'general' && (
-                            <PremiumCard className="max-w-4xl mx-auto">
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
-                                        <div className="p-3 bg-red-50 rounded-2xl text-red-600">
-                                            <Settings size={28} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">System Configuration</h3>
-                                            <p className="text-sm font-medium text-gray-500">Core operational defaults for the academic year.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-3">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Academic Year</label>
-                                            <div className="flex gap-2">
-                                                <select
-                                                    value={settingsState.currentAcademicYear}
-                                                    onChange={(e) => setSettingsState({ ...settingsState, currentAcademicYear: e.target.value })}
-                                                    className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all font-bold text-gray-700 appearance-none"
-                                                >
-                                                    <option value="">Select Year</option>
-                                                    {academicYears.map((ay) => (
-                                                        <option key={ay.id} value={ay.year}>{ay.year}</option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    onClick={() => setShowAddYearModal(true)}
-                                                    className="px-4 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-colors border border-red-100"
-                                                >
-                                                    <Plus size={20} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {/* Default Student Fee removed as per user request */}
-                                        </div>
-
-                                        <div className="col-span-1 md:col-span-2 space-y-4">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Access Control</label>
-
-                                            <div className="flex items-center justify-between p-5 bg-gradient-to-r from-emerald-50 to-white border border-emerald-100 rounded-[24px]">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${registrationEnabled ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                        <UserPlus size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-gray-900">New Registrations</p>
-                                                        <p className="text-xs text-emerald-700/70 font-medium">Allow new ambassadors to sign up</p>
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    onClick={() => setRegistrationEnabled(!registrationEnabled)}
-                                                    className={`w-14 h-8 rounded-full cursor-pointer transition-all duration-300 relative shadow-inner ${registrationEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${registrationEnabled ? 'left-7' : 'left-1'}`} />
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between p-5 bg-gradient-to-r from-red-50 to-white border border-red-100 rounded-[24px]">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${settingsState.maintenanceMode ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                        <AlertTriangle size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-gray-900">Maintenance Mode</p>
-                                                        <p className="text-xs text-red-700/70 font-medium">Lock dashboard access for non-admins</p>
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    onClick={() => setSettingsState({ ...settingsState, maintenanceMode: !settingsState.maintenanceMode })}
-                                                    className={`w-14 h-8 rounded-full cursor-pointer transition-all duration-300 relative shadow-inner ${settingsState.maintenanceMode ? 'bg-red-600' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${settingsState.maintenanceMode ? 'left-7' : 'left-1'}`} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
-                                        <button
-                                            onClick={handleUpdateSystemSettings}
-                                            disabled={loading}
-                                            className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-[20px] font-black text-sm shadow-xl shadow-red-600/20 hover:shadow-red-600/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
-                                        >
-                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
-                                            {loading ? 'Saving...' : 'Save Configuration'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </PremiumCard>
-                        )}
-
-                        {/* Lead Settings */}
-                        {activeSettingsTab === 'leads' && leadSettings && (
-                            <PremiumCard className="max-w-4xl mx-auto">
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
-                                        <div className="p-3 bg-blue-50 rounded-2xl text-blue-600">
-                                            <Users size={28} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Lead Management Rules</h3>
-                                            <p className="text-sm font-medium text-gray-500">Automation and escalation policies.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-blue-50/50 rounded-[24px] border border-blue-100/50">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600">
-                                                    <Target size={24} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-gray-900 text-lg">Auto-Assign Leads</p>
-                                                    <p className="text-sm text-gray-500">Automatically assign campus based on location logic</p>
-                                                </div>
-                                            </div>
-                                            <div
-                                                onClick={() => setLeadSettings({ ...leadSettings, autoAssignLeads: !leadSettings.autoAssignLeads })}
-                                                className={`w-14 h-8 rounded-full cursor-pointer transition-all duration-300 relative shadow-inner ${leadSettings.autoAssignLeads ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${leadSettings.autoAssignLeads ? 'left-7' : 'left-1'}`} />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-3">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Stale Lead Threshold (Days)</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="number"
-                                                    value={leadSettings.leadStaleDays}
-                                                    onChange={(e) => setLeadSettings({ ...leadSettings, leadStaleDays: parseInt(e.target.value) })}
-                                                    className="w-full pl-5 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-700"
-                                                />
-                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">DAYS</span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Escalation Timer (Days)</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="number"
-                                                    value={leadSettings.followupEscalationDays}
-                                                    onChange={(e) => setLeadSettings({ ...leadSettings, followupEscalationDays: parseInt(e.target.value) })}
-                                                    className="w-full pl-5 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-700"
-                                                />
-                                                <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">DAYS</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
-                                        <button
-                                            onClick={handleUpdateLeadSettings}
-                                            disabled={loading}
-                                            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-[20px] font-black text-sm shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
-                                        >
-                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
-                                            {loading ? 'Saving...' : 'Update Rules'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </PremiumCard>
-                        )}
-
-                        {/* Security Settings */}
-                        {activeSettingsTab === 'security' && securitySettings && (
-                            <PremiumCard className="max-w-4xl mx-auto">
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
-                                        <div className="p-3 bg-purple-50 rounded-2xl text-purple-600">
-                                            <ShieldCheck size={28} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Security Policies</h3>
-                                            <p className="text-sm font-medium text-gray-500">Session and access control parameters.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-3">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Session Timeout (Minutes)</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="number"
-                                                    value={securitySettings.sessionTimeoutMinutes}
-                                                    onChange={(e) => setSecuritySettings({ ...securitySettings, sessionTimeoutMinutes: parseInt(e.target.value) })}
-                                                    className="w-full pl-5 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-gray-700"
-                                                />
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-purple-100 rounded-lg text-purple-600">
-                                                    <Clock size={16} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Max Login Attempts</label>
-                                            <input
-                                                type="number"
-                                                value={securitySettings.maxLoginAttempts}
-                                                onChange={(e) => setSecuritySettings({ ...securitySettings, maxLoginAttempts: parseInt(e.target.value) })}
-                                                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all font-bold text-gray-700"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
-                                        <button
-                                            onClick={handleUpdateSecuritySettings}
-                                            disabled={loading}
-                                            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-[20px] font-black text-sm shadow-xl shadow-purple-600/20 hover:shadow-purple-600/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
-                                        >
-                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Shield size={20} />}
-                                            {loading ? 'Saving...' : 'Update Policies'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </PremiumCard>
-                        )}
-
-                        {/* Notification Settings */}
-                        {activeSettingsTab === 'notifications' && notificationSettings && (
-                            <PremiumCard className="max-w-4xl mx-auto">
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-4 border-b border-gray-100 pb-6">
-                                        <div className="p-3 bg-amber-50 rounded-2xl text-amber-600">
-                                            <Bell size={28} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Notification Channels</h3>
-                                            <p className="text-sm font-medium text-gray-500">Configure how alerts are delivered.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {[
-                                            { key: 'emailNotifications', label: 'Email Notifications' },
-                                            { key: 'smsNotifications', label: 'SMS Notifications' },
-                                            { key: 'whatsappNotifications', label: 'WhatsApp Notifications' },
-                                            { key: 'notifySuperAdminOnNewAdmins', label: 'Alert Super Admin on New Admin' },
-                                            { key: 'notifyCampusHeadOnNewLeads', label: 'Alert Campus Head on New Leads' }
-                                        ].map((item) => (
-                                            <div key={item.key} className="flex items-center justify-between p-5 bg-gray-50 rounded-[24px] hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-gray-100 cursor-pointer" onClick={() => setNotificationSettings({ ...notificationSettings, [item.key]: !notificationSettings[item.key] })}>
-                                                <span className="font-bold text-gray-700">{item.label}</span>
-                                                <div
-                                                    className={`w-14 h-8 rounded-full transition-all duration-300 relative shadow-inner ${notificationSettings[item.key] ? 'bg-amber-500' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-sm ${notificationSettings[item.key] ? 'left-7' : 'left-1'}`} />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="pt-6 border-t border-gray-100 flex justify-end">
-                                        <button
-                                            onClick={handleUpdateNotificationSettings}
-                                            disabled={loading}
-                                            className="px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
-                                        >
-                                            {loading ? <RefreshCw className="animate-spin" size={20} /> : <Bell size={20} />}
-                                            {loading ? 'Saving...' : 'Update Preferences'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </PremiumCard>
-                        )}
-                    </div>
-                )
-            }
+            {selectedView === 'settings' && (
+                <SettingsPanel />
+            )}
 
             {/* Add Student Modal */}
             {

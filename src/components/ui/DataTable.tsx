@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react'
-import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Filter, X, Check } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Filter, X, Check, MinusSquare, CheckSquare, Square } from 'lucide-react'
 
 interface Column<T> {
     header: string
@@ -21,6 +21,9 @@ interface DataTableProps<T> {
     renderExpandedRow?: (row: T) => React.ReactNode
     searchValue?: string
     onSearchChange?: (value: string) => void
+    enableMultiSelection?: boolean
+    onSelectionChange?: (selectedItems: T[]) => void
+    uniqueKey?: keyof T
 }
 
 export function DataTable<T>({
@@ -32,7 +35,10 @@ export function DataTable<T>({
     className = '',
     renderExpandedRow,
     searchValue,
-    onSearchChange
+    onSearchChange,
+    enableMultiSelection = false,
+    onSelectionChange,
+    uniqueKey
 }: DataTableProps<T>) {
     const [internalSearchTerm, setInternalSearchTerm] = useState('')
 
@@ -41,6 +47,9 @@ export function DataTable<T>({
     const [currentPage, setCurrentPage] = useState(1)
     const [sortConfig, setSortConfig] = useState<{ key: keyof T | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+
+    // Selection State
+    const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set())
 
     // Extended Filter State
     const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
@@ -58,6 +67,12 @@ export function DataTable<T>({
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
+
+    // Identify Items (Unique Key)
+    const getItemId = (item: T, index: number): any => {
+        if (uniqueKey) return item[uniqueKey]
+        return index // Fallback to index if no unique key (not recommended for selection)
+    }
 
     const getRawValue = (item: T, column: Column<T>): string => {
         if (typeof column.accessorKey === 'function') {
@@ -155,37 +170,92 @@ export function DataTable<T>({
         }))
     }
 
+    // Selection Logic
+    const handleSelectAll = () => {
+        if (selectedRows.size === filteredData.length && filteredData.length > 0) {
+            // Deselect all
+            setSelectedRows(new Set())
+            onSelectionChange?.([])
+        } else {
+            // Select all visible (filtered) data
+            const allIds = filteredData.map((item, idx) => getItemId(item, idx))
+            setSelectedRows(new Set(allIds))
+            onSelectionChange?.(filteredData)
+        }
+    }
+
+    const toggleRowSelection = (id: any, item: T) => {
+        const next = new Set(selectedRows)
+        if (next.has(id)) {
+            next.delete(id)
+        } else {
+            next.add(id)
+        }
+        setSelectedRows(next)
+
+        // Convert ID set back to Item array for callback
+        // This is slow for large datasets, might want to optimize if list is huge
+        if (onSelectionChange) {
+            const selectedItems = data.filter((d, i) => next.has(getItemId(d, i)))
+            onSelectionChange(selectedItems)
+        }
+    }
+
+    // Clear selection when data changes significantly
+    useEffect(() => {
+        // Optional: clear selection on filter change? Keeping it for now.
+    }, [filteredData])
+
+
     return (
         <div className={`space-y-6 ${className}`}>
-            {searchKey && (
-                <div className="relative group max-w-sm ml-1">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={20} />
-                    <input
-                        type="text"
-                        placeholder={searchPlaceholder}
-                        value={searchTerm}
-                        onChange={(e) => {
-                            const val = e.target.value
-                            if (searchValue === undefined) setInternalSearchTerm(val)
-                            onSearchChange?.(val)
-                            setCurrentPage(1)
-                        }}
-                        className="w-full pl-14 pr-6 py-4 bg-white border-transparent ring-1 ring-gray-200 rounded-[20px] outline-none focus:ring-2 focus:ring-red-500 focus:shadow-lg focus:shadow-red-500/10 transition-all text-sm font-bold text-gray-700 placeholder:text-gray-400 placeholder:font-medium"
-                    />
-                </div>
-            )}
+            <div className="flex justify-between items-end gap-4">
+                {searchKey && (
+                    <div className="relative group max-w-sm ml-1 flex-1">
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={20} />
+                        <input
+                            type="text"
+                            placeholder={searchPlaceholder}
+                            value={searchTerm}
+                            onChange={(e) => {
+                                const val = e.target.value
+                                if (searchValue === undefined) setInternalSearchTerm(val)
+                                onSearchChange?.(val)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full pl-14 pr-6 py-4 bg-white border-transparent ring-1 ring-gray-200 rounded-[20px] outline-none focus:ring-2 focus:ring-red-500 focus:shadow-lg focus:shadow-red-500/10 transition-all text-sm font-bold text-gray-700 placeholder:text-gray-400 placeholder:font-medium"
+                        />
+                    </div>
+                )}
+            </div>
 
             <div className="bg-white rounded-[32px] border border-gray-100/50 shadow-2xl shadow-gray-200/40 overflow-x-auto backdrop-blur-xl" style={{ minHeight: '300px' }}>
                 <table className="w-full border-collapse block md:table">
                     <thead className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 hidden md:table-header-group">
                         <tr>
+                            {enableMultiSelection && (
+                                <th className="p-4 pl-6 w-4">
+                                    <div
+                                        onClick={handleSelectAll}
+                                        className="cursor-pointer text-gray-400 hover:text-red-600 transition-colors"
+                                    >
+                                        {selectedRows.size > 0 && selectedRows.size === filteredData.length ? (
+                                            <CheckSquare size={20} />
+                                        ) : selectedRows.size > 0 ? (
+                                            <MinusSquare size={20} />
+                                        ) : (
+                                            <Square size={20} />
+                                        )}
+                                    </div>
+                                </th>
+                            )}
                             {columns.map((column, i) => {
                                 const isFiltered = isColumnFiltered(i)
                                 return (
                                     <th
                                         key={i}
                                         className={`
-                                            p-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 relative whitespace-nowrap group hover:bg-gray-50/80 transition-colors first:pl-6
+                                            p-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 relative whitespace-nowrap group hover:bg-gray-50/80 transition-colors ${!enableMultiSelection && i === 0 ? 'pl-6' : ''}
                                             ${isFiltered ? 'text-red-600 bg-red-50/30' : ''}
                                         `}
                                     >
@@ -289,7 +359,10 @@ export function DataTable<T>({
                     <tbody className="block md:table-row-group p-4 md:p-0">
                         {paginatedData.length > 0 ? (
                             paginatedData.map((row, i) => {
+                                const rowId = getItemId(row, (currentPage - 1) * pageSize + i) // Must map to global ID
                                 const isExpanded = expandedRows.has(i)
+                                const isSelected = selectedRows.has(rowId)
+
                                 return (
                                     <Fragment key={i}>
                                         <tr
@@ -305,12 +378,24 @@ export function DataTable<T>({
                                                 group block md:table-row bg-white rounded-[24px] md:rounded-none border border-gray-100 md:border-b md:border-x-0 md:border-t-0 mb-4 md:mb-0 shadow-sm md:shadow-none 
                                                 hover:bg-gradient-to-r hover:from-red-50/30 hover:to-white hover:scale-[1.002] hover:shadow-lg hover:shadow-gray-200/20 hover:z-10 relative transition-all duration-300
                                                 ${renderExpandedRow ? 'cursor-pointer' : ''}
+                                                ${isSelected ? 'bg-red-50/30' : ''}
                                             `}
                                         >
+                                            {enableMultiSelection && (
+                                                <td className="hidden md:table-cell p-4 pl-6" onClick={(e) => e.stopPropagation()}>
+                                                    <div
+                                                        onClick={() => toggleRowSelection(rowId, row)}
+                                                        className={`cursor-pointer transition-colors ${isSelected ? 'text-red-600' : 'text-gray-300 hover:text-gray-400'}`}
+                                                    >
+                                                        {isSelected ? <CheckSquare size={20} /> : <Square size={20} />}
+                                                    </div>
+                                                </td>
+                                            )}
+
                                             {columns.map((column, j) => (
                                                 <td
                                                     key={j}
-                                                    className="block md:table-cell p-4 text-sm font-medium text-gray-600 border-b last:border-0 md:border-none md:first:pl-6 flex justify-between items-center md:block"
+                                                    className={`block md:table-cell p-4 text-sm font-medium text-gray-600 border-b last:border-0 md:border-none md:first:pl-6 flex justify-between items-center md:block ${!enableMultiSelection && j === 0 ? 'md:first:pl-6' : ''}`}
                                                 >
                                                     <span className="md:hidden font-black text-gray-400 text-[10px] uppercase tracking-widest">{column.header}</span>
                                                     <div className="text-right md:text-left w-full md:w-auto pl-4 md:pl-0 group-hover:text-gray-900 transition-colors">
@@ -325,7 +410,7 @@ export function DataTable<T>({
                                         </tr>
                                         {isExpanded && renderExpandedRow && (
                                             <tr className="block md:table-row">
-                                                <td colSpan={columns.length} className="block md:table-cell p-0 border-b border-gray-100">
+                                                <td colSpan={columns.length + (enableMultiSelection ? 1 : 0)} className="block md:table-cell p-0 border-b border-gray-100">
                                                     <div className="bg-gray-50/50 p-6 shadow-inner">
                                                         <div className="animate-in slide-in-from-top-2 duration-300">
                                                             {renderExpandedRow(row)}
@@ -339,7 +424,7 @@ export function DataTable<T>({
                             })
                         ) : (
                             <tr>
-                                <td colSpan={columns.length} className="p-24 text-center block md:table-cell">
+                                <td colSpan={columns.length + (enableMultiSelection ? 1 : 0)} className="p-24 text-center block md:table-cell">
                                     <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-500">
                                         <div className="p-6 bg-gray-50 rounded-full text-gray-300">
                                             <Search size={48} strokeWidth={1.5} />

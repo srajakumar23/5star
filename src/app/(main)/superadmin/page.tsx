@@ -1,8 +1,11 @@
 import { getCurrentUser } from '@/lib/auth-service'
+import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
+import { isIpWhitelisted } from '@/lib/security'
 import { getSystemAnalytics, getCampusComparison, getAllUsers, getAllAdmins, getAllStudents, getUserGrowthTrend } from '@/app/superadmin-actions'
 import { getAdminMarketingAssets } from '@/app/marketing-actions'
-import { getSystemSettings } from '@/app/settings-actions'
+import { getSystemSettings, getSecuritySettings } from '@/app/settings-actions'
 import SuperadminClient from './superadmin-client' // Client component
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
@@ -36,6 +39,29 @@ export default async function SuperadminPage({ searchParams }: PageProps) {
     // Check if user is Super Admin (strict check)
     if (user.role !== 'Super Admin') {
         redirect('/dashboard')
+    }
+
+    // --- SECURITY ENFORCEMENT: IP WHITELIST ---
+    const securitySettings = await getSecuritySettings() as any
+    if (securitySettings?.ipWhitelist) {
+        const headersList = await headers()
+        const clientIp = headersList.get('x-forwarded-for')?.split(',')[0] ||
+            headersList.get('x-real-ip') ||
+            'unknown'
+
+        if (!isIpWhitelisted(clientIp, securitySettings.ipWhitelist as any)) {
+            console.warn(`Unauthorized Super Admin access attempt from IP: ${clientIp}`)
+            redirect('/unauthorized-ip')
+        }
+    }
+
+    // --- SECURITY ENFORCEMENT: 2FA ---
+    if (securitySettings?.twoFactorAuthEnabled) {
+        const session = await getSession()
+        if (!session || session.is2faVerified === false) {
+            console.log(`2FA required for Super Admin: ${user.fullName}`)
+            redirect('/auth/verify-2fa')
+        }
     }
 
     // Get view from URL params (default to 'home')

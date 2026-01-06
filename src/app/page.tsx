@@ -233,11 +233,15 @@ export default function LoginPage() {
           </h1>
         </div>
 
-        <div className="inline-block px-6 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-xl">
-          <p className="text-lg font-bold uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300">
-            25th Year Celebration
-          </p>
+
+        <div className="text-center">
+          <div className="inline-block px-6 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-xl">
+            <p className="text-lg font-bold uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300">
+              25th Year Celebration
+            </p>
+          </div>
         </div>
+
 
         {/* Form Section */}
         <div className="mt-4">
@@ -250,17 +254,24 @@ export default function LoginPage() {
                   <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-2 block group-focus-within:text-amber-400/80 transition-colors">Mobile Number</label>
                   <input
                     type="tel"
-                    className="block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-12 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 focus:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] transition-all text-xl font-bold tracking-[0.1em] text-center backdrop-blur-md"
-                    placeholder="00000 00000"
+                    autoFocus
+                    autoComplete="tel"
+                    inputMode="numeric"
+                    disabled={loading}
+                    className={`block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-12 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 focus:shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)] transition-all text-xl font-bold tracking-[0.1em] text-center backdrop-blur-md ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    placeholder="Enter 10-digit mobile"
                     value={mobile}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '')
                       if (value.length <= 10) setMobile(value)
                     }}
+                    onKeyDown={(e) => e.key === 'Enter' && mobile.length === 10 && handleSendOtp()}
                     maxLength={10}
                   />
                   {mobile.length > 0 && mobile.length < 10 && (
-                    <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-wider animate-pulse">Incomplete Number</p>
+                    <p className="text-[10px] text-red-400 mt-2 font-bold uppercase tracking-wider animate-pulse">
+                      Enter {10 - mobile.length} more digit{10 - mobile.length > 1 ? 's' : ''}
+                    </p>
                   )}
                 </div>
 
@@ -291,10 +302,14 @@ export default function LoginPage() {
                   <div className="relative mx-auto w-[250px]">
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="w-full bg-white/5 border border-white/10 rounded-full px-6 h-12 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-xl font-bold tracking-widest text-center backdrop-blur-md"
-                      placeholder="******"
+                      autoFocus
+                      autoComplete="current-password"
+                      disabled={loading}
+                      className={`w-full bg-white/5 border border-white/10 rounded-full px-6 h-12 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-xl font-bold tracking-widest text-center backdrop-blur-md ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      placeholder="Enter password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && password && handleLoginPassword()}
                     />
                     <button
                       type="button"
@@ -344,13 +359,19 @@ export default function LoginPage() {
                   <label className="text-white/60 text-xs font-bold uppercase tracking-[0.2em] mb-3 block group-focus-within:text-amber-400/80 transition-colors">OTP Code</label>
                   <input
                     type="text"
-                    className="block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-2xl font-black tracking-[0.5em] text-center backdrop-blur-md"
+                    autoFocus
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    disabled={loading}
+                    className={`block mx-auto w-[280px] bg-white/5 border border-white/10 rounded-full px-4 h-14 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all text-2xl font-black tracking-[0.5em] text-center backdrop-blur-md ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     placeholder="••••••"
                     maxLength={6}
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={(e) => e.key === 'Enter' && otp.length === 6 && handleVerifyOtp()}
                   />
-                  <p className="text-white/30 text-[10px] mt-4 tracking-widest uppercase">Check your messages</p>
+                  <p className="text-white/30 text-[10px] mt-4 tracking-widest uppercase">Check your SMS for the code</p>
                 </div>
 
                 <div className="text-center">
@@ -430,7 +451,13 @@ export default function LoginPage() {
                       {['Parent', 'Staff', 'Alumni'].map((role) => (
                         <div
                           key={role}
-                          onClick={() => setFormData({ ...formData, role: role })}
+                          onClick={() => {
+                            const newRole = role as 'Parent' | 'Staff' | 'Alumni'
+                            // Clear grade if switching TO Alumni to prevent "Grade 1" appearing in "Year of Passout"
+                            // Or set to "Grade 1" if switching TO Parent
+                            const updatedGrade = newRole === 'Alumni' ? '' : (newRole === 'Parent' ? 'Grade 1' : '')
+                            setFormData({ ...formData, role: newRole, grade: updatedGrade })
+                          }}
                           className={`flex-1 flex flex-col items-center justify-center gap-2 py-4 rounded-xl cursor-pointer transition-all border ${formData.role === role ? 'border-amber-400/50 bg-amber-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'
                             }`}
                         >
@@ -716,7 +743,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info */}
-        <div className="mt-8 text-center pb-8 flex flex-col items-center gap-4">
+        <div className="mt-8 pb-8 flex flex-col items-center gap-4">
           <button
             onClick={() => setShowPrivacy(true)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/30 hover:text-white/60 hover:bg-white/10 transition-all font-heading"
@@ -724,7 +751,7 @@ export default function LoginPage() {
             <Shield size={12} />
             Privacy & Data Policy
           </button>
-          <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.4em]">
+          <p className="text-white/40 text-[10px] font-medium uppercase tracking-[0.3em]">
             © 2025 ACHARIYA WORLD CLASS EDUCATION
           </p>
         </div>

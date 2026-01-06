@@ -3,7 +3,7 @@
  * Defines permissions for each admin role across dashboard modules
  */
 
-export type AdminRole = 'Super Admin' | 'Campus Head' | 'Finance Admin' | 'Admission Admin' | 'Campus Admin' | 'Staff' | 'Parent' | 'Alumni'
+export type AdminRole = 'Super Admin' | 'Campus Head' | 'Finance Admin' | 'Admission Admin' | 'Campus Admin' | 'Staff' | 'Parent' | 'Alumni' | 'Others'
 export type DataScope = 'all' | 'campus' | 'view-only' | 'none' | 'self'
 
 export interface ModulePermission {
@@ -205,6 +205,27 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         rulesAccess: { access: true, scope: 'all' },
         feeManagement: { access: false, scope: 'none' },
         engagementCentre: { access: false, scope: 'none' }
+    },
+    'Others': {
+        analytics: { access: true, scope: 'self' },
+        userManagement: { access: false, scope: 'none' },
+        studentManagement: { access: false, scope: 'none' },
+        adminManagement: { access: false, scope: 'none' },
+        campusPerformance: { access: false, scope: 'none' },
+        reports: { access: false, scope: 'none' },
+        settlements: { access: false, scope: 'none' },
+        marketingKit: { access: true, scope: 'all' },
+        auditLog: { access: false, scope: 'none' },
+        supportDesk: { access: true, scope: 'self' },
+        settings: { access: false, scope: 'none' },
+        deletionHub: { access: false, scope: 'none' },
+        passwordReset: { access: false, scope: 'none' },
+        referralSubmission: { access: true, scope: 'self' },
+        referralTracking: { access: true, scope: 'self' },
+        savingsCalculator: { access: true, scope: 'self' },
+        rulesAccess: { access: true, scope: 'all' },
+        feeManagement: { access: false, scope: 'none' },
+        engagementCentre: { access: false, scope: 'none' }
     }
 }
 
@@ -264,7 +285,8 @@ export function getAllowedReports(role: string): string[] {
             'users', 'campus', 'admins', 'summary',
             'referral-performance', 'pending-leads', 'monthly-trends',
             'inactive-users', 'top-performers', 'campus-distribution',
-            'benefit-tier', 'new-registrations', 'staff-vs-parent', 'lead-pipeline'
+            'benefit-tier', 'new-registrations', 'staff-vs-parent', 'lead-pipeline',
+            'conversion-funnel', 'financial-roi', 'target-achievement', 'star-milestones'
         ]
     }
 

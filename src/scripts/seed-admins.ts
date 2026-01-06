@@ -1,14 +1,14 @@
-import { PrismaClient, AdminRole } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
     const admins = [
-        { name: 'Super Admin', mobile: '9999999999', role: AdminRole.Super_Admin },
-        { name: 'Campus Head', mobile: '8888888888', role: AdminRole.Campus_Head },
-        { name: 'Admission Admin', mobile: '7777777777', role: AdminRole.Admission_Admin },
-        { name: 'Finance Admin', mobile: '6666666666', role: AdminRole.Finance_Admin },
+        { name: 'Super Admin', mobile: '9999999999', role: 'Super Admin' as any },
+        { name: 'Campus Head', mobile: '8888888888', role: 'Campus Head' as any },
+        { name: 'Admission Admin', mobile: '7777777777', role: 'Admission Admin' as any },
+        { name: 'Finance Admin', mobile: '6666666666', role: 'Finance Admin' as any },
     ]
 
     console.log('Seeding administrators...')

@@ -1,7 +1,11 @@
-import { Search, UserPlus, Filter, Download, MoreHorizontal, Edit, Trash, ChevronRight, Phone, CreditCard, Calendar, User, Building, GraduationCap, Percent, Hash, Trash2 } from 'lucide-react'
+import { Search, UserPlus, Filter, Download, MoreHorizontal, Edit, Trash, ChevronRight, Phone, CreditCard, Calendar, User, Building, GraduationCap, Percent, Hash, Trash2, CheckCircle, XCircle, ArrowRight } from 'lucide-react'
 import { DataTable } from '@/components/ui/DataTable'
 import { Badge } from '@/components/ui/Badge'
 import { Student } from '@/types'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { bulkStudentAction } from '@/app/bulk-student-actions'
 
 interface StudentTableProps {
     students: Student[]
@@ -11,6 +15,7 @@ interface StudentTableProps {
     onBulkAdd: () => void
     onEdit: (student: Student) => void
     onViewAmbassador: (referralCode: string) => void
+    campuses?: any[]
 }
 
 export function StudentTable({
@@ -20,8 +25,64 @@ export function StudentTable({
     onAddStudent,
     onBulkAdd,
     onEdit,
-    onViewAmbassador
+    onViewAmbassador,
+    campuses = []
 }: StudentTableProps) {
+    const router = useRouter()
+    const [selectedStudents, setSelectedStudents] = useState<Student[]>([])
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [showTransferModal, setShowTransferModal] = useState(false)
+    const [targetCampusId, setTargetCampusId] = useState<number | null>(null)
+
+    // Bulk Action Handler
+    const handleBulkAction = async (action: 'activate' | 'suspend' | 'delete') => {
+        const confirmMessage = action === 'delete'
+            ? `DANGER: You are about to PERMANENTLY DELETE ${selectedStudents.length} students. This action CANNOT be undone. Are you absolutely sure?`
+            : `Are you sure you want to ${action} ${selectedStudents.length} selected students?`
+
+        if (!confirm(confirmMessage)) return
+
+        setIsProcessing(true)
+        try {
+            const res = await bulkStudentAction(selectedStudents.map(s => s.studentId), action)
+            if (res.success) {
+                toast.success(`Bulk ${action} successful: ${res.count} students affected`)
+                setSelectedStudents([])
+                router.refresh()
+            } else {
+                toast.error(res.error || 'Bulk action failed')
+            }
+        } catch (error) {
+            toast.error('Connection error during bulk action')
+        } finally {
+            setIsProcessing(false)
+        }
+    }
+
+    const handleTransfer = async () => {
+        if (!targetCampusId) {
+            toast.error('Please select a target campus')
+            return
+        }
+
+        setIsProcessing(true)
+        try {
+            const res = await bulkStudentAction(selectedStudents.map(s => s.studentId), 'transfer', targetCampusId)
+            if (res.success) {
+                toast.success(`Successfully transferred ${res.count} students`)
+                setSelectedStudents([])
+                setShowTransferModal(false)
+                setTargetCampusId(null)
+                router.refresh()
+            } else {
+                toast.error(res.error || 'Transfer failed')
+            }
+        } catch (error) {
+            toast.error('Connection error during transfer')
+        } finally {
+            setIsProcessing(false)
+        }
+    }
     const columns = [
         {
             header: 'Student Detail',
@@ -258,6 +319,98 @@ export function StudentTable({
                 </div>
             </div>
 
+            {/* Floating Bulk Action Bar */}
+            {selectedStudents.length > 0 && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-6 border border-gray-700">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                                <GraduationCap size={16} className="text-white" />
+                            </div>
+                            <span className="text-sm font-bold">{selectedStudents.length} Selected</span>
+                        </div>
+                        <div className="h-6 w-px bg-gray-700"></div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => handleBulkAction('activate')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-emerald-400 transition-colors flex items-center gap-2"
+                            >
+                                <CheckCircle size={14} /> Activate
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('suspend')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-amber-400 transition-colors flex items-center gap-2"
+                            >
+                                <XCircle size={14} /> Suspend
+                            </button>
+                            <button
+                                onClick={() => setShowTransferModal(true)}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-blue-400 transition-colors flex items-center gap-2"
+                            >
+                                <ArrowRight size={14} /> Transfer
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('delete')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider text-red-400 transition-colors flex items-center gap-2"
+                            >
+                                <Trash2 size={14} /> Delete
+                            </button>
+                        </div>
+                        <div className="h-6 w-px bg-gray-700"></div>
+                        <button
+                            onClick={() => setSelectedStudents([])}
+                            className="p-1.5 hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                            <XCircle size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Transfer Modal */}
+            {showTransferModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                        <h3 className="text-2xl font-black text-gray-900 mb-6">Transfer Students</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            Transfer {selectedStudents.length} selected students to a new campus.
+                        </p>
+                        <select
+                            value={targetCampusId || ''}
+                            onChange={(e) => setTargetCampusId(e.target.value ? Number(e.target.value) : null)}
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-6"
+                        >
+                            <option value="">Select Target Campus</option>
+                            {campuses.map((c: any) => (
+                                <option key={c.id} value={c.id}>{c.campusName}</option>
+                            ))}
+                        </select>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowTransferModal(false)
+                                    setTargetCampusId(null)
+                                }}
+                                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleTransfer}
+                                disabled={!targetCampusId || isProcessing}
+                                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
+                            >
+                                {isProcessing ? 'Transferring...' : 'Transfer'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Table */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto max-w-full">
@@ -266,6 +419,9 @@ export function StudentTable({
                         columns={columns as any}
                         pageSize={10}
                         renderExpandedRow={renderExpandedRow}
+                        enableMultiSelection={true}
+                        onSelectionChange={(selected) => setSelectedStudents(selected)}
+                        uniqueKey="studentId"
                     />
                 </div>
             </div>

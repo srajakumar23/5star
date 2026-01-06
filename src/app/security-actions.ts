@@ -33,6 +33,7 @@ export async function updateSecuritySettings(data: {
     maxLoginAttempts?: number
     passwordResetExpiryHours?: number
     twoFactorAuthEnabled?: boolean
+    ipWhitelist?: string
 }) {
     try {
         const user = await getCurrentUser()
@@ -54,6 +55,7 @@ export async function updateSecuritySettings(data: {
                     maxLoginAttempts: data.maxLoginAttempts ?? 5,
                     passwordResetExpiryHours: data.passwordResetExpiryHours ?? 24,
                     twoFactorAuthEnabled: data.twoFactorAuthEnabled ?? false,
+                    ipWhitelist: data.ipWhitelist,
                     updatedBy: user.fullName
                 }
             })

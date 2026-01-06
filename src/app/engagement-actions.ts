@@ -2,7 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { EmailService } from '@/lib/email-service'
-import { calculateBadge } from '@/lib/gamification'
+import { calculateStars } from '@/lib/gamification'
 import { logger } from '@/lib/logger'
 import { getCurrentUser } from '@/lib/auth-service'
 
@@ -57,8 +57,8 @@ export async function triggerReengagementCampaign() {
             })
 
             if (!lastEmailLog && amb.email) {
-                const badge = calculateBadge(amb.confirmedReferralCount)
-                await EmailService.sendReengagementEmail(amb.email, amb.fullName, badge.tier)
+                const stars = calculateStars(amb.confirmedReferralCount)
+                await EmailService.sendReengagementEmail(amb.email, amb.fullName, stars.tier)
 
                 // 3. Log the action
                 await prisma.activityLog.create({
@@ -68,7 +68,7 @@ export async function triggerReengagementCampaign() {
                         module: 'engagement',
                         targetId: amb.userId.toString(),
                         description: `Sent re-engagement email to ambassador ${amb.fullName}`,
-                        metadata: { count: amb.confirmedReferralCount, tier: badge.tier } as any
+                        metadata: { count: amb.confirmedReferralCount, tier: stars.tier } as any
                     } as any
                 })
                 sentCount++

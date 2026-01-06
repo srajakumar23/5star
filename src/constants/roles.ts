@@ -9,6 +9,8 @@ export const ADMIN_ROLES = {
 export const AMBASSADOR_ROLES = {
     STAFF: 'Staff',
     PARENT: 'Parent',
+    ALUMNI: 'Alumni',
+    OTHERS: 'Others',
 } as const
 
 export const ALL_ROLES = {
@@ -28,4 +30,6 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
     [ADMIN_ROLES.CAMPUS_ADMIN]: 50,
     [AMBASSADOR_ROLES.STAFF]: 20,
     [AMBASSADOR_ROLES.PARENT]: 10,
+    [AMBASSADOR_ROLES.ALUMNI]: 5,
+    [AMBASSADOR_ROLES.OTHERS]: 1,
 }

@@ -3,6 +3,10 @@ import { PremiumHeader } from '@/components/premium/PremiumHeader'
 import { DataTable } from '@/components/ui/DataTable'
 import { Badge } from '@/components/ui/Badge'
 import { Admin } from '@/types'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { bulkAdminAction } from '@/app/bulk-admin-actions'
 
 interface AdminTableProps {
     admins: Admin[]
@@ -23,6 +27,34 @@ export function AdminTable({
     onToggleStatus,
     onResetPassword
 }: AdminTableProps) {
+    const router = useRouter()
+    const [selectedAdmins, setSelectedAdmins] = useState<Admin[]>([])
+    const [isProcessing, setIsProcessing] = useState(false)
+
+    // Bulk Action Handler
+    const handleBulkAction = async (action: 'activate' | 'suspend' | 'delete') => {
+        const confirmMessage = action === 'delete'
+            ? `DANGER: You are about to PERMANENTLY DELETE ${selectedAdmins.length} administrators. This will remove their access immediately. Are you absolutely sure?`
+            : `Are you sure you want to ${action} ${selectedAdmins.length} selected administrators?`
+
+        if (!confirm(confirmMessage)) return
+
+        setIsProcessing(true)
+        try {
+            const res = await bulkAdminAction(selectedAdmins.map(a => a.adminId), action)
+            if (res.success) {
+                toast.success(`Bulk ${action} successful: ${res.count} admins affected`)
+                setSelectedAdmins([])
+                router.refresh()
+            } else {
+                toast.error(res.error || 'Bulk action failed')
+            }
+        } catch (error) {
+            toast.error('Connection error during bulk action')
+        } finally {
+            setIsProcessing(false)
+        }
+    }
     const columns = [
         {
             header: 'Administrator',
@@ -176,6 +208,51 @@ export function AdminTable({
                 </div>
             </PremiumHeader>
 
+            {/* Floating Bulk Action Bar */}
+            {selectedAdmins.length > 0 && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-6 border border-gray-700">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                                <Shield size={16} className="text-white" />
+                            </div>
+                            <span className="text-sm font-bold">{selectedAdmins.length} Selected</span>
+                        </div>
+                        <div className="h-6 w-px bg-gray-700"></div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => handleBulkAction('activate')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-emerald-400 transition-colors flex items-center gap-2"
+                            >
+                                <CheckCircle size={14} /> Activate
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('suspend')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-amber-400 transition-colors flex items-center gap-2"
+                            >
+                                <XCircle size={14} /> Suspend
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('delete')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider text-red-400 transition-colors flex items-center gap-2"
+                            >
+                                <Trash2 size={14} /> Delete
+                            </button>
+                        </div>
+                        <div className="h-6 w-px bg-gray-700"></div>
+                        <button
+                            onClick={() => setSelectedAdmins([])}
+                            className="p-1.5 hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                            <XCircle size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <DataTable
                 data={admins}
                 columns={columns as any}
@@ -183,6 +260,9 @@ export function AdminTable({
                 searchPlaceholder="Search administrators by name or mobile..."
                 pageSize={10}
                 renderExpandedRow={renderExpandedRow}
+                enableMultiSelection={true}
+                onSelectionChange={(selected) => setSelectedAdmins(selected)}
+                uniqueKey="adminId"
             />
         </div>
     )

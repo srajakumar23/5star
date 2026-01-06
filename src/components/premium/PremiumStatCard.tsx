@@ -21,8 +21,9 @@ export function PremiumStatCard({
     gradient = "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)", // Default Blue
     shadowColor = "rgba(59, 130, 246, 0.3)",
     change,
-    subtext
-}: PremiumStatCardProps) {
+    subtext,
+    chart
+}: PremiumStatCardProps & { chart?: React.ReactNode }) {
     return (
         <div className="relative overflow-hidden rounded-[32px] p-8 transition-all duration-300 hover:-translate-y-1 group"
             style={{
@@ -57,6 +58,11 @@ export function PremiumStatCard({
                         <p className="text-sm font-medium text-white/70 mt-2">{subtext}</p>
                     )}
                 </div>
+                {chart && (
+                    <div className="mt-4 h-16 w-full opacity-60 hover:opacity-100 transition-opacity">
+                        {chart}
+                    </div>
+                )}
             </div>
         </div>
     )

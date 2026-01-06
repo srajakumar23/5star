@@ -639,7 +639,7 @@ export async function addUser(data: {
             }
         })
 
-        await logAction('CREATE', 'user', `Created new user: ${data.mobileNumber}`, newUser.userId.toString(), { role: data.role })
+        await logAction('CREATE', 'user', `Created new user: ${data.mobileNumber}`, newUser.userId.toString(), null, { role: data.role })
 
         // Send Welcome Email
         await EmailService.sendWelcomeEmail(data.mobileNumber, data.fullName, data.role)
@@ -648,6 +648,51 @@ export async function addUser(data: {
     } catch (error) {
         console.error('Add user error:', error)
         return { success: false, error: 'Failed to add user' }
+    }
+}
+
+/**
+ * Updates an existing user's details.
+ * @param userId - ID of the user to update.
+ * @param data - Updated user fields.
+ */
+export async function updateUser(userId: number, data: {
+    fullName?: string
+    mobileNumber?: string
+    role?: UserRole
+    assignedCampus?: string
+    empId?: string
+    childEprNo?: string
+    isFiveStarMember?: boolean
+    yearFeeBenefitPercent?: number
+    longTermBenefitPercent?: number
+}) {
+    const admin = await getCurrentUser()
+    const allowedRoles = ['Super Admin', 'Admission Admin', 'Campus Head']
+
+    if (!admin || !allowedRoles.includes(admin.role)) {
+        return { success: false, error: 'Unauthorized: Insufficient permissions' }
+    }
+
+    try {
+        const previousUser = await prisma.user.findUnique({ where: { userId } })
+
+        const updatedUser = await prisma.user.update({
+            where: { userId },
+            data: {
+                ...data
+            }
+        })
+
+        await logAction('UPDATE', 'user', `Updated user: ${userId}`, userId.toString(), null, {
+            previous: previousUser,
+            next: updatedUser
+        })
+
+        return { success: true, user: updatedUser }
+    } catch (error) {
+        console.error('Update user error:', error)
+        return { success: false, error: 'Failed to update user' }
     }
 }
 
@@ -804,7 +849,7 @@ export async function addAdmin(data: {
             }
         })
 
-        await logAction('CREATE', 'admin', `Created new admin: ${data.adminMobile}`, newAdmin.adminId.toString(), { role: data.role })
+        await logAction('CREATE', 'admin', `Created new admin: ${data.adminMobile}`, newAdmin.adminId.toString(), null, { role: data.role })
 
         return { success: true, admin: newAdmin }
     } catch (error) {

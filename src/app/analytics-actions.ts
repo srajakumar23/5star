@@ -109,3 +109,108 @@ export async function getExplorationData(reportId: string, filters: ExplorationF
         return { success: false, error: 'Failed to fetch analytical data' }
     }
 }
+
+export interface CohortRetention {
+    month: string;      // Join month (e.g., "Aug 2025")
+    size: number;       // Number of users in this cohort
+    retention: number[]; // Retention % per month (e.g., [100, 85, 70, ...])
+}
+
+/**
+ * Calculates cohort retention based on Join Date vs. Activity Logs.
+ * A user is considered "retained" in Month N if they have any ActivityLog 
+ * entry in that month.
+ */
+export async function getRetentionData(): Promise<CohortRetention[]> {
+    const admin = await getCurrentUser()
+    if (!admin || !admin.role.includes('Admin')) {
+        throw new Error('Unauthorized')
+    }
+
+    try {
+        // 1. Define time window (Last 6 months)
+        const monthsCount = 6
+        const now = new Date()
+        const cohorts: CohortRetention[] = []
+
+        // Start from 5 months ago to today
+        const startOfWindow = new Date(now.getFullYear(), now.getMonth() - monthsCount + 1, 1)
+
+        // 2. Fetch all ambassadors joined in the last 6 months
+        const ambassadors = await prisma.user.findMany({
+            where: {
+                role: { in: ['Staff', 'Parent', 'Alumni'] },
+                createdAt: { gte: startOfWindow }
+            },
+            select: {
+                userId: true,
+                createdAt: true
+            }
+        })
+
+        // 3. Group users into monthly cohorts
+        const cohortGroups: Record<string, number[]> = {}
+        const monthNames: string[] = []
+
+        for (let i = 0; i < monthsCount; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() - (monthsCount - 1) + i, 1)
+            const label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            monthNames.push(label)
+            cohortGroups[label] = []
+        }
+
+        ambassadors.forEach(amb => {
+            const joinMonth = amb.createdAt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            if (cohortGroups[joinMonth]) {
+                cohortGroups[joinMonth].push(amb.userId)
+            }
+        })
+
+        // 4. For each cohort, check retention in subsequent months
+        for (const [joinMonth, userIds] of Object.entries(cohortGroups)) {
+            if (userIds.length === 0) continue
+
+            const retentionPercents: number[] = [100] // Month 0 is always 100%
+            const monthNamesList = [...monthNames];
+            const joinDateIndex = monthNamesList.indexOf(joinMonth);
+
+            if (joinDateIndex === -1) continue;
+
+            // Check each subsequent month in the window
+            for (let m = joinDateIndex + 1; m < monthNamesList.length; m++) {
+                const targetMonthLabel = monthNamesList[m]
+                const targetMonthDate = new Date(targetMonthLabel)
+                const startOfMonth = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth(), 1)
+                const endOfMonth = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth() + 1, 0, 23, 59, 59)
+
+                // Check ActivityLogs for this cohort in this specific month
+                const activeCount = await prisma.activityLog.groupBy({
+                    by: ['userId'],
+                    where: {
+                        userId: { in: userIds },
+                        createdAt: {
+                            gte: startOfMonth,
+                            lte: endOfMonth
+                        }
+                    }
+                })
+
+                const percent = Math.round((activeCount.length / userIds.length) * 100)
+                retentionPercents.push(percent)
+            }
+
+            cohorts.push({
+                month: joinMonth,
+                size: userIds.length,
+                retention: retentionPercents
+            })
+        }
+
+        // Sort cohorts by date descending
+        return cohorts.sort((a, b) => new Date(b.month).getTime() - new Date(a.month).getTime())
+
+    } catch (error) {
+        console.error('Retention Data Error:', error)
+        throw new Error('Failed to calculate retention data')
+    }
+}

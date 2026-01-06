@@ -12,6 +12,7 @@ import { OfflineAlert } from '@/components/OfflineAlert'
 import { getMyPermissions } from '@/lib/permission-service'
 import { RolePermissions } from '@/lib/permissions'
 import { deleteSession } from '@/lib/session'
+import { CommandPalette } from '@/components/superadmin/CommandPalette'
 
 async function logout() {
     'use server'
@@ -180,6 +181,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             <InstallPrompt />
             <MobileConfig />
             <OfflineAlert />
+            <CommandPalette />
         </div>
     )
 }

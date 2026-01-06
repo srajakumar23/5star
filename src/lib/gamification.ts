@@ -1,41 +1,60 @@
-export type BadgeTier = 'Rookie' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Five-Star';
+export type StarTier = '0-Star' | '1-Star' | '2-Star' | '3-Star' | '4-Star' | '5-Star';
 
-export interface BadgeInfo {
-    tier: BadgeTier;
+export interface StarInfo {
+    tier: StarTier;
+    starCount: number;
+    benefitPercent: number;
     color: string;
     bgColor: string;
     borderColor: string;
-    nextTier?: BadgeTier;
-    nextTierThreshold?: number;
+    nextStarThreshold?: number;
+    isLongTermQualified: boolean;
 }
 
-export const BADGE_TIERS: Record<BadgeTier, { threshold: number, color: string, bgColor: string, borderColor: string }> = {
-    'Rookie': { threshold: 0, color: 'text-gray-500', bgColor: 'bg-gray-100', borderColor: 'border-gray-200' },
-    'Bronze': { threshold: 1, color: 'text-amber-700', bgColor: 'bg-amber-100', borderColor: 'border-amber-200' },
-    'Silver': { threshold: 5, color: 'text-slate-500', bgColor: 'bg-slate-100', borderColor: 'border-slate-200' },
-    'Gold': { threshold: 15, color: 'text-yellow-700', bgColor: 'bg-yellow-100', borderColor: 'border-yellow-200' },
-    'Platinum': { threshold: 30, color: 'text-emerald-700', bgColor: 'bg-emerald-100', borderColor: 'border-emerald-200' },
-    'Five-Star': { threshold: 50, color: 'text-red-700', bgColor: 'bg-red-100', borderColor: 'border-red-200' }
+export const STAR_CONFIG: Record<StarTier, {
+    count: number,
+    benefit: number,
+    color: string,
+    bgColor: string,
+    borderColor: string
+}> = {
+    '0-Star': { count: 0, benefit: 0, color: 'text-gray-400', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' },
+    '1-Star': { count: 1, benefit: 5, color: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
+    '2-Star': { count: 2, benefit: 10, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+    '3-Star': { count: 3, benefit: 25, color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' },
+    '4-Star': { count: 4, benefit: 30, color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' },
+    '5-Star': { count: 5, benefit: 50, color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' }
 };
 
-export const calculateBadge = (count: number): BadgeInfo => {
-    const tiers = Object.keys(BADGE_TIERS) as BadgeTier[];
-    let currentTier: BadgeTier = 'Rookie';
-
-    for (const tier of tiers) {
-        if (count >= BADGE_TIERS[tier].threshold) {
-            currentTier = tier;
-        }
-    }
-
-    const currentIndex = tiers.indexOf(currentTier);
-    const nextTier = tiers[currentIndex + 1];
-    const nextTierThreshold = nextTier ? BADGE_TIERS[nextTier].threshold : undefined;
+export const calculateStars = (count: number): StarInfo => {
+    // Cap internal count for tier determination
+    const displayCount = Math.min(count, 5);
+    const tier = `${displayCount}-Star` as StarTier;
+    const config = STAR_CONFIG[tier];
 
     return {
-        tier: currentTier,
-        ...BADGE_TIERS[currentTier],
-        nextTier,
-        nextTierThreshold
+        tier,
+        starCount: displayCount,
+        benefitPercent: config.benefit,
+        color: config.color,
+        bgColor: config.bgColor,
+        borderColor: config.borderColor,
+        nextStarThreshold: displayCount < 5 ? displayCount + 1 : undefined,
+        isLongTermQualified: count >= 5
+    };
+};
+
+/**
+ * Legacy compatibility helper
+ */
+export const calculateBadge = (count: number) => {
+    const stars = calculateStars(count);
+    return {
+        tier: stars.tier,
+        color: stars.color,
+        bgColor: stars.bgColor,
+        borderColor: stars.borderColor,
+        nextTier: stars.nextStarThreshold ? `${stars.nextStarThreshold}-Star` : undefined,
+        nextTierThreshold: stars.nextStarThreshold
     };
 };

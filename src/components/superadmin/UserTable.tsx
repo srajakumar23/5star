@@ -1,12 +1,19 @@
-import { UserPlus, Download, MoreHorizontal, CheckCircle, XCircle, Calendar, CreditCard, Smartphone, Hash, Building, Trash2, Key } from 'lucide-react'
+import { UserPlus, Download, CheckCircle, XCircle, Calendar, CreditCard, Smartphone, Hash, Building, Trash2, Key, Shield } from 'lucide-react'
 import { PremiumHeader } from '@/components/premium/PremiumHeader'
+import { ActivityHistory } from './ActivityHistory'
+import { UserAuditTimeline } from './UserAuditTimeline'
 import { User } from '@/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Badge } from '@/components/ui/Badge'
+import { calculateStars } from '@/lib/gamification'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { bulkUserAction } from '@/app/bulk-actions'
 
 interface UserTableProps {
     users: User[]
-    searchTerm: string // Keeping for external search if needed, but DataTable has its own
+    searchTerm: string
     onSearchChange: (value: string) => void
     onAddUser: () => void
     onBulkAdd: () => void
@@ -14,6 +21,7 @@ interface UserTableProps {
     onToggleStatus: (userId: number, currentStatus: string) => void
     onViewReferrals?: (referralCode: string) => void
     onResetPassword?: (id: number, name: string, type: 'user' | 'admin') => void
+    onEdit?: (user: User) => void
 }
 
 export function UserTable({
@@ -25,8 +33,40 @@ export function UserTable({
     searchTerm,
     onSearchChange,
     onViewReferrals,
-    onResetPassword
+    onResetPassword,
+    onEdit
 }: UserTableProps) {
+    const [selectedUsers, setSelectedUsers] = useState<User[]>([])
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [showAuditTimeline, setShowAuditTimeline] = useState(false)
+    const [selectedUserForAudit, setSelectedUserForAudit] = useState<User | null>(null)
+    const router = useRouter()
+
+    // Bulk Action Handler
+    const handleBulkAction = async (action: 'activate' | 'suspend' | 'delete' | 'deactivate') => {
+        const confirmMessage = action === 'delete'
+            ? `DANGER: You are about to PERMANENTLY DELETE ${selectedUsers.length} ambassadors and all their associated referral leads. This action CANNOT be undone. Are you absolutely sure?`
+            : `Are you sure you want to ${action} ${selectedUsers.length} selected ambassadors?`
+
+        if (!confirm(confirmMessage)) return
+
+        setIsProcessing(true)
+        try {
+            const res = await bulkUserAction(selectedUsers.map(u => u.userId), action)
+            if (res.success) {
+                toast.success(`Bulk ${action} successful: ${res.count} users affected`)
+                setSelectedUsers([])
+                router.refresh()
+            } else {
+                toast.error(res.error || 'Bulk action failed')
+            }
+        } catch (error) {
+            toast.error('Connection error during bulk action')
+        } finally {
+            setIsProcessing(false)
+        }
+    }
+
     const columns = [
         {
             header: 'Ambassador',
@@ -44,6 +84,30 @@ export function UserTable({
                     </div>
                 </div>
             )
+        },
+        {
+            header: 'Star Status',
+            accessorKey: 'badge',
+            cell: (user: User) => {
+                const stars = calculateStars(user.confirmedReferralCount || 0)
+
+                return (
+                    <div className="flex items-center gap-0.5" title={stars.tier}>
+                        {[...Array(5)].map((_, i) => (
+                            <svg
+                                key={i}
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill={i < stars.starCount ? "currentColor" : "none"}
+                                stroke="currentColor"
+                                className={`w-3.5 h-3.5 ${i < stars.starCount ? (stars.tier === '5-Star' ? 'text-red-600' : 'text-amber-400') : 'text-gray-200 stroke-1'}`}
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={i < stars.starCount ? 0 : 1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                        ))}
+                    </div>
+                )
+            }
         },
         {
             header: 'Code',
@@ -179,6 +243,11 @@ export function UserTable({
                     </p>
                 </div>
             </div>
+
+            <div className="mt-8">
+                <ActivityHistory userId={user.userId} userName={user.fullName} />
+            </div>
+
             {/* Quick Actions or more details could go here */}
             <div className="mt-8 pt-6 border-t border-gray-100 flex gap-4">
                 <button
@@ -187,7 +256,10 @@ export function UserTable({
                 >
                     View Referral History
                 </button>
-                <button className="text-[10px] font-black text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-xl border border-gray-200 transition-all uppercase tracking-widest">
+                <button
+                    onClick={() => onEdit?.(user)}
+                    className="text-[10px] font-black text-gray-900 bg-white hover:bg-gray-100 px-4 py-2 rounded-xl border border-gray-200 transition-all uppercase tracking-widest shadow-sm"
+                >
                     Edit Details
                 </button>
                 <button
@@ -196,12 +268,21 @@ export function UserTable({
                 >
                     <Key size={14} /> Reset Password
                 </button>
+                <button
+                    onClick={() => {
+                        setSelectedUserForAudit(user)
+                        setShowAuditTimeline(true)
+                    }}
+                    className="text-[10px] font-black text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 transition-all uppercase tracking-widest flex items-center gap-2"
+                >
+                    <Shield size={14} /> View Audit Trail
+                </button>
             </div>
         </div>
     )
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in relative">
             {/* Premium Header */}
             <PremiumHeader
                 title="Ambassador Network"
@@ -243,6 +324,51 @@ export function UserTable({
                 </div>
             </PremiumHeader>
 
+            {/* Bulk Action Bar (Floating) */}
+            {selectedUsers.length > 0 && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+                    <div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 border border-gray-700">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-white text-black font-bold h-6 w-6 rounded-full flex items-center justify-center text-xs">
+                                {selectedUsers.length}
+                            </div>
+                            <span className="text-sm font-medium text-gray-300">Selected</span>
+                        </div>
+                        <div className="h-4 w-px bg-gray-700"></div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handleBulkAction('activate')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-emerald-400 transition-colors flex items-center gap-2"
+                            >
+                                <CheckCircle size={14} /> Activate
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('suspend')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-amber-400 transition-colors flex items-center gap-2"
+                            >
+                                <XCircle size={14} /> Suspend
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('deactivate')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-gray-800 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 transition-colors flex items-center gap-2"
+                            >
+                                <XCircle size={14} /> Deactivate
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('delete')}
+                                disabled={isProcessing}
+                                className="px-3 py-1.5 hover:bg-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider text-red-400 transition-colors flex items-center gap-2"
+                            >
+                                <Trash2 size={14} /> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <DataTable
                 data={users}
                 columns={columns as any}
@@ -252,7 +378,22 @@ export function UserTable({
                 searchPlaceholder="Search ambassadors by name, code or mobile..."
                 pageSize={10}
                 renderExpandedRow={renderExpandedRow}
+                enableMultiSelection={true}
+                onSelectionChange={(selected) => setSelectedUsers(selected)}
+                uniqueKey="userId"
             />
+
+            {/* User Audit Timeline Modal */}
+            {showAuditTimeline && selectedUserForAudit && (
+                <UserAuditTimeline
+                    userId={selectedUserForAudit.userId}
+                    userName={selectedUserForAudit.fullName}
+                    onClose={() => {
+                        setShowAuditTimeline(false)
+                        setSelectedUserForAudit(null)
+                    }}
+                />
+            )}
         </div>
     )
 }

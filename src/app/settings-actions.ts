@@ -18,6 +18,21 @@ const SettingsUpdateSchema = z.object({
     alumniWelcomeMessage: z.string().max(100).optional(),
 })
 
+const SecuritySettingsSchema = z.object({
+    sessionTimeoutMinutes: z.number().int().min(5).max(1440).optional(),
+    maxLoginAttempts: z.number().int().min(3).max(10).optional(),
+    passwordResetExpiryHours: z.number().int().min(1).max(168).optional(),
+    twoFactorAuthEnabled: z.boolean().optional(),
+    ipWhitelist: z.string().optional(),
+})
+
+const LeadManagementSettingsSchema = z.object({
+    autoAssignLeads: z.boolean().optional(),
+    leadStaleDays: z.number().int().min(1).max(365).optional(),
+    followupEscalationDays: z.number().int().min(1).max(30).optional(),
+    duplicateDetectionEnabled: z.boolean().optional(),
+})
+
 /**
  * Get current registration status (public - anyone can read)
  * EXPERT: Fail-closed (false) implementation.
@@ -121,13 +136,139 @@ export async function updateSystemSettings(rawData: any) {
         })
 
         if (Object.keys(changeLog).length > 0) {
-            await logAction('UPDATE', 'settings', `Config updated by ${user.fullName}`, id.toString(), { changes: changeLog })
+            await logAction('UPDATE', 'settings', `Config updated by ${user.fullName}`, id.toString(), null, { changes: changeLog })
         }
         revalidatePath('/superadmin')
         return { success: true, data: settings }
     } catch (error) {
         console.error('Error updating system settings:', error)
-        return { success: false, error: 'Failed to update system settings' }
+        return { success: false, error: 'Failed' }
+    }
+}
+
+// --- Security Settings ---
+
+export async function getSecuritySettings() {
+    try {
+        const settings = await prisma.securitySettings.findFirst()
+        if (!settings) {
+            return {
+                sessionTimeoutMinutes: 30,
+                maxLoginAttempts: 5,
+                passwordResetExpiryHours: 24,
+                twoFactorAuthEnabled: false,
+                ipWhitelist: ''
+            }
+        }
+        return settings
+    } catch (error) {
+        console.error('Error getting security settings:', error)
+        return null
+    }
+}
+
+export async function updateSecuritySettings(rawData: any) {
+    try {
+        const user = await getCurrentUser()
+        if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
+
+        const validation = SecuritySettingsSchema.safeParse(rawData)
+        if (!validation.success) return { success: false, error: 'Invalid data' }
+        const data = validation.data
+
+        const existing = await prisma.securitySettings.findFirst()
+        const id = existing?.id || 1
+
+        // Track changes for high-fidelity audit
+        const changeLog: any = {}
+        if (existing) {
+            Object.keys(data).forEach((key: string) => {
+                const val = (data as any)[key]
+                const oldVal = (existing as any)[key]
+                if (val !== undefined && val !== oldVal) {
+                    changeLog[key] = { from: oldVal, to: val }
+                }
+            })
+        }
+
+        const settings = await (prisma.securitySettings as any).upsert({
+            where: { id },
+            update: data as any,
+            create: {
+                id,
+                sessionTimeoutMinutes: data.sessionTimeoutMinutes || 30,
+                maxLoginAttempts: data.maxLoginAttempts || 5,
+                passwordResetExpiryHours: data.passwordResetExpiryHours || 24,
+                twoFactorAuthEnabled: data.twoFactorAuthEnabled || false,
+                ipWhitelist: (data as any).ipWhitelist
+            }
+        })
+
+        if (Object.keys(changeLog).length > 0) {
+            await logAction('UPDATE', 'security', `Security updated by ${user.fullName}`, id.toString(), null, { changes: changeLog })
+        }
+        revalidatePath('/superadmin')
+        return { success: true, data: settings }
+    } catch (error) {
+        console.error('Error updating security settings:', error)
+        return { success: false, error: 'Failed' }
+    }
+}
+
+// --- Lead Management Settings ---
+
+export async function getLeadManagementSettings() {
+    try {
+        const settings = await prisma.leadManagementSettings.findFirst()
+        return settings || {
+            autoAssignLeads: true,
+            leadStaleDays: 30,
+            followupEscalationDays: 7,
+            duplicateDetectionEnabled: true
+        }
+    } catch (error) {
+        return null
+    }
+}
+
+export async function updateLeadManagementSettings(rawData: any) {
+    try {
+        const user = await getCurrentUser()
+        if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
+
+        const validation = LeadManagementSettingsSchema.safeParse(rawData)
+        if (!validation.success) return { success: false, error: 'Invalid data' }
+
+        const existing = await prisma.leadManagementSettings.findFirst()
+        const id = existing?.id || 1
+        const data = validation.data
+
+        // Track changes for high-fidelity audit
+        const changeLog: any = {}
+        if (existing) {
+            Object.keys(data).forEach((key: string) => {
+                const val = (data as any)[key]
+                const oldVal = (existing as any)[key]
+                if (val !== undefined && val !== oldVal) {
+                    changeLog[key] = { from: oldVal, to: val }
+                }
+            })
+        }
+
+        await prisma.leadManagementSettings.upsert({
+            where: { id },
+            update: data,
+            create: { id, ...data }
+        })
+
+        if (Object.keys(changeLog).length > 0) {
+            await logAction('UPDATE', 'lead-mgmt', `Lead management updated by ${user.fullName}`, id.toString(), null, { changes: changeLog })
+        }
+
+        revalidatePath('/superadmin')
+        return { success: true }
+    } catch (error) {
+        return { success: false, error: 'Failed' }
     }
 }
 

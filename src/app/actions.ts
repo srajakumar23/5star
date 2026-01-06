@@ -162,7 +162,11 @@ export async function loginWithPassword(mobile: string, password: string) {
         if (user.password) {
             const isValid = await bcrypt.compare(password, user.password)
             if (isValid) {
-                await createSession(user.userId, 'user', mapUserRole(user.role))
+                const securitySettings = await prisma.securitySettings.findFirst() as any
+                const isSuperAdmin = mapUserRole(user.role) === 'Super Admin'
+                const is2faRequired = isSuperAdmin && securitySettings?.twoFactorAuthEnabled
+
+                await createSession(user.userId, 'user', mapUserRole(user.role), !is2faRequired)
                 return { success: true }
             }
         }
@@ -178,7 +182,11 @@ export async function loginWithPassword(mobile: string, password: string) {
         if (admin.password) {
             const isValid = await bcrypt.compare(password, admin.password)
             if (isValid) {
-                await createSession(admin.adminId, 'admin', mapAdminRole(admin.role))
+                const securitySettings = await prisma.securitySettings.findFirst() as any
+                const isAdminRole = mapAdminRole(admin.role) === 'Super Admin'
+                const is2faRequired = isAdminRole && securitySettings?.twoFactorAuthEnabled
+
+                await createSession(admin.adminId, 'admin', mapAdminRole(admin.role), !is2faRequired)
                 return { success: true }
             }
         }
@@ -304,7 +312,11 @@ export async function registerUser(formData: any) {
             }
         })
 
-        await createSession(user.userId, 'user', mapUserRole(user.role))
+        const securitySettings = await prisma.securitySettings.findFirst() as any
+        const isSuperAdmin = role === 'Super Admin'
+        const is2faRequired = isSuperAdmin && securitySettings?.twoFactorAuthEnabled
+
+        await createSession(user.userId, 'user', mapUserRole(user.role), !is2faRequired)
         return { success: true }
     } catch (e: any) {
         console.error('Registration error:', e)
