@@ -30,7 +30,7 @@ export default async function DashboardPage() {
 
     // Check if we are in development to help the user test locally
     if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_APP_URL) {
-        baseUrl = 'http://localhost:3000'
+        baseUrl = 'http://localhost:3001'
     }
     const referralLink = `${baseUrl}/refer?ref=${userData.referralCode}`
     let rawShareText = ''
