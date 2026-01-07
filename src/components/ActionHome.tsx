@@ -91,7 +91,7 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
                             {/* Badge Image with Premium Styling */}
                             <div className="relative animate-float-slow drop-shadow-[0_15px_30px_rgba(245,158,11,0.5)]">
                                 <Image
-                                    src="/images/ambassador-badge-transparent.png"
+                                    src="/images/ambassador-badge.jpg"
                                     alt="5-Star Ambassador Badge"
                                     width={110}
                                     height={110}
