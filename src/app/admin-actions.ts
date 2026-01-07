@@ -6,6 +6,7 @@ import { getScopeFilter, canEdit, hasPermission } from '@/lib/permission-service
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit-logger'
 import { mapLeadStatus, mapUserRole, mapAccountStatus } from '@/lib/enum-utils'
+import { notifyReferralConfirmed, notifyFiveStarAchievement, notifyReferralStatusChanged } from '@/lib/notification-helper'
 
 /**
  * Fetches all referral leads with ambassador information.
@@ -256,8 +257,30 @@ export async function confirmReferral(leadId: number) {
                 }
             })
 
-            return { leadId, userId }
+            return { leadId, userId, parentName: lead.parentName, currentYearCount, wasFiveStar: user?.isFiveStarMember || false, justAchieved5Star: !user?.isFiveStarMember && count >= 5 }
         })
+
+        // --- Send In-App Notifications ---
+        try {
+            // Notify ambassador about confirmed referral
+            await notifyReferralConfirmed(result.userId, {
+                parentName: result.parentName,
+                leadId: result.leadId
+            }, result.currentYearCount)
+
+            // Special celebration if they just achieved 5-Star status!
+            if (result.justAchieved5Star) {
+                const ambassador = await prisma.user.findUnique({
+                    where: { userId: result.userId },
+                    select: { fullName: true }
+                })
+
+                await notifyFiveStarAchievement(result.userId, ambassador?.fullName || 'Ambassador')
+            }
+        } catch (notifError) {
+            console.error('Notification error:', notifError)
+            // Don't fail the confirmation if notification fails
+        }
 
         revalidatePath('/admin')
         revalidatePath('/dashboard')

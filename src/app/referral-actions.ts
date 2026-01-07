@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 import { revalidatePath } from 'next/cache'
 import { EmailService } from '@/lib/email-service'
 import { getNotificationSettings } from './notification-actions'
+import { notifyReferralSubmitted, notifyAdminNewReferral } from '@/lib/notification-helper'
 
 import { referralSchema } from '@/lib/validators'
 import { LeadStatus } from '@prisma/client'
@@ -186,7 +187,40 @@ export async function submitReferral(formData: {
             }
         })
 
-        // --- Lead Alerting ---
+        // --- Send In-App Notifications ---
+        try {
+            // Notify ambassador that referral was submitted successfully
+            await notifyReferralSubmitted(referringUserId, {
+                parentName,
+                leadId: newLead.leadId
+            })
+
+            // Notify admin/campus head about new referral
+            const settings = await getNotificationSettings()
+            if (settings.notifyCampusHeadOnNewLeads && campus) {
+                const campusData = await prisma.campus.findUnique({
+                    where: { campusName: campus }
+                })
+
+                if (campusData?.campusHeadId) {
+                    const ambassador = await prisma.user.findUnique({
+                        where: { userId: referringUserId },
+                        select: { fullName: true }
+                    })
+
+                    await notifyAdminNewReferral(
+                        campusData.campusHeadId,
+                        { parentName, leadId: newLead.leadId },
+                        { fullName: ambassador?.fullName || 'Ambassador', userId: referringUserId }
+                    )
+                }
+            }
+        } catch (notifError) {
+            console.error('In-app notification error:', notifError)
+            // Don't fail the referral submission if notification fails
+        }
+
+        // --- Lead Alerting (Email) ---
         try {
             const settings = await getNotificationSettings()
             if (settings.notifyCampusHeadOnNewLeads && campus) {
