@@ -66,8 +66,7 @@ export function MobileMenu({ navItems, user, logoutAction, onNavigate: propOnNav
                         {/* Icon */}
                         {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement<any>, {
                             size: isMobile ? 14 : 18,
-                            style: { color: isMobile ? '#CC0000' : '#9CA3AF' },
-                            className: `flex-shrink-0 transition-colors ${(item.icon as React.ReactElement<any>).props.className || ''}`
+                            className: `flex-shrink-0 transition-colors ${isMobile ? 'text-[#CC0000] group-hover:text-[#CC0000]' : 'text-gray-400 group-hover:text-white'}`
                         }) : item.icon}
                         <span style={{
                             fontSize: isMobile ? '10px' : '13px',
