@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronRight, Lock, User, School, GraduationCap, Users, Smartphone, AlertCircle, CheckCircle2, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { decryptReferralCode } from '@/lib/crypto'
 
 import { getRegistrationCampuses } from '@/app/actions'
 
@@ -21,7 +22,10 @@ export default function ReferPage() {
 function ReferralFormContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const refCode = searchParams.get('ref')
+    const encryptedRefCode = searchParams.get('ref')
+
+    // Decrypt the referral code (handles both encrypted and plain codes for backward compatibility)
+    const refCode = encryptedRefCode ? decryptReferralCode(encryptedRefCode) : null
 
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)

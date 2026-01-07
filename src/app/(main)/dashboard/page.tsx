@@ -1,8 +1,9 @@
 import { getCurrentUser } from '@/lib/auth-service'
 import { redirect } from 'next/navigation'
 import { getMyReferrals, getMyComparisonStats } from '@/app/referral-actions'
-import { getSystemSettings } from '@/app/settings-actions'
 import { ActionHome } from '@/components/ActionHome'
+import { encryptReferralCode } from '@/lib/crypto'
+
 
 export default async function DashboardPage() {
     const user = await getCurrentUser()
@@ -15,35 +16,26 @@ export default async function DashboardPage() {
     if (user.role.includes('Admin')) redirect('/admin')
 
     const userData = user as any
-    const [referrals, systemSettings, monthStats] = await Promise.all([
+    const [referrals] = await Promise.all([
         getMyReferrals(),
-        getSystemSettings(),
-        getMyComparisonStats()
     ])
 
-    const settings = systemSettings as any
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://5starambassador.com'
 
-    // Build WhatsApp share URL
-    // Build WhatsApp share URL - ALWAYS use production URL for sharing
-    // process.env.NEXT_PUBLIC_APP_URL often points to preview URLs on Vercel, which we don't want for public sharing
-    let baseUrl = 'https://5starv1.vercel.app'
+    // Encrypt referral code for security
+    const encryptedCode = encryptReferralCode(userData.referralCode)
 
-    // Check if we are in development to help the user test locally
-    if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_APP_URL) {
-        baseUrl = 'http://localhost:3001'
-    }
-    const referralLink = `${baseUrl}/refer?ref=${userData.referralCode}`
-    let rawShareText = ''
-    if (userData.role === 'Staff') {
-        rawShareText = settings?.staffReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`
-    } else if (userData.role === 'Alumni') {
-        rawShareText = settings?.alumniReferralText || `Hello 👋 I'm a proud Alumni of Achariya. I recommend you to explore admission for your child and experience the 5-Star Education. Click here: {referralLink}`
-    } else {
-        // Parent and others
-        rawShareText = settings?.parentReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`
-    }
-    const shareText = rawShareText.replace(/\{referralLink\}|\$\{referralLink\}/g, referralLink)
+    // Short URL format - cleaner and more secure
+    const referralLink = `${baseUrl}/r/${encryptedCode}`
+    const shareText = `Hi! I'm part of the Achariya Partnership Program.\nAdmissions link: ${referralLink}`
+
+    // Build WhatsApp URL
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+
+
+    // Get month stats for trends
+    const monthStats = await getMyComparisonStats()
+
 
     // Prepare recent referrals for ActionHome
     const recentReferrals = referrals.slice(0, 5).map(r => ({
