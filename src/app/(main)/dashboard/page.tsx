@@ -54,7 +54,7 @@ export default async function DashboardPage() {
     }))
 
     return (
-        <div className="page-container">
+        <div className="-mx-4 xl:mx-0">
             <ActionHome
                 user={{
                     fullName: userData.fullName,

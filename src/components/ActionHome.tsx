@@ -47,7 +47,7 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
     const isFiveStar = user.benefitStatus === 'Active' && user.yearFeeBenefitPercent >= 50 // Or explicit 5-star flag
 
     return (
-        <div className="space-y-6 md:space-y-8 max-w-2xl mx-auto pb-10 font-[family-name:var(--font-outfit)]">
+        <div className="space-y-6 md:space-y-8 pb-10 font-[family-name:var(--font-outfit)]">
             {/* Import Premium Font Locally - Standard HTML */}
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -81,23 +81,26 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
                 {displayCount >= 5 && (
                     <div className="absolute top-4 right-4 md:top-6 md:right-6 z-30 animate-in fade-in zoom-in duration-1000 delay-500">
                         <div className="relative group flex flex-col items-center">
-                            {/* Premium Glow Base */}
-                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-28 bg-amber-400/20 blur-[40px] rounded-full animate-pulse" />
+                            {/* Enhanced Multi-Layer Premium Glow */}
+                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-32 bg-amber-500/30 blur-[50px] rounded-full animate-pulse" />
+                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 bg-yellow-400/25 blur-[35px] rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+                            <div className="absolute inset-0 bg-gradient-radial from-amber-400/20 to-transparent blur-xl" />
 
                             {/* Badge Image with Premium Styling */}
-                            <div className="relative animate-float-slow drop-shadow-[0_15px_30px_rgba(0,0,0,0.4)]">
+                            <div className="relative animate-float-slow drop-shadow-[0_15px_30px_rgba(245,158,11,0.5)]">
                                 <img
                                     src="/images/ambassador-badge.png"
                                     alt="5-Star Ambassador Badge"
                                     className="w-[90px] md:w-[110px] h-auto transition-transform duration-500 group-hover:scale-110 select-none"
+                                    style={{ filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.6))' }}
                                 />
 
                                 {/* Overlay Shine Effect */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
                             </div>
 
-                            {/* Optional subtle light below */}
-                            <div className="absolute -bottom-2 w-1/2 h-1 bg-amber-500/15 blur-lg animate-pulse" />
+                            {/* Stronger light below */}
+                            <div className="absolute -bottom-2 w-3/4 h-2 bg-amber-500/30 blur-lg animate-pulse" />
                         </div>
                     </div>
                 )}
