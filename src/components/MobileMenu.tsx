@@ -2,10 +2,9 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { LogOut, User } from 'lucide-react'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { LogOut } from 'lucide-react'
 import { useSidebar } from './MobileSidebarWrapper'
-
-// Force rebuild to ensure logo removal persists
 
 interface NavItem {
     label: string
@@ -22,7 +21,6 @@ interface SidebarUIProps {
     navItems: NavItem[]
     user: UserProfile
     logoutAction: () => Promise<void>
-    // onNavigate and viewMode are now optional/deprecated as they come from context
     onNavigate?: () => void
     viewMode?: 'mobile-grid' | 'desktop-list'
     hideLogo?: boolean
@@ -34,6 +32,8 @@ export function MobileMenu({ navItems, user, logoutAction, onNavigate: propOnNav
     // Priority: Context -> Props -> Default
     const viewMode = sidebarContext?.viewMode || propViewMode || 'desktop-list'
     const isMobile = viewMode === 'mobile-grid'
+    const pathname = usePathname() || ''
+    const searchParams = useSearchParams()
 
     const handleNavigate = () => {
         if (sidebarContext) {
@@ -48,34 +48,65 @@ export function MobileMenu({ navItems, user, logoutAction, onNavigate: propOnNav
         <div className="flex flex-col h-full bg-transparent">
             {/* Navigation Items - Premium Compact */}
             <nav className={`flex-1 overflow-y-auto px-2 pt-2 pb-2 ${isMobile ? 'grid grid-cols-2 gap-2' : 'space-y-1'}`}>
-                {navItems.map((item) => (
-                    <Link
-                        key={item.label}
-                        href={item.href}
-                        onClick={handleNavigate}
-                        className={isMobile
-                            // Mobile: Premium horizontal pill style - DARK MODE COMPATIBLE
-                            ? "flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-red-200 dark:hover:border-red-700 hover:from-red-50 hover:to-white dark:hover:from-red-900/30 dark:hover:to-gray-700 text-gray-700 dark:text-gray-200 hover:text-[#CC0000] dark:hover:text-red-400 transition-all duration-200 group no-underline"
-                            // Desktop List Item Styles (Premium Sidebar)
-                            : "flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition-all group relative overflow-hidden no-underline"
+                {navItems.map((item) => {
+                    // Safe active check logic with Query Param support
+                    let isActive = false
+                    if (pathname) {
+                        try {
+                            const itemUrl = new URL(item.href, 'http://dummy.com') // safe parsing for relative urls
+                            const itemPath = itemUrl.pathname
+                            const itemView = itemUrl.searchParams.get('view')
+                            const currentView = searchParams?.get('view')
+
+                            if (itemView) {
+                                // If item needs a specific view, check if we match path AND view
+                                isActive = pathname === itemPath && currentView === itemView
+                            } else {
+                                // If item is just a base path (like Home), matches if path matches AND no specific view is selected (or we are in a sub-path)
+                                // Exception: Dashboard usually means "no view"
+                                isActive = pathname === itemPath && !currentView
+                            }
+
+
+                        } catch (e) {
+                            // Fallback to simple string check
+                            isActive = pathname === item.href
                         }
-                    >
-                        {!isMobile && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-amber-400 rounded-r-full scale-y-0 group-hover:scale-y-100 transition-transform duration-300" style={{ backgroundColor: '#FBBF24' }} />
-                        )}
-                        {/* Icon */}
-                        {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement<any>, {
-                            size: isMobile ? 14 : 18,
-                            className: `flex-shrink-0 transition-colors ${isMobile ? 'text-[#CC0000] group-hover:text-[#CC0000]' : 'text-gray-400 group-hover:text-white'}`
-                        }) : item.icon}
-                        <span style={{
-                            fontSize: isMobile ? '10px' : '13px',
-                            fontWeight: '700',
-                            letterSpacing: '-0.01em',
-                            marginLeft: '12px'
-                        }}>{item.label}</span>
-                    </Link>
-                ))}
+                    }
+
+                    return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            onClick={handleNavigate}
+                            className={isMobile
+                                // Mobile: Premium horizontal pill style - DARK MODE COMPATIBLE
+                                ? "flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-red-200 dark:hover:border-red-700 hover:from-red-50 hover:to-white dark:hover:from-red-900/30 dark:hover:to-gray-700 text-gray-700 dark:text-gray-200 hover:text-[#CC0000] dark:hover:text-red-400 transition-all duration-200 group no-underline"
+                                // Desktop List Item Styles (Premium Sidebar)
+                                : `flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all group relative overflow-hidden no-underline ${isActive ? 'text-[#FFD936] bg-white/5 font-bold' : 'text-gray-300 hover:text-white'}`
+                            }
+                        >
+                            {!isMobile && (
+                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-amber-400 rounded-r-full transition-transform duration-300 ${isActive ? 'scale-y-100' : 'scale-y-0 group-hover:scale-y-100'}`} style={{ backgroundColor: '#FBBF24' }} />
+                            )}
+                            {/* Icon */}
+                            {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement<any>, {
+                                size: isMobile ? 14 : 18,
+                                className: `flex-shrink-0 transition-colors ${isMobile
+                                    ? 'text-[#CC0000] group-hover:text-[#CC0000]'
+                                    : (isActive
+                                        ? 'text-[#FFD936]'
+                                        : 'text-gray-400 group-hover:text-white')}`
+                            }) : item.icon}
+                            <span style={{
+                                fontSize: isMobile ? '10px' : '13px',
+                                fontWeight: '700',
+                                letterSpacing: '-0.01em',
+                                marginLeft: '12px'
+                            }}>{item.label}</span>
+                        </Link>
+                    )
+                })}
             </nav>
 
             {/* Compact Footer (Profile + Logout) */}

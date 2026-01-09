@@ -45,6 +45,12 @@ interface CampusComparison {
     ambassadors: number
     prevLeads?: number
     prevConfirmed?: number
+    roleDistribution?: { name: string; value: number }[]
+    totalStudents?: number
+    staffCount?: number
+    parentCount?: number
+    systemWideBenefits?: number
+    prevBenefits?: number
 }
 
 interface UserRecord {
@@ -98,10 +104,12 @@ export async function getSystemAnalytics(timeRange: '7d' | '30d' | 'all' = 'all'
     const [
         totalAmbassadors,
         totalLeads,
-        totalConfirmed,
+        totalConfirmedRecords,
         prevAmbassadors,
         prevLeads,
-        prevConfirmed
+        prevConfirmedRecords,
+        legacyLeadSummary,
+        totalActiveCampuses
     ] = await Promise.all([
         prisma.user.count({ where: { ...dateFilter, ...scopeFilterUsers } }),
         prisma.referralLead.count({ where: { ...dateFilter, ...scopeFilterLeads } }),
@@ -109,19 +117,24 @@ export async function getSystemAnalytics(timeRange: '7d' | '30d' | 'all' = 'all'
         prevDateFilter ? prisma.user.count({ where: { ...prevDateFilter, ...scopeFilterUsers } }) : Promise.resolve(undefined),
         prevDateFilter ? prisma.referralLead.count({ where: { ...prevDateFilter, ...scopeFilterLeads } }) : Promise.resolve(undefined),
         prevDateFilter ? prisma.referralLead.count({ where: { leadStatus: LeadStatus.Confirmed, ...prevDateFilter, ...scopeFilterLeads } }) : Promise.resolve(undefined),
+        prisma.user.aggregate({
+            where: { ...dateFilter, ...scopeFilterUsers },
+            _sum: { confirmedReferralCount: true }
+        }),
+        prisma.campus.count({ where: { isActive: true } })
     ])
 
-    const globalConversionRate = totalLeads > 0
-        ? (totalConfirmed / totalLeads) * 100
-        : 0
+    // Use legacy count if it's higher (fallback for imported data missing detailed lead records)
+    const legacyConfirmedCount = legacyLeadSummary._sum.confirmedReferralCount || 0
+    const totalConfirmed = Math.max(totalConfirmedRecords, legacyConfirmedCount)
+    const totalCampuses = totalActiveCampuses
 
-    // Get unique campuses
-    const campusesWithLeads = await prisma.referralLead.findMany({
-        where: { campus: { not: null } },
-        select: { campus: true },
-        distinct: ['campus']
-    })
-    const totalCampuses = campusesWithLeads.length
+    // Total Leads should at least be equal to confirmed if no detailed leads exist
+    const finalTotalLeads = Math.max(totalLeads, totalConfirmed)
+
+    const globalConversionRate = finalTotalLeads > 0
+        ? (totalConfirmed / finalTotalLeads) * 100
+        : 0
 
     // Calculate system-wide benefits
     const activeUsers = await prisma.user.findMany({
@@ -170,22 +183,18 @@ export async function getSystemAnalytics(timeRange: '7d' | '30d' | 'all' = 'all'
     const parentCount = userRoles.find(u => u.role === UserRole.Parent)?._count.role || 0
 
     // --- Phase 2: Enhanced Analytics ---
-    const avgLeadsPerAmbassador = totalAmbassadors > 0
-        ? Number((totalLeads / totalAmbassadors).toFixed(2))
-        : 0
-
-    const totalEstimatedRevenue = totalConfirmed * 60000 // Standard fee
-
+    const avgLeadsPerAmbassador = totalAmbassadors > 0 ? Number((finalTotalLeads / totalAmbassadors).toFixed(2)) : 0
+    const totalEstimatedRevenue = totalConfirmed * 60000
     const conversionFunnel = [
-        { stage: 'Site Visitors', count: totalLeads * 3 }, // Estimated from trends
-        { stage: 'Total Leads', count: totalLeads },
-        { stage: 'Follow-ups', count: Math.round(totalLeads * 0.6) }, // Estimated process
+        { stage: 'Site Visitors', count: finalTotalLeads * 3 },
+        { stage: 'Total Leads', count: finalTotalLeads },
+        { stage: 'Follow-ups', count: Math.round(finalTotalLeads * 0.6) },
         { stage: 'Admissions', count: totalConfirmed }
     ]
 
     return {
         totalAmbassadors,
-        totalLeads,
+        totalLeads: finalTotalLeads,
         totalConfirmed,
         globalConversionRate: Number(globalConversionRate.toFixed(2)),
         totalCampuses,
@@ -196,7 +205,7 @@ export async function getSystemAnalytics(timeRange: '7d' | '30d' | 'all' = 'all'
         userRoleDistribution,
         prevAmbassadors,
         prevLeads,
-        prevConfirmed,
+        prevConfirmed: prevConfirmedRecords,
         prevBenefits,
         avgLeadsPerAmbassador,
         totalEstimatedRevenue,
@@ -299,49 +308,91 @@ export async function getCampusComparison(timeRange: '7d' | '30d' | 'all' = 'all
     }
 
     // Optimized Aggregation: Fetch all stats in parallel grouping queries
-    const [totalLeadsData, confirmedData, pendingData, ambassadorData, prevLeadsData, prevConfirmedData] = await Promise.all([
-        // 1. Total Leads per Campus
+    const [
+        allCampuses,
+        totalLeadsData,
+        confirmedData,
+        pendingData,
+        ambassadorData,
+        prevLeadsData,
+        prevConfirmedData,
+        roleDistributionData,
+        campusStudentsData,
+        campusUsersData,
+        currentBenefitsData,
+        prevBenefitsData
+    ] = await Promise.all([
+        prisma.campus.findMany({
+            where: { isActive: true },
+            select: { campusName: true, id: true }
+        }),
         prisma.referralLead.groupBy({
             by: ['campus'],
             where: { campus: { not: null }, ...dateFilter },
             _count: { _all: true }
         }),
-        // 2. Confirmed Leads per Campus
         prisma.referralLead.groupBy({
             by: ['campus'],
             where: { campus: { not: null }, leadStatus: 'Confirmed', ...dateFilter },
             _count: { _all: true }
         }),
-        // 3. Pending Leads per Campus
         prisma.referralLead.groupBy({
             by: ['campus'],
             where: { campus: { not: null }, leadStatus: { in: [LeadStatus.New, LeadStatus.Follow_up] }, ...dateFilter },
             _count: { _all: true }
         }),
-        // 4. Unique Ambassadors per Campus
         prisma.referralLead.findMany({
             where: { campus: { not: null } },
             select: { campus: true, userId: true },
             distinct: ['campus', 'userId']
         }),
-        // 5. Previous Leads
         prevDateFilter ? prisma.referralLead.groupBy({
             by: ['campus'],
             where: { campus: { not: null }, ...prevDateFilter },
             _count: { _all: true }
         }) : Promise.resolve([]),
-        // 6. Previous Confirmed
         prevDateFilter ? prisma.referralLead.groupBy({
             by: ['campus'],
             where: { campus: { not: null }, leadStatus: 'Confirmed', ...prevDateFilter },
             _count: { _all: true }
         }) : Promise.resolve([]),
+        prisma.referralLead.findMany({
+            where: { campus: { not: null }, ...dateFilter },
+            select: {
+                campus: true,
+                user: { select: { role: true } }
+            }
+        }),
+        prisma.student.groupBy({
+            by: ['campusId'],
+            _count: { _all: true }
+        }),
+        prisma.user.groupBy({
+            by: ['assignedCampus', 'role'],
+            where: { assignedCampus: { not: null } },
+            _count: { _all: true }
+        }),
+        prisma.user.findMany({
+            where: { assignedCampus: { not: null }, ...dateFilter },
+            select: {
+                assignedCampus: true,
+                studentFee: true,
+                yearFeeBenefitPercent: true,
+                confirmedReferralCount: true
+            }
+        }),
+        prevDateFilter ? prisma.user.findMany({
+            where: { assignedCampus: { not: null }, ...prevDateFilter },
+            select: {
+                assignedCampus: true,
+                studentFee: true,
+                yearFeeBenefitPercent: true,
+                confirmedReferralCount: true
+            }
+        }) : Promise.resolve([])
     ]);
 
-    // Map aggregations to CampusComparison objects
     const campusMap = new Map<string, CampusComparison>();
-
-    // Helper to get or create entry
     const getEntry = (campus: string) => {
         if (!campusMap.has(campus)) {
             campusMap.set(campus, {
@@ -352,51 +403,98 @@ export async function getCampusComparison(timeRange: '7d' | '30d' | 'all' = 'all
                 conversionRate: 0,
                 ambassadors: 0,
                 prevLeads: 0,
-                prevConfirmed: 0
+                prevConfirmed: 0,
+                roleDistribution: [],
+                totalStudents: 0,
+                staffCount: 0,
+                parentCount: 0,
+                systemWideBenefits: 0,
+                prevBenefits: 0
             });
         }
         return campusMap.get(campus)!;
     };
 
-    // Populate Data
-    totalLeadsData.forEach(item => {
-        if (item.campus) getEntry(item.campus).totalLeads = item._count._all;
-    });
+    allCampuses.forEach(c => getEntry(c.campusName));
 
-    confirmedData.forEach(item => {
-        if (item.campus) getEntry(item.campus).confirmed = item._count._all;
-    });
+    totalLeadsData.forEach(item => { if (item.campus) getEntry(item.campus).totalLeads = item._count._all; });
+    confirmedData.forEach(item => { if (item.campus) getEntry(item.campus).confirmed = item._count._all; });
+    pendingData.forEach(item => { if (item.campus) getEntry(item.campus).pending = item._count._all; });
+    prevLeadsData.forEach(item => { if (item.campus) getEntry(item.campus).prevLeads = item._count._all; });
+    prevConfirmedData.forEach(item => { if (item.campus) getEntry(item.campus).prevConfirmed = item._count._all; });
 
-    pendingData.forEach(item => {
-        if (item.campus) getEntry(item.campus).pending = item._count._all;
-    });
-
-    prevLeadsData.forEach(item => {
-        if (item.campus) getEntry(item.campus).prevLeads = item._count._all;
-    });
-
-    prevConfirmedData.forEach(item => {
-        if (item.campus) getEntry(item.campus).prevConfirmed = item._count._all;
-    });
-
-    // Count unique ambassadors manually from the distinct list
-    ambassadorData.forEach(item => {
-        if (item.campus) {
-            const entry = getEntry(item.campus);
-            entry.ambassadors += 1; // Increment count
+    // Previously this counted users with leads. Switching to count all Staff/Parents as ambassadors 
+    // to match top-level card logic and show "live" imported data correctly.
+    campusUsersData.forEach(u => {
+        if (u.assignedCampus) {
+            const entry = getEntry(u.assignedCampus);
+            entry.ambassadors += u._count._all;
         }
     });
 
-    // Calculate Conversion Rates
+    const roleStats = new Map<string, Map<string, number>>();
+    roleDistributionData.forEach(item => {
+        if (item.campus && item.user?.role) {
+            if (!roleStats.has(item.campus)) roleStats.set(item.campus, new Map());
+            const m = roleStats.get(item.campus)!;
+            m.set(item.user.role, (m.get(item.user.role) || 0) + 1);
+        }
+    });
+
+    roleStats.forEach((roles, campus) => {
+        const entry = getEntry(campus);
+        entry.roleDistribution = Array.from(roles.entries()).map(([name, value]) => ({ name, value }));
+    });
+
+    const idToName = new Map(allCampuses.map(c => [c.id, c.campusName]));
+    campusStudentsData.forEach(item => {
+        const name = idToName.get(item.campusId);
+        if (name) getEntry(name).totalStudents = item._count._all;
+    });
+
+    campusUsersData.forEach(u => {
+        if (u.assignedCampus) {
+            const entry = getEntry(u.assignedCampus);
+            if (u.role === 'Staff') entry.staffCount = (entry.staffCount || 0) + u._count._all;
+            else if (u.role === 'Parent') entry.parentCount = (entry.parentCount || 0) + u._count._all;
+        }
+    });
+
+    currentBenefitsData.forEach(u => {
+        if (u.assignedCampus) {
+            const entry = getEntry(u.assignedCampus);
+
+            // Heuristic fallback: if we have NO leads in the table for this campus 
+            // but the user has confirmed counts, we trust the user counts.
+            if (u.confirmedReferralCount > 0) {
+                // We add it to the entry if it's currently 0 to avoid double counting 
+                // but since the lead table is empty, this will ignite the 0s.
+                // If some leads exist, we take the MAX to be safe.
+                if (entry.confirmed < u.confirmedReferralCount) {
+                    const diff = u.confirmedReferralCount - entry.confirmed;
+                    entry.confirmed += diff;
+                    // Ensure total leads is at least equal to confirmed
+                    if (entry.totalLeads < entry.confirmed) entry.totalLeads = entry.confirmed;
+                }
+            }
+
+            entry.systemWideBenefits = (entry.systemWideBenefits || 0) + (u.studentFee * (u.yearFeeBenefitPercent / 100) * u.confirmedReferralCount);
+        }
+    });
+
+    prevBenefitsData.forEach(u => {
+        if (u.assignedCampus) {
+            const entry = getEntry(u.assignedCampus);
+            entry.prevBenefits = (entry.prevBenefits || 0) + (u.studentFee * (u.yearFeeBenefitPercent / 100) * u.confirmedReferralCount);
+        }
+    });
+
     const comparison = Array.from(campusMap.values()).map(c => {
-        c.conversionRate = c.totalLeads > 0
-            ? Number(((c.confirmed / c.totalLeads) * 100).toFixed(2))
-            : 0;
+        c.conversionRate = c.totalLeads > 0 ? Number(((c.confirmed / c.totalLeads) * 100).toFixed(2)) : 0;
         return c;
     });
 
-    // Sort by total leads descending
-    return comparison.sort((a, b) => b.totalLeads - a.totalLeads)
+    return comparison.sort((a, b) => b.totalLeads - a.totalLeads);
 }
 
 // ===================== CAMPUS DRILL DOWN =====================

@@ -1,7 +1,7 @@
 import { getCurrentUser } from '@/lib/auth-service'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Home, UserPlus, List, BookOpen, Shield, LogOut, User, Building2, Users, Target, Settings, FileDown, IndianRupee, Database, GanttChartSquare, MessageSquare, ShieldCheck, Star, BarChart3, Trash2, Zap } from 'lucide-react'
+import { Home, UserPlus, List, BookOpen, Shield, LogOut, User, Building2, Users, Target, Settings, FileDown, IndianRupee, Database, GanttChartSquare, MessageSquare, ShieldCheck, Star, BarChart3, Trash2, Zap, Lock, UserCog, Share2, Megaphone, Globe } from 'lucide-react'
 import { MobileMenu } from '@/components/MobileMenu'
 import { NotificationDropdown } from '@/components/NotificationDropdown'
 import MobileSidebarWrapper from '@/components/MobileSidebarWrapper'
@@ -50,22 +50,22 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         const baseAdminPath = isSuperAdmin ? '/superadmin' : (isCampusLevel ? '/campus' : '/admin')
 
         if (permissions.analytics.access && !isAmbassadorRole) navItems.push({ label: 'Analytics', href: `${baseAdminPath}?view=analytics`, icon: <Shield /> })
-        if (permissions.campusPerformance.access) navItems.push({ label: 'Campus Performance', href: `${baseAdminPath}?view=campuses`, icon: <Building2 /> })
+        if (permissions.campusPerformance.access) navItems.push({ label: 'Campus Management', href: `${baseAdminPath}?view=campuses`, icon: <Building2 /> })
 
         // These modules might not be ready in AdminClient yet, but if permissions allow, we link them.
         // We might need to implement these views in AdminClient or condition these links further.
         if (permissions.userManagement.access) navItems.push({ label: 'User Management', href: `${baseAdminPath}?view=users`, icon: <Users /> })
         if (permissions.studentManagement.access) navItems.push({ label: 'Student Management', href: `${baseAdminPath}?view=students`, icon: <BookOpen /> })
-        if (permissions.adminManagement.access) navItems.push({ label: 'Admin Management', href: `${baseAdminPath}?view=admins`, icon: <Target /> })
+        if (permissions.adminManagement.access) navItems.push({ label: 'Admin Management', href: `${baseAdminPath}?view=admins`, icon: <UserCog /> })
         if (permissions.reports.access) navItems.push({ label: 'Reports', href: `${baseAdminPath}?view=reports`, icon: <FileDown /> })
-        if (permissions.referralTracking.access && isSuperAdmin) navItems.push({ label: 'Global Referral Module', href: `/superadmin?view=referrals`, icon: <Target /> })
+        if (permissions.referralTracking.access && isSuperAdmin) navItems.push({ label: 'Global Referral Module', href: `/superadmin?view=referrals`, icon: <Globe /> })
         if (isSuperAdmin) navItems.push({ label: 'Fee Management', href: `/superadmin?view=fees`, icon: <IndianRupee /> })
 
         // Management of specific dashboard types
         if (isSuperAdmin) {
             navItems.push({ label: 'Engagement Center', href: '/superadmin?view=engagement', icon: <Zap /> })
-            navItems.push({ label: 'Promo Management', href: '/superadmin?view=marketing', icon: <Database /> })
-            navItems.push({ label: 'Permissions', href: '/superadmin?view=permissions', icon: <Shield /> })
+            navItems.push({ label: 'Promo Management', href: '/superadmin?view=marketing', icon: <Megaphone /> })
+            navItems.push({ label: 'Permissions', href: '/superadmin?view=permissions', icon: <Lock /> })
         }
 
         if (permissions.deletionHub?.access) {
@@ -87,7 +87,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         }
 
         // Shared Tooling (Available to all who have permission, but hidden for Super Admin who has dedicated management views)
-        if (permissions.marketingKit.access) navItems.push({ label: 'Promo Kit', href: '/marketing', icon: <Database className="text-[#CC0000]" /> })
+        if (permissions.marketingKit.access) navItems.push({ label: 'Promo Kit', href: '/marketing', icon: <Share2 className="text-[#CC0000]" /> })
         if (permissions.supportDesk.access && !isSuperAdmin) navItems.push({ label: 'Support Desk', href: '/support', icon: <MessageSquare className="text-[#CC0000]" /> })
 
         // Admin-specific shared modules (Hide from Ambassadors)
@@ -114,7 +114,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             <div className="absolute inset-0 bg-white/85 z-0 backdrop-blur-[2px]"></div>
 
             {/* Desktop Sidebar (Permanent) */}
-            <aside className="desktop-sidebar hidden xl:flex flex-col w-[280px] shrink-0 border-r border-white/5 p-4 sticky top-0 h-screen z-20 bg-gradient-to-br from-[#1A0000] to-[#3D0000] shadow-2xl shadow-black/50">
+            <aside className="desktop-sidebar hidden xl:flex flex-col w-[280px] shrink-0 border-r border-white/5 p-4 fixed top-0 left-0 bottom-0 z-20 bg-gradient-to-br from-[#1A0000] to-[#3D0000] shadow-2xl shadow-black/50">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
 
@@ -137,51 +137,55 @@ export default async function MainLayout({ children }: { children: React.ReactNo
                 </div>
             </aside>
 
-            {/* Mobile Topbar */}
-            <div className="mobile-topbar xl:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/20 z-50 flex items-center justify-between px-4 bg-white/85 backdrop-blur-xl shadow-sm">
-                <div className="flex items-center gap-3">
-                    {/* Hamburger Menu Trigger */}
-                    <MobileSidebarWrapper>
-                        <MobileMenu
-                            navItems={navItems}
-                            user={{ fullName: user.fullName, role: user.role }}
-                            logoutAction={logout}
-                            viewMode="mobile-grid"
-                            hideLogo={true}
+            {/* Main Content Wrapper for fixed sidebar offset */}
+            <div className="flex-1 flex flex-col min-h-screen xl:ml-[280px]">
+
+                {/* Mobile Topbar */}
+                <div className="mobile-topbar xl:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/20 z-50 flex items-center justify-between px-4 bg-white/85 backdrop-blur-xl shadow-sm">
+                    <div className="flex items-center gap-3">
+                        {/* Hamburger Menu Trigger */}
+                        <MobileSidebarWrapper>
+                            <MobileMenu
+                                navItems={navItems}
+                                user={{ fullName: user.fullName, role: user.role }}
+                                logoutAction={logout}
+                                viewMode="mobile-grid"
+                                hideLogo={true}
+                            />
+                        </MobileSidebarWrapper>
+
+                        <img
+                            src="/achariya_25_logo.jpg"
+                            alt="Achariya 25th Year"
+                            className="rounded-lg shadow-sm bg-white p-1 h-10 w-auto"
                         />
-                    </MobileSidebarWrapper>
+                    </div>
 
-                    <img
-                        src="/achariya_25_logo.jpg"
-                        alt="Achariya 25th Year"
-                        className="rounded-lg shadow-sm bg-white p-1 h-10 w-auto"
-                    />
-                </div>
-
-                {/* Mobile Notification Bell */}
-                <div className="flex items-center">
-                    <NotificationDropdown />
-                </div>
-            </div>
-
-            <main
-                className="flex-1 min-w-0 p-4 pt-20 xl:p-8 xl:pt-8 pb-20 xl:pb-8 w-full max-w-[1600px] mx-auto relative z-10"
-            >
-                {/* Desktop Notification Header */}
-                <header className="hidden xl:flex justify-end mb-4 absolute top-4 right-8 z-20">
-                    <div className="bg-white/80 backdrop-blur-md p-1.5 rounded-full shadow-sm border border-white/50">
+                    {/* Mobile Notification Bell */}
+                    <div className="flex items-center">
                         <NotificationDropdown />
                     </div>
-                </header>
-                {children}
-            </main>
+                </div>
 
-            {/* Mobile Bottom Navigation */}
-            <BottomNav role={user.role} />
-            <InstallPrompt />
-            <MobileConfig />
-            <OfflineAlert />
-            <CommandPalette />
+                <main
+                    className="flex-1 min-w-0 p-4 pt-20 xl:p-8 xl:pt-8 pb-20 xl:pb-8 w-full max-w-[1600px] mx-auto relative z-10"
+                >
+                    {/* Desktop Notification Header */}
+                    <header className="hidden xl:flex justify-end mb-4 absolute top-4 right-8 z-20">
+                        <div className="bg-white/80 backdrop-blur-md p-1.5 rounded-full shadow-sm border border-white/50">
+                            <NotificationDropdown />
+                        </div>
+                    </header>
+                    {children}
+                </main>
+
+                {/* Mobile Bottom Navigation */}
+                <BottomNav role={user.role} />
+                <InstallPrompt />
+                <MobileConfig />
+                <OfflineAlert />
+                <CommandPalette />
+            </div>
         </div>
     )
 }

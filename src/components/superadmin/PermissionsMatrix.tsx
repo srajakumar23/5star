@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { BarChart3, Users, BookOpen, ShieldCheck, Building2, Download, IndianRupee, Database, GanttChartSquare, MessageSquare, Settings, UserPlus, Edit, Trash, List, Wallet, ChevronDown, ChevronRight, CheckCircle2, Eye, Key } from 'lucide-react'
 
+import { RolePermissions } from '@/types'
+
 interface PermissionsMatrixProps {
-    rolePermissionsMatrix: Record<string, any>
-    onChange: (newMatrix: Record<string, any>) => void
+    rolePermissionsMatrix: Record<string, RolePermissions>
+    onChange: (newMatrix: Record<string, RolePermissions>) => void
     isLoading: boolean
     onSave: () => void
 }
@@ -259,9 +261,10 @@ function TableSection({
                             }
                         } else {
                             if (rolePermissionsMatrix[role] && rolePermissionsMatrix[role][module.key]) {
-                                perm = rolePermissionsMatrix[role][module.key]
-                                accessValue = perm.access
-                                scopeValue = perm.scope
+                                const moduleKey = module.key as keyof RolePermissions
+                                const permission = rolePermissionsMatrix[role]?.[moduleKey]
+                                accessValue = permission.access
+                                scopeValue = permission.scope
                             }
                         }
 

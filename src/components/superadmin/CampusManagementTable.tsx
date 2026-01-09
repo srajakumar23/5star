@@ -13,6 +13,9 @@ interface Campus {
     location: string
     grades: string
     maxCapacity: number
+    totalLeads?: number
+    confirmed?: number
+    conversionRate?: number
 }
 
 interface CampusManagementTableProps {
@@ -21,9 +24,10 @@ interface CampusManagementTableProps {
     onDelete: (id: number, name: string) => void
     onAdd: () => void
     onBulkDelete?: (ids: number[]) => void
+    mode?: 'management' | 'performance'
 }
 
-export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBulkDelete }: CampusManagementTableProps) {
+export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBulkDelete, mode = 'management' }: CampusManagementTableProps) {
     const [selectedCampuses, setSelectedCampuses] = useState<Campus[]>([])
     const [showUpload, setShowUpload] = useState(false)
 
@@ -57,23 +61,56 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
                 </div>
             )
         },
-        {
-            header: 'Grades',
-            accessorKey: 'grades',
-            sortable: true,
-            cell: (campus: Campus) => (
-                <Badge variant="outline">{campus.grades}</Badge>
-            )
-        },
-        {
-            header: 'Capacity',
-            accessorKey: 'maxCapacity',
-            sortable: true,
-            cell: (campus: Campus) => (
-                <span className="font-medium text-gray-700">{campus.maxCapacity}</span>
-            )
-        },
-        {
+        ...(mode === 'management' ? [
+            {
+                header: 'Grades',
+                accessorKey: 'grades',
+                sortable: true,
+                cell: (campus: Campus) => (
+                    <Badge variant="outline">{campus.grades}</Badge>
+                )
+            },
+            {
+                header: 'Capacity',
+                accessorKey: 'maxCapacity',
+                cell: (campus: Campus) => (
+                    <span className="font-medium text-gray-700">{campus.maxCapacity}</span>
+                )
+            }
+        ] : []),
+        ...(mode === 'performance' ? [
+            {
+                header: 'Leads',
+                accessorKey: 'totalLeads',
+                sortable: true,
+                cell: (campus: Campus) => (
+                    <div className="flex flex-col">
+                        <span className="font-bold text-gray-900">{campus.totalLeads || 0}</span>
+                    </div>
+                )
+            },
+            {
+                header: 'Admissions',
+                accessorKey: 'confirmed',
+                sortable: true,
+                cell: (campus: Campus) => (
+                    <div className="flex flex-col">
+                        <span className="font-bold text-emerald-600">{campus.confirmed || 0}</span>
+                    </div>
+                )
+            },
+            {
+                header: 'Conv. %',
+                accessorKey: 'conversionRate',
+                sortable: true,
+                cell: (campus: Campus) => (
+                    <span className={`font-bold ${campus.conversionRate && campus.conversionRate > 20 ? 'text-emerald-600' : 'text-gray-600'}`}>
+                        {campus.conversionRate || 0}%
+                    </span>
+                )
+            }
+        ] : []),
+        ...(mode === 'management' ? [{
             header: 'Actions',
             accessorKey: (campus: Campus) => campus.id,
             cell: (campus: Campus) => (
@@ -92,42 +129,44 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
                     </button>
                 </div>
             )
-        }
+        }] : [])
     ]
 
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
             <PremiumHeader
-                title="Campus Locations"
-                subtitle="Manage physical school locations and their capacities"
+                title={mode === 'management' ? "Campus Locations" : "Campus Performance"}
+                subtitle={mode === 'management' ? "Manage physical school locations and their capacities" : "Track leads, admissions, and conversion metrics per campus"}
                 icon={School}
             >
-                <div className="flex items-center gap-3">
-                    {selectedCampuses.length > 0 && onBulkDelete && (
+                {mode === 'management' && (
+                    <div className="flex items-center gap-3">
+                        {selectedCampuses.length > 0 && onBulkDelete && (
+                            <button
+                                onClick={() => onBulkDelete(selectedCampuses.map(c => c.id))}
+                                className="px-5 py-2.5 bg-red-100/50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200"
+                            >
+                                <Trash size={16} strokeWidth={2.5} />
+                                Delete ({selectedCampuses.length})
+                            </button>
+                        )}
                         <button
-                            onClick={() => onBulkDelete(selectedCampuses.map(c => c.id))}
-                            className="px-5 py-2.5 bg-red-100/50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200"
+                            onClick={() => setShowUpload(true)}
+                            className="px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-50 transition-all flex items-center gap-2"
                         >
-                            <Trash size={16} strokeWidth={2.5} />
-                            Delete ({selectedCampuses.length})
+                            <Upload size={16} strokeWidth={2.5} />
+                            Bulk Upload
                         </button>
-                    )}
-                    <button
-                        onClick={() => setShowUpload(true)}
-                        className="px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-50 transition-all flex items-center gap-2"
-                    >
-                        <Upload size={16} strokeWidth={2.5} />
-                        Bulk Upload
-                    </button>
-                    <button
-                        onClick={onAdd}
-                        className="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-xs shadow-lg shadow-gray-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2"
-                    >
-                        <Plus size={16} strokeWidth={2.5} />
-                        Add Campus
-                    </button>
-                </div>
+                        <button
+                            onClick={onAdd}
+                            className="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-xs shadow-lg shadow-gray-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2"
+                        >
+                            <Plus size={16} strokeWidth={2.5} />
+                            Add Campus
+                        </button>
+                    </div>
+                )}
             </PremiumHeader>
 
             {/* Table */}

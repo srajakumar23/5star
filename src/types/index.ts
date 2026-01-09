@@ -132,6 +132,14 @@ export interface CampusPerformance {
     pending: number
     conversionRate: number
     ambassadors: number
+    roleDistribution?: { name: string; value: number }[]
+    totalStudents?: number
+    staffCount?: number
+    parentCount?: number
+    systemWideBenefits?: number
+    prevBenefits?: number
+    prevLeads?: number
+    prevConfirmed?: number
 }
 
 export interface SystemSettings {
@@ -177,4 +185,14 @@ export interface BulkUserData {
     assignedCampus: string
     empId?: string
     childEprNo?: string
+}
+
+export interface BenefitSlab {
+    slabId: number
+    tierName?: string | null
+    referralCount: number
+    yearFeeBenefitPercent: number
+    longTermExtraPercent: number
+    baseLongTermPercent: number
+    description?: string | null
 }

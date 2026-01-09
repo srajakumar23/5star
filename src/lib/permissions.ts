@@ -233,7 +233,8 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
  * Check if a role has access to a specific module
  */
 export function hasModuleAccess(role: string, module: keyof RolePermissions): boolean {
-    const permissions = ROLE_PERMISSIONS[role]
+    const normalizedRole = role.replace(/_/g, ' ')
+    const permissions = ROLE_PERMISSIONS[normalizedRole]
     if (!permissions) return false
     return permissions[module]?.access || false
 }
@@ -246,7 +247,8 @@ export function canPerformAction(
     module: keyof RolePermissions,
     action: 'create' | 'edit' | 'delete'
 ): boolean {
-    const permissions = ROLE_PERMISSIONS[role]
+    const normalizedRole = role.replace(/_/g, ' ')
+    const permissions = ROLE_PERMISSIONS[normalizedRole]
     if (!permissions || !permissions[module]?.access) return false
 
     const modulePermission = permissions[module]
@@ -267,7 +269,8 @@ export function canPerformAction(
  * Get the data scope for a role and module
  */
 export function getDataScope(role: string, module: keyof RolePermissions): DataScope {
-    const permissions = ROLE_PERMISSIONS[role]
+    const normalizedRole = role.replace(/_/g, ' ')
+    const permissions = ROLE_PERMISSIONS[normalizedRole]
     if (!permissions) return 'none'
     return permissions[module]?.scope || 'none'
 }
@@ -276,7 +279,8 @@ export function getDataScope(role: string, module: keyof RolePermissions): DataS
  * Get allowed reports for a role
  */
 export function getAllowedReports(role: string): string[] {
-    const permissions = ROLE_PERMISSIONS[role]
+    const normalizedRole = role.replace(/_/g, ' ')
+    const permissions = ROLE_PERMISSIONS[normalizedRole]
     if (!permissions || !permissions.reports?.access) return []
 
     const allowedReports = permissions.reports.allowedReports || []
