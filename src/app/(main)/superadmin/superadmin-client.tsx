@@ -4,12 +4,13 @@ import { useState, useEffect, useTransition } from 'react'
 import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, Calculator, Plus } from 'lucide-react'
 
 // Import only what's needed for client-managed state
 import { getCampuses } from '@/app/campus-actions'
 import { getBenefitSlabs, updateBenefitSlab, addBenefitSlab, deleteBenefitSlab } from '@/app/benefit-actions'
 import { getCampusDetails } from '@/app/superadmin-actions'
+import { getSettlements, processSettlement, deleteSettlement } from '@/app/settlement-actions'
 import { getRolePermissions, updateRolePermissions, resetRolePermissions } from '@/app/permission-actions'
 import { confirmReferral, convertLeadToStudent, rejectReferral } from '@/app/admin-actions' // Import server actions
 
@@ -34,6 +35,8 @@ const FeeManagementTable = dynamic(() => import('@/components/superadmin/FeeMana
 const EngagementPanel = dynamic(() => import('@/components/superadmin/EngagementPanel').then(m => m.EngagementPanel), { ssr: false })
 const AuditLogPanel = dynamic(() => import('@/components/superadmin/AuditLogPanel').then(m => m.AuditLogPanel), { ssr: false })
 const SettingsPanel = dynamic(() => import('@/components/superadmin/SettingsPanel').then(m => m.SettingsPanel), { ssr: false })
+const SettlementTable = dynamic(() => import('@/components/superadmin/SettlementTable').then(m => m.SettlementTable), { ssr: false })
+const SettlementCalculatorModal = dynamic(() => import('@/components/superadmin/SettlementCalculatorModal').then(m => m.SettlementCalculatorModal), { ssr: false })
 
 import { User, Student, SystemAnalytics, CampusPerformance, Admin, SystemSettings, MarketingAsset, Campus, BenefitSlab, RolePermissions } from '@/types'
 
@@ -92,6 +95,12 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
     const [trendData, setTrendData] = useState(growthTrend)
     const [campusCompData, setCampusCompData] = useState(campusComparison)
     const [campusDetails, setCampusDetails] = useState<{ topAmbassadors: any[], recentLeads: any[] } | null>(null)
+    const [showCalcModal, setShowCalcModal] = useState(false)
+
+    const loadSettlements = async () => {
+        const res = await getSettlements()
+        if (res.success && res.settlements) setSettlements(res.settlements)
+    }
 
     // Load Initial Data
     useEffect(() => {
@@ -105,6 +114,8 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
 
                 if (cmp.success && cmp.campuses) setCampuses(cmp.campuses)
                 if (slb.success && slb.slabs) setSlabs(slb.slabs)
+
+                await loadSettlements()
             } catch (error) {
                 console.error('Failed to load initial data:', error)
             } finally {
@@ -360,41 +371,80 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
 
                 {/* Revenue & Settlements View */}
                 {selectedView === 'settlements' && (
-                    <div className="space-y-6 animate-fade-in">
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                            <div style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #f0f0f0' }}>
-                                <p style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600', textTransform: 'uppercase' }}>Total Payouts</p>
-                                <p style={{ fontSize: '24px', fontWeight: '800', color: '#111827' }}>₹{settlements.reduce((acc, s) => acc + (s.amount || 0), 0).toLocaleString()}</p>
+                    <div className="space-y-8 animate-fade-in">
+                        <h2 className="text-3xl font-black italic text-gray-900 tracking-tight uppercase">Settlement Management</h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm shadow-gray-200/50">
+                                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Payouts (Processed)</p>
+                                <p className="text-4xl font-black text-gray-900">₹{settlements.filter(s => s.status === 'Processed').reduce((acc, s) => acc + (s.amount || 0), 0).toLocaleString()}</p>
                             </div>
-                            <div style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #f0f0f0' }}>
-                                <p style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600', textTransform: 'uppercase' }}>Pending</p>
-                                <p style={{ fontSize: '24px', fontWeight: '800', color: '#F59E0B' }}>₹{settlements.filter(s => s.status === 'Pending').reduce((acc, s) => acc + (s.amount || 0), 0).toLocaleString()}</p>
+                            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm shadow-gray-200/50">
+                                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">Pending Liabilities</p>
+                                <p className="text-4xl font-black text-amber-500">₹{settlements.filter(s => s.status === 'Pending').reduce((acc, s) => acc + (s.amount || 0), 0).toLocaleString()}</p>
                             </div>
                         </div>
 
-                        <BenefitSlabTable
-                            slabs={slabs}
-                            onAddSlab={() => {
-                                setEditingSlab(null)
-                                setSlabForm({ tierName: '', referralCount: 1, yearFeeBenefitPercent: 10, longTermExtraPercent: 0, baseLongTermPercent: 0 })
-                                setShowBenefitModal(true)
-                            }}
-                            onEditSlab={(slab: BenefitSlab) => {
-                                setEditingSlab(slab)
-                                setSlabForm({
-                                    tierName: slab.tierName,
-                                    referralCount: slab.referralCount,
-                                    yearFeeBenefitPercent: slab.yearFeeBenefitPercent,
-                                    longTermExtraPercent: slab.longTermExtraPercent || 0,
-                                    baseLongTermPercent: slab.baseLongTermPercent || 0
-                                })
-                                setShowBenefitModal(true)
-                            }}
-                            onDeleteSlab={deleteBenefitSlab}
-                        />
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center px-2">
+                                <h3 className="text-lg font-black italic text-gray-800 uppercase tracking-tight">Recent Payouts</h3>
+                                <button
+                                    onClick={() => setShowCalcModal(true)}
+                                    className="px-5 py-2.5 bg-violet-600 text-white text-xs font-black italic rounded-xl hover:bg-violet-700 transition-all shadow-lg shadow-violet-100 flex items-center gap-2 uppercase tracking-tight"
+                                >
+                                    <Calculator size={16} /> New Settlement Request
+                                </button>
+                            </div>
+                            <SettlementTable
+                                settlements={settlements}
+                                onProcess={async (id, data) => {
+                                    const res = await processSettlement(id, data)
+                                    if (res.success) loadSettlements()
+                                    return res
+                                }}
+                                onDelete={async (id) => {
+                                    const res = await deleteSettlement(id)
+                                    if (res.success) loadSettlements()
+                                    return res
+                                }}
+                            />
+                        </div>
+
+                        <div className="pt-8 border-t border-gray-100">
+                            <div className="flex justify-between items-center mb-6 px-2">
+                                <h3 className="text-lg font-black italic text-gray-800 uppercase tracking-tight">Benefit Distribution Rules</h3>
+                            </div>
+                            <BenefitSlabTable
+                                slabs={slabs}
+                                onAddSlab={() => {
+                                    setEditingSlab(null)
+                                    setSlabForm({ tierName: '', referralCount: 1, yearFeeBenefitPercent: 10, longTermExtraPercent: 0, baseLongTermPercent: 0 })
+                                    setShowBenefitModal(true)
+                                }}
+                                onEditSlab={(slab: BenefitSlab) => {
+                                    setEditingSlab(slab)
+                                    setSlabForm({
+                                        tierName: slab.tierName,
+                                        referralCount: slab.referralCount,
+                                        yearFeeBenefitPercent: slab.yearFeeBenefitPercent,
+                                        longTermExtraPercent: slab.longTermExtraPercent || 0,
+                                        baseLongTermPercent: slab.baseLongTermPercent || 0
+                                    })
+                                    setShowBenefitModal(true)
+                                }}
+                                onDeleteSlab={deleteBenefitSlab}
+                            />
+                        </div>
                     </div>
-                )
-                }
+                )}
+
+                {/* Modals for Settlements */}
+                <SettlementCalculatorModal
+                    isOpen={showCalcModal}
+                    onClose={() => setShowCalcModal(false)}
+                    users={users}
+                    onSuccess={loadSettlements}
+                />
 
                 {/* Support Desk View */}
                 {selectedView === 'support' && (

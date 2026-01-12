@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, runCampaign } from '@/app/campaign-actions'
+import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, runCampaign, getAudienceCount } from '@/app/campaign-actions'
 import { getCampuses } from '@/app/campus-actions'
 import { toast } from 'sonner'
 import { Plus, Play, Edit, Trash2, Mail, Clock, CheckCircle2, AlertTriangle, Loader2, Users, Building2, Eye, Filter } from 'lucide-react'
@@ -37,11 +37,23 @@ export function CampaignManager() {
             activityStatus: 'All'
         }
     })
+    const [estimatedReach, setEstimatedReach] = useState<number | null>(null)
+
+    const updateReach = async (audience: any) => {
+        const res = await getAudienceCount(audience)
+        if (res.success) setEstimatedReach(res.count ?? 0)
+    }
+
+    useEffect(() => {
+        if (showModal) {
+            updateReach(form.targetAudience)
+        }
+    }, [form.targetAudience, showModal])
 
     const loadCampaigns = async () => {
         setLoading(true)
         const res = await getCampaigns()
-        if (res.success) setCampaigns(res.campaigns)
+        if (res.success) setCampaigns(res.campaigns || [])
         setLoading(false)
     }
 
@@ -106,7 +118,7 @@ export function CampaignManager() {
 
         const res = await runCampaign(id)
         if (res.success) {
-            toast.success(`Campaign finished. Sent: ${res.sent}`, { id: tid })
+            toast.success(`Campaign finished. Sent: ${res.sent}, Failed: ${res.failed || 0}`, { id: tid })
             loadCampaigns()
         } else {
             toast.error(res.error || 'Failed to run', { id: tid })
@@ -312,6 +324,10 @@ export function CampaignManager() {
                                             <option value="Dormant">Dormant (14+ days)</option>
                                         </select>
                                     </div>
+                                </div>
+                                <div className="mt-3 flex justify-between items-center px-1">
+                                    <p className="text-xs font-bold text-violet-700">Estimated Reach:</p>
+                                    <p className="text-sm font-black text-violet-900">{estimatedReach !== null ? `${estimatedReach} Users` : 'Calculating...'}</p>
                                 </div>
                             </div>
 

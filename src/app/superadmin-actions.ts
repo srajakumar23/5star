@@ -543,7 +543,10 @@ export async function getAllUsers(): Promise<UserRecord[]> {
     const scopeFilter = getPrismaScopeFilter(user, 'userManagement')
 
     const users = await prisma.user.findMany({
-        where: scopeFilter,
+        where: {
+            ...scopeFilter,
+            referralCode: { not: null }
+        },
         select: {
             userId: true,
             fullName: true,
@@ -557,7 +560,8 @@ export async function getAllUsers(): Promise<UserRecord[]> {
             confirmedReferralCount: true,
             referralCode: true,
             createdAt: true,
-            empId: true
+            empId: true,
+            isFiveStarMember: true
         },
         orderBy: { createdAt: 'desc' }
     })

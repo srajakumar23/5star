@@ -35,7 +35,7 @@ interface AdminClientProps {
         conversionRate?: number
     }
     analytics: AdminAnalytics
-    confirmReferral: (leadId: number, admissionNumber?: string) => Promise<{ success: boolean; error?: string }>
+    confirmReferral: (leadId: number, admissionNumber: string, selectedFeeType: 'OTP' | 'WOTP') => Promise<{ success: boolean; error?: string }>
     initialView?: string
     campuses?: Campus[]
     users?: User[]
@@ -492,7 +492,10 @@ export function AdminClient({ referrals, referralMeta, referralStats, analytics,
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xl font-black text-red-600">{performer.count}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">leads</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">leads</p>
+                                            {(performer as any).totalValue > 0 && (
+                                                <p className="text-[11px] font-black text-emerald-600 mt-1">₹{(performer as any).totalValue.toLocaleString('en-IN')}</p>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

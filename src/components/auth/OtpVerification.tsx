@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 
 interface OtpVerificationProps {
     mobile: string
@@ -19,9 +19,9 @@ export const OtpVerification = ({ mobile, otp, setOtp, onVerify, onBack, loading
             <div className="text-center space-y-2 relative">
                 <button
                     onClick={onBack}
-                    className="absolute top-0 left-0 w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/30 text-white transition-all z-50 bg-white/20 border border-white/50 shadow-xl backdrop-blur-md group"
+                    className="absolute top-0 left-0 w-10 h-10 rounded-full flex items-center justify-center bg-white/15 border border-white/20 text-white hover:bg-white/25 transition-all z-50 group shadow-lg"
                 >
-                    <ArrowLeft className="text-white group-hover:-translate-x-0.5 transition-transform" size={20} strokeWidth={2.5} />
+                    <ChevronLeft className="w-5 h-5 flex-shrink-0 group-hover:-translate-x-0.5 transition-transform" strokeWidth={2.5} />
                 </button>
                 <div className="flex flex-col items-center mb-2 w-full">
                     <img
@@ -29,10 +29,13 @@ export const OtpVerification = ({ mobile, otp, setOtp, onVerify, onBack, loading
                         alt="Achariya 25th Year"
                         className="h-16 w-auto mb-3 shadow-2xl relative z-10"
                     />
-                    <p className="w-full text-blue-200 text-[10px] font-bold uppercase text-center leading-tight tracking-[0.2em] whitespace-nowrap">
-                        Achariya Partnership Program (APP)
+                    <h2 className="text-white text-base font-black tracking-tight drop-shadow-lg uppercase leading-tight text-center">
+                        Achariya
+                    </h2>
+                    <p className="text-[10px] text-blue-200/70 font-bold uppercase tracking-widest text-center">
+                        Partnership Program
                     </p>
-                    <p className="text-amber-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1 drop-shadow-md">
+                    <p className="text-amber-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 drop-shadow-md text-center">
                         25<sup className="text-[0.6em]">th</sup> Year Celebration
                     </p>
                 </div>

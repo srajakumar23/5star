@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, Fragment } from 'react'
 import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Filter, X, Check, MinusSquare, CheckSquare, Square } from 'lucide-react'
 
 interface Column<T> {
-    header: string
+    header: string | React.ReactNode
     accessorKey: keyof T | ((row: T) => any)
     cell?: (row: T) => React.ReactNode
     sortable?: boolean
@@ -24,6 +24,11 @@ interface DataTableProps<T> {
     enableMultiSelection?: boolean
     onSelectionChange?: (selectedItems: T[]) => void
     uniqueKey?: keyof T
+    manualPagination?: boolean
+    pageCount?: number
+    rowCount?: number
+    onPageChange?: (page: number) => void
+    currentPage?: number
 }
 
 export function DataTable<T>({
@@ -38,13 +43,20 @@ export function DataTable<T>({
     onSearchChange,
     enableMultiSelection = false,
     onSelectionChange,
-    uniqueKey
+    uniqueKey,
+    manualPagination = false,
+    pageCount,
+    rowCount,
+    onPageChange,
+    currentPage: propCurrentPage
 }: DataTableProps<T>) {
     const [internalSearchTerm, setInternalSearchTerm] = useState('')
 
     // Determine effective search term (controlled vs uncontrolled)
     const searchTerm = searchValue !== undefined ? searchValue : internalSearchTerm
-    const [currentPage, setCurrentPage] = useState(1)
+    const [internalPage, setInternalPage] = useState(1)
+    const currentPage = propCurrentPage !== undefined ? propCurrentPage : internalPage
+
     const [sortConfig, setSortConfig] = useState<{ key: keyof T | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
 
@@ -108,7 +120,8 @@ export function DataTable<T>({
             }
             return { ...prev, [colKey]: updated }
         })
-        setCurrentPage(1)
+        if (!manualPagination) setInternalPage(1)
+        if (onPageChange && manualPagination) onPageChange(1)
     }
 
     // Helper to check if a column has active filters
@@ -160,8 +173,11 @@ export function DataTable<T>({
     }, [filteredData, sortConfig])
 
     // Pagination
-    const totalPages = Math.ceil(sortedData.length / pageSize)
-    const paginatedData = sortedData.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    const computedTotalPages = Math.ceil(sortedData.length / pageSize)
+    const totalPages = manualPagination ? (pageCount || 1) : computedTotalPages
+
+    // If manual pagination, we assume 'data' is already the slice for the current page
+    const paginatedData = manualPagination ? data : sortedData.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
     const handleSort = (key: keyof T) => {
         setSortConfig(current => ({
@@ -221,7 +237,8 @@ export function DataTable<T>({
                                 const val = e.target.value
                                 if (searchValue === undefined) setInternalSearchTerm(val)
                                 onSearchChange?.(val)
-                                setCurrentPage(1)
+                                if (!manualPagination) setInternalPage(1)
+                                if (onPageChange && manualPagination) onPageChange(1)
                             }}
                             className="w-full pl-14 pr-6 py-4 bg-white border-transparent ring-1 ring-gray-200 rounded-[20px] outline-none focus:ring-2 focus:ring-red-500 focus:shadow-lg focus:shadow-red-500/10 transition-all text-sm font-bold text-gray-700 placeholder:text-gray-400 placeholder:font-medium"
                             suppressHydrationWarning
@@ -239,6 +256,7 @@ export function DataTable<T>({
                                     <div
                                         onClick={handleSelectAll}
                                         className="cursor-pointer text-gray-400 hover:text-red-600 transition-colors"
+                                        suppressHydrationWarning={true}
                                     >
                                         {selectedRows.size > 0 && selectedRows.size === filteredData.length ? (
                                             <CheckSquare size={20} />
@@ -387,6 +405,7 @@ export function DataTable<T>({
                                                     <div
                                                         onClick={() => toggleRowSelection(rowId, row)}
                                                         className={`cursor-pointer transition-colors ${isSelected ? 'text-red-600' : 'text-gray-300 hover:text-gray-400'}`}
+                                                        suppressHydrationWarning={true}
                                                     >
                                                         {isSelected ? <CheckSquare size={20} /> : <Square size={20} />}
                                                     </div>
@@ -414,7 +433,7 @@ export function DataTable<T>({
                                                 <td colSpan={columns.length + (enableMultiSelection ? 1 : 0)} className="block md:table-cell p-0 border-b border-gray-100">
                                                     <div className="bg-gray-50/50 p-6 shadow-inner">
                                                         <div className="animate-in slide-in-from-top-2 duration-300">
-                                                            {renderExpandedRow(row)}
+                                                            {renderExpandedRow!(row)}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -446,11 +465,19 @@ export function DataTable<T>({
                 totalPages > 1 && (
                     <div className="flex items-center justify-between p-4 mt-4 bg-gray-50/50 rounded-[24px] border border-gray-100">
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-2">
-                            SHOWING <span className="text-gray-900 ml-1">{(currentPage - 1) * pageSize + 1} TO {Math.min(currentPage * pageSize, sortedData.length)}</span> OF <span className="text-gray-900 ml-1">{sortedData.length}</span>
+                            SHOWING <span className="text-gray-900 ml-1">
+                                {manualPagination ? ((currentPage - 1) * pageSize + 1) : ((currentPage - 1) * pageSize + 1)}
+                                TO
+                                {manualPagination ? Math.min(currentPage * pageSize, (rowCount || pageCount! * pageSize)) : Math.min(currentPage * pageSize, sortedData.length)}
+                            </span> OF <span className="text-gray-900 ml-1">{manualPagination ? (rowCount || 'MANY') : sortedData.length}</span>
                         </p>
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                onClick={() => {
+                                    const next = Math.max(1, currentPage - 1)
+                                    if (!manualPagination) setInternalPage(next)
+                                    onPageChange?.(next)
+                                }}
                                 disabled={currentPage === 1}
                                 className={`p-2.5 rounded-xl border transition-all duration-200 ${currentPage === 1
                                     ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
@@ -464,7 +491,11 @@ export function DataTable<T>({
                                 {[...Array(totalPages)].map((_, i) => (
                                     <button
                                         key={i}
-                                        onClick={() => setCurrentPage(i + 1)}
+                                        onClick={() => {
+                                            const page = i + 1
+                                            if (!manualPagination) setInternalPage(page)
+                                            onPageChange?.(page)
+                                        }}
                                         className={`w-10 h-10 rounded-xl text-sm font-bold transition-all duration-200 ${currentPage === i + 1
                                             ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-xl shadow-red-600/20 scale-105'
                                             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
@@ -476,7 +507,11 @@ export function DataTable<T>({
                                 ))}
                             </div>
                             <button
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                onClick={() => {
+                                    const next = Math.min(totalPages, currentPage + 1)
+                                    if (!manualPagination) setInternalPage(next)
+                                    onPageChange?.(next)
+                                }}
                                 disabled={currentPage === totalPages}
                                 className={`p-2.5 rounded-xl border transition-all duration-200 ${currentPage === totalPages
                                     ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
@@ -490,6 +525,6 @@ export function DataTable<T>({
                     </div>
                 )
             }
-        </div >
+        </div>
     )
 }

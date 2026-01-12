@@ -2,6 +2,7 @@ import { Search, UserPlus, Filter, Download, MoreHorizontal, Edit, Trash, Chevro
 import { DataTable } from '@/components/ui/DataTable'
 import { Badge } from '@/components/ui/Badge'
 import { Student } from '@/types'
+import { exportToCSV } from '@/lib/export-utils'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -132,7 +133,8 @@ export function StudentTable({
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">ID: {student.studentId.toString().padStart(6, '0')}</p>
                     </div>
                 </div>
-            )
+            ),
+            filterable: true
         },
         {
             header: 'Enrolled Academic',
@@ -150,7 +152,8 @@ export function StudentTable({
                         Grade {student.grade}
                     </div>
                 </div>
-            )
+            ),
+            filterable: true
         },
         {
             header: 'Parent/Guardian',
@@ -168,7 +171,8 @@ export function StudentTable({
                         {student.parent?.mobileNumber || 'No Contact'}
                     </p>
                 </div>
-            )
+            ),
+            filterable: true
         },
         {
             header: 'Ambassador',
@@ -189,7 +193,8 @@ export function StudentTable({
                 </div>
             ) : (
                 <span className="text-xs font-bold text-gray-400 italic">Direct Admission</span>
-            )
+            ),
+            filterable: true
         },
         {
             header: 'Status',
@@ -200,7 +205,8 @@ export function StudentTable({
                 <Badge variant={student.status === 'Active' ? 'success' : 'error'} className="font-black text-[10px] tracking-wider uppercase">
                     {student.status}
                 </Badge>
-            )
+            ),
+            filterable: true
         },
         {
             header: 'Actions',
@@ -343,6 +349,19 @@ export function StudentTable({
                             className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold text-xs hover:bg-gray-50 hover:shadow-sm transition-all flex items-center gap-2 whitespace-nowrap"
                         >
                             <Download size={16} /> Import
+                        </button>
+                        <button
+                            onClick={() => exportToCSV(filteredStudents, 'Student_List', [
+                                { header: 'Full Name', accessor: (s) => s.fullName },
+                                { header: 'Campus', accessor: (s) => s.campus?.campusName },
+                                { header: 'Grade', accessor: (s) => s.grade },
+                                { header: 'Parent', accessor: (s) => s.parent?.fullName },
+                                { header: 'Mobile', accessor: (s) => s.parent?.mobileNumber },
+                                { header: 'Status', accessor: (s) => s.status }
+                            ])}
+                            className="px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold text-xs hover:bg-gray-50 hover:shadow-sm transition-all flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <Download size={16} /> Export
                         </button>
                         <button
                             onClick={onAddStudent}

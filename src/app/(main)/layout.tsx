@@ -117,21 +117,34 @@ export default async function MainLayout({ children }: { children: React.ReactNo
                 {/* Decorative Elements */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
 
-                <div className="flex flex-col items-center border-b border-white/5 pb-8 pt-4 mb-8">
-                    <div className="relative group cursor-pointer hover:scale-105 transition-transform duration-300">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-amber-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div className="flex flex-col items-center pt-6 pb-6 px-2">
+                    <div className="relative group cursor-pointer hover:scale-105 transition-transform duration-500 mb-5">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-amber-500 to-red-500 rounded-2xl blur opacity-25 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
                         <img
                             src="/achariya_25_logo.jpg"
                             alt="Achariya 25th Year"
-                            className="relative object-contain shadow-2xl h-[100px] w-auto max-w-[220px]"
+                            className="relative object-contain shadow-2xl h-[90px] w-auto max-w-[200px]"
                         />
                     </div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-500/80 mb-1">
-                        25<sup className="text-[0.6em]">th</sup> Year Celebration
-                    </p>
-                    <h2 className="text-white text-sm font-black tracking-tight drop-shadow-lg uppercase leading-tight px-4">
-                        Achariya Partnership Program (APP)
-                    </h2>
+
+                    <div className="text-center">
+                        <h2 className="text-white text-base font-black tracking-tight drop-shadow-lg uppercase leading-tight">
+                            Achariya
+                        </h2>
+                        <p className="text-[11px] text-indigo-200/70 font-bold uppercase tracking-widest mb-1.5">
+                            Partnership Program
+                        </p>
+                        <p className="text-[10px] uppercase tracking-[0.3em] font-black text-amber-500 drop-shadow-md">
+                            25<sup className="text-[0.6em]">th</sup> Year Celebration
+                        </p>
+                    </div>
+                </div>
+
+                {/* Premium Divider */}
+                <div className="px-6 mb-8">
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent blur-sm"></div>
+                    </div>
                 </div>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar -mr-2 pr-2">
                     <MobileMenu navItems={navItems} user={{ fullName: user.fullName, role: user.role }} logoutAction={logout} />

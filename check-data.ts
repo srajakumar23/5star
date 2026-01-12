@@ -22,7 +22,7 @@ async function main() {
     console.log('\n--- CAMPUS REPORT ---')
     campuses.forEach(c => {
         console.log(`Campus: ${c.campusName} (${c.campusCode})`)
-        console.log(`Grade Fees: ${c.gradeFees.map(f => `${f.grade}: ₹${f.annualFee}`).join(', ')}`)
+        console.log(`Grade Fees: ${(c.gradeFees as any[]).map(f => `${f.grade}: OTP ₹${f.annualFee_otp}, WOTP ₹${f.annualFee_wotp}`).join(', ')}`)
         console.log('---------------------------')
     })
 }

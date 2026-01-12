@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, Plus, Upload, Filter, Edit, Trash, FileText, Download, RefreshCw } from 'lucide-react'
-import { getFeeStructure, syncStudentFees } from '@/app/fee-actions'
+import { getFeeStructure, syncStudentFees, deleteFeeStructure, bulkDeleteFeeStructures } from '@/app/fee-actions'
 import { getCampuses } from '@/app/campus-actions'
 import { getAcademicYears } from '@/app/settings-actions'
 import CSVUploader from '@/components/CSVUploader'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { DataTable } from '@/components/ui/DataTable'
+import { exportToCSV } from '@/lib/export-utils'
 
 interface FeeManagementTableProps {
     academicYears?: any[]
@@ -18,13 +20,17 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
     const [loading, setLoading] = useState(false)
     const [search, setSearch] = useState('')
     const [showUploader, setShowUploader] = useState(false)
+    const [selectedIds, setSelectedIds] = useState<number[]>([])
 
     // Confirmation State
     const [confirmState, setConfirmState] = useState<{
         isOpen: boolean
         data?: any
+        type?: 'sync' | 'delete' | 'bulk-delete'
     }>({
-        isOpen: false
+        isOpen: false,
+        type: 'sync',
+        data: undefined
     })
 
     // Filters
@@ -36,9 +42,12 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
 
     const GRADES = ['Pre-Mont', 'Mont-1', 'Mont-2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12']
 
+    const fetchIdRef = useRef(0)
+
     useEffect(() => {
         loadMetadata()
-        loadFees()
+        // Removed loadFees() from here to avoid double-fetch on mount 
+        // since setting selectedAY in loadMetadata will trigger the second useEffect
     }, [])
 
     useEffect(() => {
@@ -50,13 +59,14 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
         if (cRes.success && cRes.campuses) setCampuses(cRes.campuses)
         if (ayRes.success && ayRes.data) {
             setAcademicYears(ayRes.data)
-            // Default to current year if available
+            // Default to current year if available AND no year is currently selected
             const current = ayRes.data.find((y: any) => y.isCurrent)
-            if (current) setSelectedAY(current.year)
+            if (current && !selectedAY) setSelectedAY(current.year)
         }
     }
 
     const loadFees = async () => {
+        const currentId = ++fetchIdRef.current
         setLoading(true)
         try {
             const filter: any = {}
@@ -65,20 +75,89 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
             if (selectedGrade) filter.grade = selectedGrade
 
             const res = await getFeeStructure(filter)
-            if (res.success && res.data) {
-                setFees(res.data)
+
+            // Only update if this is still the latest request
+            if (currentId === fetchIdRef.current) {
+                if (res.success && res.data) {
+                    setFees(res.data)
+                } else {
+                    setFees([]) // Clear fees if failed or empty
+                }
             }
+        } catch (error) {
+            console.error(error)
+            // Only update if this is still the latest request
+            if (currentId === fetchIdRef.current) {
+                setFees([])
+            }
+        } finally {
+            if (currentId === fetchIdRef.current) {
+                setLoading(false)
+            }
+        }
+    }
+
+    const handleSyncFees = () => {
+        setConfirmState({ isOpen: true, type: 'sync', data: undefined })
+    }
+
+    const handleBulkDelete = () => {
+        setConfirmState({ isOpen: true, type: 'bulk-delete', data: undefined })
+    }
+
+    const handleDeleteFee = (id: number) => {
+        setConfirmState({ isOpen: true, type: 'delete', data: id })
+    }
+
+    const handleConfirmAction = async () => {
+        if (confirmState.type === 'sync') {
+            await executeSyncFees()
+        } else if (confirmState.type === 'delete' && confirmState.data) {
+            await executeDeleteFee(confirmState.data)
+        } else if (confirmState.type === 'bulk-delete') {
+            await executeBulkDelete()
+        }
+    }
+
+    const executeBulkDelete = async () => {
+        setConfirmState({ ...confirmState, isOpen: false })
+        setLoading(true)
+        try {
+            const res = await bulkDeleteFeeStructures(selectedIds)
+            if (res.success) {
+                toast.success(`${selectedIds.length} records deleted successfully`)
+                setSelectedIds([])
+                loadFees()
+            } else {
+                toast.error(res.error || 'Failed to delete selected')
+            }
+        } catch (error) {
+            toast.error('Error deleting fees')
         } finally {
             setLoading(false)
         }
     }
 
-    const handleSyncFees = () => {
-        setConfirmState({ isOpen: true })
+    const executeDeleteFee = async (id: number) => {
+        setConfirmState({ ...confirmState, isOpen: false })
+        setLoading(true)
+        try {
+            const res = await deleteFeeStructure(id)
+            if (res.success) {
+                toast.success('Fee record deleted successfully')
+                loadFees()
+            } else {
+                toast.error(res.error || 'Failed to delete')
+            }
+        } catch (error) {
+            toast.error('Error deleting fee')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const executeSyncFees = async () => {
-        setConfirmState({ isOpen: false })
+        setConfirmState({ ...confirmState, isOpen: false })
         setLoading(true)
         try {
             const res = await syncStudentFees(
@@ -100,10 +179,65 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
         }
     }
 
-    const filteredFees = fees.filter(f =>
-        f.campus.campusName.toLowerCase().includes(search.toLowerCase()) ||
-        f.grade.toLowerCase().includes(search.toLowerCase())
-    )
+    // Column Definitions for DataTable
+    const columns = [
+        {
+            header: 'Campus',
+            accessorKey: (row: any) => row.campus.campusName,
+            sortable: true,
+            filterable: true
+        },
+        {
+            header: 'Grade',
+            accessorKey: 'grade',
+            sortable: true,
+            filterable: true
+        },
+        {
+            header: 'Academic Year',
+            accessorKey: 'academicYear',
+            sortable: true,
+            filterable: true,
+            cell: (row: any) => (
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.academicYear === selectedAY ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {row.academicYear || 'N/A'}
+                </span>
+            )
+        },
+        {
+            header: 'OTP Fee',
+            accessorKey: 'annualFee_otp',
+            sortable: true,
+            cell: (row: any) => (
+                <div className="font-mono font-bold text-gray-900 bg-gray-50/50 px-2 py-1 rounded">
+                    {(row.annualFee_otp || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                </div>
+            )
+        },
+        {
+            header: 'WOTP Fee',
+            accessorKey: 'annualFee_wotp',
+            sortable: true,
+            cell: (row: any) => (
+                <div className="font-mono font-bold text-red-600 bg-red-50/20 px-2 py-1 rounded">
+                    {(row.annualFee_wotp || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                </div>
+            )
+        },
+        {
+            header: 'Actions',
+            accessorKey: 'id',
+            cell: (row: any) => (
+                <button
+                    onClick={() => handleDeleteFee(row.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Delete Fee Structure"
+                >
+                    <Trash size={16} />
+                </button>
+            )
+        }
+    ]
 
     return (
         <div className="space-y-6">
@@ -118,36 +252,6 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
                         {academicYears.map(ay => <option key={ay.id} value={ay.year}>{ay.year}</option>)}
                     </select>
 
-                    <select
-                        value={selectedCampus}
-                        onChange={e => setSelectedCampus(e.target.value)}
-                        className="border rounded-lg px-3 py-2 text-sm bg-white"
-                    >
-                        <option value="">All Campuses</option>
-                        {campuses.map(c => <option key={c.id} value={c.id}>{c.campusName}</option>)}
-                    </select>
-
-                    <select
-                        value={selectedGrade}
-                        onChange={e => setSelectedGrade(e.target.value)}
-                        className="border rounded-lg px-3 py-2 text-sm bg-white"
-                    >
-                        <option value="">All Grades</option>
-                        {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
-
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                            placeholder="Search..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            className="pl-9 pr-4 py-2 border rounded-lg text-sm w-48"
-                        />
-                    </div>
-                </div>
-
-                <div className="flex gap-2">
                     <button
                         onClick={handleSyncFees}
                         disabled={loading}
@@ -156,6 +260,18 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
                     >
                         <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                         Sync Fees
+                    </button>
+                    <button
+                        onClick={() => exportToCSV(fees, 'Fee_Structures', [
+                            { header: 'Campus', accessor: (f) => f.campus?.campusName },
+                            { header: 'Grade', accessor: (f) => f.grade },
+                            { header: 'Academic Year', accessor: (f) => f.academicYear },
+                            { header: 'OTP Fee', accessor: (f) => f.annualFee_otp },
+                            { header: 'WOTP Fee', accessor: (f) => f.annualFee_wotp }
+                        ])}
+                        className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                    >
+                        <Download size={16} /> Export
                     </button>
                     <button
                         onClick={() => window.open('/fee_structure_template.csv')}
@@ -170,47 +286,34 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
                         <Upload size={16} /> Bulk Upload
                     </button>
                 </div>
+
+                {selectedIds.length > 0 && (
+                    <button
+                        onClick={handleBulkDelete}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm font-medium transition-colors animate-in fade-in"
+                    >
+                        <Trash size={16} /> Delete Selected ({selectedIds.length})
+                    </button>
+                )}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-500 font-medium">
-                        <tr>
-                            <th className="px-6 py-4">Campus</th>
-                            <th className="px-6 py-4">Grade</th>
-                            <th className="px-6 py-4">Academic Year</th>
-                            <th className="px-6 py-4 text-right">Annual Fee (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {loading ? (
-                            <tr><td colSpan={4} className="text-center py-8 text-gray-500">Loading...</td></tr>
-                        ) : filteredFees.length === 0 ? (
-                            <tr><td colSpan={4} className="text-center py-8 text-gray-500">No fee structures found.</td></tr>
-                        ) : (
-                            filteredFees.map((fee) => (
-                                <tr key={fee.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium">{fee.campus.campusName}</td>
-                                    <td className="px-6 py-4">{fee.grade}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${fee.academicYear === selectedAY ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                            {fee.academicYear || 'N/A'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono font-bold">
-                                        {fee.annualFee.toLocaleString('en-IN')}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden p-1">
+                <DataTable
+                    data={fees}
+                    columns={columns}
+                    searchKey={["grade", "campus.campusName"]}
+                    searchPlaceholder="Search fees..."
+                    enableMultiSelection={true}
+                    onSelectionChange={(selected: any[]) => setSelectedIds(selected.map(s => s.id))}
+                    uniqueKey="id"
+                />
             </div>
 
             {showUploader && (
                 <CSVUploader
                     type="fees"
-                    onUpload={async () => ({ success: true, added: 0, failed: 0, errors: [] })} // Handled internally by CSVUploader for fees type
+                    onUpload={async () => ({ success: true, added: 0, failed: 0, errors: [] })}
                     userRole={undefined}
                     onClose={() => {
                         setShowUploader(false)
@@ -222,22 +325,33 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
             {/* Premium Confirm Dialog */}
             <ConfirmDialog
                 isOpen={confirmState.isOpen}
-                title="Sync Student Fees?"
-                description={
-                    <p className="text-sm">
-                        Are you sure you want to sync fees for:
-                        <ul className="list-disc pl-4 mt-2 mb-2 font-medium">
-                            <li>{selectedCampus ? 'Selected Campus' : 'All Campuses'}</li>
-                            <li>{selectedGrade ? 'Selected Grade' : 'All Grades'}</li>
-                            <li>{selectedAY ? selectedAY : 'All Years'}</li>
-                        </ul>
-                        This will update student fees to match the fee structure.
-                    </p>
+                title={
+                    confirmState.type === 'sync' ? "Sync Student Fees?" :
+                        confirmState.type === 'bulk-delete' ? `Delete ${selectedIds.length} Fees?` :
+                            "Delete Fee Structure?"
                 }
-                confirmText="Start Sync"
-                variant="warning"
-                onConfirm={executeSyncFees}
-                onCancel={() => setConfirmState({ isOpen: false })}
+                description={
+                    confirmState.type === 'sync' ? (
+                        <div className="text-sm">
+                            Are you sure you want to sync fees for:
+                            <ul className="list-disc pl-4 mt-2 mb-2 font-medium">
+                                <li>{selectedCampus ? 'Selected Campus' : 'All Campuses (Selected via Filter)'}</li>
+                                <li>The process compares updated Fee Rules against Student records.</li>
+                            </ul>
+                        </div>
+                    ) : confirmState.type === 'bulk-delete' ? (
+                        <p className="text-sm text-gray-600">
+                            Are you sure you want to delete <b>{selectedIds.length}</b> fee structures? This action cannot be undone.
+                        </p>
+                    ) : (
+                        <p className="text-sm text-gray-600">
+                            Are you sure you want to delete this fee structure? This action cannot be undone.
+                        </p>
+                    )}
+                confirmText={confirmState.type === 'sync' ? "Start Sync" : "Delete"}
+                variant={confirmState.type === 'sync' ? "warning" : "danger"}
+                onConfirm={handleConfirmAction}
+                onCancel={() => setConfirmState({ ...confirmState, isOpen: false })}
             />
         </div>
     )

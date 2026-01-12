@@ -36,12 +36,14 @@ export const BrandSidebar = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4, duration: 0.8 }}
                 >
-                    <div className="inline-flex flex-col items-start gap-1 mb-6">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors cursor-default">
-                            <Star size={12} className="text-amber-400 fill-amber-400 animate-pulse" />
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-amber-100">Achariya Partnership Program (APP)</span>
-                        </div>
-                        <span className="text-[10px] font-black text-amber-400 tracking-[0.2em] uppercase pl-2 drop-shadow-lg opacity-90">
+                    <div className="inline-flex flex-col items-start">
+                        <h2 className="text-white text-xl font-black tracking-tight drop-shadow-lg uppercase leading-tight">
+                            Achariya
+                        </h2>
+                        <p className="text-[11px] text-amber-100/70 font-bold uppercase tracking-[0.2em] mb-1.5">
+                            Partnership Program
+                        </p>
+                        <span className="text-[10px] font-black text-amber-400 tracking-[0.2em] uppercase drop-shadow-lg opacity-90">
                             25<sup className="text-[0.6em]">th</sup> Year Celebration
                         </span>
                     </div>

@@ -128,7 +128,7 @@ export async function verifyReferralOtp(mobile: string, otp: string) {
 export async function submitReferral(formData: {
     parentName: string
     parentMobile: string
-    studentName: string
+    studentName?: string // Changed to optional to match wrapper and allow validation to handle it
     campus?: string
     gradeInterested?: string
 }, referralCode?: string) {
@@ -358,16 +358,16 @@ export async function getDynamicFeeForUser() {
                 })
 
                 if (feeStructure) {
-                    return feeStructure.annualFee
+                    return feeStructure.annualFee_otp || 0
                 }
             }
         }
 
         // 2. If Staff/Other or no matching GradeFee found, default to user's stored fee or system default
-        return user.studentFee || 60000
+        return (user as any).studentFee || 60000
 
     } catch (error) {
         console.error("Error fetching dynamic fee:", error)
-        return user.studentFee || 60000
+        return (user as any).studentFee || 60000
     }
 }

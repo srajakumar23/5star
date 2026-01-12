@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Share2, UserPlus, ChevronRight, Clock, Star, TrendingUp, Wallet, Copy, Check, CheckCircle, Award, ChevronDown } from 'lucide-react'
+import { Share2, UserPlus, ChevronRight, Clock, Star, TrendingUp, Wallet, Copy, Check, CheckCircle, Award, ChevronDown, User } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { toast } from 'sonner'
 import { useState } from 'react'
@@ -28,6 +28,8 @@ interface ActionHomeBlueUnifiedProps {
     whatsappUrl: string
     monthStats?: any | null
     totalLeadsCount?: number
+    overrideEarnedAmount?: number
+    overrideEstimatedAmount?: number
 }
 
 // Animation Variants
@@ -53,7 +55,7 @@ function getGreeting() {
     return 'Happy Night'
 }
 
-export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, monthStats, totalLeadsCount = 0 }: ActionHomeBlueUnifiedProps) {
+export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, monthStats, totalLeadsCount = 0, overrideEarnedAmount, overrideEstimatedAmount }: ActionHomeBlueUnifiedProps) {
     const firstName = user.fullName.split(' ')[0]
     const greeting = getGreeting()
     const [longTermExpanded, setLongTermExpanded] = useState(false)
@@ -70,15 +72,21 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, mont
     const displayCount = user.confirmedReferralCount
     const benefitPercent = user.yearFeeBenefitPercent || 0
     const potentialBenefitPercent = user.potentialFeeBenefitPercent || 0
-    const totalFee = user.studentFee || 60000 // Dynamic Fee from Props
+    // If user.studentFee is present (from props via page.tsx), use it. But overrides take precedence for Benefit Logic.
+    const totalFee = user.studentFee || 60000
 
-    // Labels based on role
+    // Labels based on role (or if overrides are used, assume Commission/Earnings style?)
     const isParent = user.role === 'Parent'
     const benefitLabel = isParent ? 'Fee Benefit' : 'Earnings'
 
-    // Calculate Amounts
-    const currentBenefitAmount = (totalFee * benefitPercent) / 100
-    const potentialBenefitAmount = (totalFee * potentialBenefitPercent) / 100
+    // Calculate Amounts (Override Logic Added)
+    const currentBenefitAmount = overrideEarnedAmount !== undefined
+        ? overrideEarnedAmount
+        : (totalFee * benefitPercent) / 100
+
+    const potentialBenefitAmount = overrideEstimatedAmount !== undefined
+        ? overrideEstimatedAmount
+        : (totalFee * potentialBenefitPercent) / 100
 
 
     return (
@@ -146,8 +154,28 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, mont
                                     </div>
                                 </CircularProgress>
                             </div>
-                            <div className="mt-4 text-xs font-medium text-slate-300">
-                                <span className="text-amber-400 font-bold">{5 - displayCount > 0 ? 5 - displayCount : 0}</span> more to reach 5-Star
+                            <div className="mt-4">
+                                {displayCount >= 5 ? (
+                                    <motion.div
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ type: "spring" }}
+                                        className="space-y-1"
+                                    >
+                                        <div className="text-amber-300 font-black text-xs uppercase tracking-wider animate-pulse">
+                                            Outstanding Achievement!
+                                        </div>
+                                        <div className="bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 text-black px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-[0_0_15px_rgba(251,191,36,0.5)] inline-flex items-center gap-1.5 scale-105 transform">
+                                            <Star size={12} fill="black" className="animate-spin-slow" />
+                                            5-Star Member
+                                            <Star size={12} fill="black" className="animate-spin-slow" />
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <div className="text-xs font-medium text-slate-300">
+                                        <span className="text-amber-400 font-bold">{5 - displayCount}</span> more to reach 5-Star
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </GlassCard>
@@ -449,13 +477,18 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, mont
                         {recentReferrals.map((referral) => (
                             <div key={referral.id} className="p-5 hover:bg-white/5 transition-colors group">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg border border-white/10">
-                                        {referral.parentName.charAt(0).toUpperCase()}
+                                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg border border-white/10 uppercase">
+                                        {(referral.studentName || referral.parentName).charAt(0)}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-sm text-white truncate group-hover:text-amber-300 transition-colors">{referral.parentName}</p>
-                                        <p className="text-xs text-blue-200/50 flex items-center gap-1">
-                                            <Clock size={12} />
+                                        <p className="font-bold text-sm text-white truncate group-hover:text-amber-300 transition-colors uppercase tracking-tight">
+                                            {referral.studentName || referral.parentName}
+                                        </p>
+                                        <p className="text-[10px] text-blue-200/40 flex items-center gap-1 font-bold uppercase tracking-wider mt-0.5">
+                                            <User size={10} className="text-blue-400" /> {referral.parentName}
+                                        </p>
+                                        <p className="text-[9px] text-blue-200/30 flex items-center gap-1 mt-1 font-medium">
+                                            <Clock size={10} />
                                             {new Date(referral.createdAt).toLocaleDateString('en-GB')}
                                         </p>
                                     </div>

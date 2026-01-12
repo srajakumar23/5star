@@ -208,3 +208,62 @@ export async function processPayout(settlementId: number, transactionId: string,
         return { success: false, error: error.message || 'Failed to process payout' }
     }
 }
+
+export async function processBulkPayouts(payouts: { id: number, transactionId: string, remarks?: string }[]) {
+    const admin = await getCurrentUser()
+    if (!admin) return { success: false, error: 'Unauthorized' }
+
+    try {
+        let successCount = 0
+        let failureCount = 0
+
+        // We process sequentially or in parallel batches. 
+        // A transaction for ALL might be too aggressive if one fails. 
+        // Let's do partial success strategy but return stats.
+
+        for (const p of payouts) {
+            try {
+                // Check if already processed to avoid double processing
+                const existing = await prisma.settlement.findUnique({ where: { id: p.id } })
+                if (!existing || existing.status === 'Processed') {
+                    failureCount++
+                    continue
+                }
+
+                await prisma.settlement.update({
+                    where: { id: p.id },
+                    data: {
+                        status: 'Processed',
+                        bankReference: p.transactionId,
+                        remarks: p.remarks || 'Bulk Processed via CSV',
+                        processedBy: Number(admin.userId),
+                        payoutDate: new Date()
+                    }
+                })
+
+                await prisma.notification.create({
+                    data: {
+                        userId: existing.userId,
+                        title: 'Payment Processed',
+                        message: `Your payout of ₹${existing.amount.toLocaleString()} has been processed. Ref: ${p.transactionId}`,
+                        type: 'payment',
+                        link: '/finance'
+                    }
+                })
+                successCount++
+            } catch (e) {
+                console.error(`Failed to process settlement ${p.id}`, e)
+                failureCount++
+            }
+        }
+
+        await logAction('BULK_UPDATE', 'finance', `Bulk processed ${successCount} payouts. Failed: ${failureCount}`, 'Bulk')
+
+        revalidatePath('/finance')
+        return { success: true, message: `Processed ${successCount} payouts. Failed: ${failureCount}` }
+
+    } catch (error: any) {
+        console.error('Bulk Process Error:', error)
+        return { success: false, error: error.message || 'Failed to bulk process' }
+    }
+}

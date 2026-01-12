@@ -183,6 +183,27 @@ export const EmailService = {
         } catch (error) {
             return { success: false, error };
         }
+    },
+
+    async sendCampaignEmail(to: string, subject: string, htmlBody: string) {
+        if (!process.env.RESEND_API_KEY) {
+            console.log(`[DEV MODE] Email Service: Campaign to ${to} | Subject: ${subject}`);
+            return { success: true, id: 'mock-id' };
+        }
+
+        try {
+            const { data, error } = await resend.emails.send({
+                from: process.env.EMAIL_FROM || 'Achariya Marketing <marketing@resend.dev>',
+                to: [to],
+                subject: subject,
+                html: htmlBody
+            });
+
+            if (error) return { success: false, error };
+            return { success: true, data };
+        } catch (error) {
+            return { success: false, error };
+        }
     }
 };
 

@@ -110,7 +110,8 @@ async function main() {
                 data: {
                     campusId: campus.id,
                     grade: grade,
-                    annualFee: baseFee
+                    annualFee_otp: baseFee,
+                    annualFee_wotp: baseFee + 5000
                 }
             })
         }
@@ -316,7 +317,7 @@ async function generateStudents() {
             const gradeFee = await prisma.gradeFee.findFirst({
                 where: { campusId: campus.id, grade: grade }
             })
-            if (gradeFee) baseFee = gradeFee.annualFee
+            if (gradeFee) baseFee = gradeFee.annualFee_otp || 0
 
             await prisma.student.create({
                 data: {
@@ -392,7 +393,7 @@ async function generateStudents() {
             const gradeFee = await prisma.gradeFee.findFirst({
                 where: { campusId: campus.id, grade: grade }
             })
-            if (gradeFee) baseFee = gradeFee.annualFee
+            if (gradeFee) baseFee = gradeFee.annualFee_otp || 0
 
             await prisma.student.create({
                 data: {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Clock, CheckCircle, UserCheck, ChevronDown, ChevronUp, MapPin, GraduationCap, Phone } from 'lucide-react'
+import { Clock, CheckCircle, UserCheck, ChevronDown, ChevronUp, MapPin, GraduationCap, Phone, User } from 'lucide-react'
 
 interface ReferralCardClientProps {
     referral: any
@@ -42,11 +42,16 @@ export function ReferralCardClient({ referral }: ReferralCardClientProps) {
                         <UserCheck size={24} className="text-ui-primary opacity-60 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h3 className="font-black text-lg text-gray-900 dark:text-white tracking-tight">{referral.parentName}</h3>
-                            {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                        <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-black text-lg text-gray-900 dark:text-white tracking-tight uppercase">{referral.studentName}</h3>
+                                {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                            </div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                <User size={10} className="text-ui-primary" /> {referral.parentName}
+                            </p>
                         </div>
-                        <p className="text-xs font-bold text-gray-500 dark:text-white/40 mt-1 uppercase tracking-wider">
+                        <p className="text-[10px] font-bold text-gray-500 dark:text-white/40 mt-1 uppercase tracking-wider">
                             {(referral.leadStatus === 'Confirmed' && referral.student?.campus?.campusName)
                                 ? <span className="text-emerald-500">Joined: {referral.student.campus.campusName}</span>
                                 : referral.campus}
@@ -57,8 +62,16 @@ export function ReferralCardClient({ referral }: ReferralCardClientProps) {
 
                 <div className="flex items-center gap-4">
                     <StatusBadge status={referral.leadStatus} />
+                    {(referral.annualFee || referral.student?.baseFee) && (
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Fee</span>
+                            <span className="text-sm font-black text-gray-900 dark:text-white">
+                                ₹{(referral.annualFee || referral.student?.baseFee).toLocaleString('en-IN')}
+                            </span>
+                        </div>
+                    )}
                     {referral.leadStatus === 'Confirmed' && referral.confirmedDate && (
-                        <p className="text-[10px] text-emerald-500 font-black bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 uppercase tracking-widest">
+                        <p className="text-[10px] text-emerald-500 font-black bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 uppercase tracking-widest hidden md:block">
                             {new Date(referral.confirmedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </p>
                     )}

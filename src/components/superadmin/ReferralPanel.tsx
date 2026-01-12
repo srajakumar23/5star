@@ -37,8 +37,8 @@ export function ReferralPanel() {
         loadReferrals()
     }, [])
 
-    const handleConfirmReferral = async (leadId: number, admissionNumber?: string) => {
-        const res = await confirmReferral(leadId, admissionNumber)
+    const handleConfirmReferral = async (leadId: number, admissionNumber?: string, selectedFeeType: 'OTP' | 'WOTP' = 'OTP') => {
+        const res = await confirmReferral(leadId, admissionNumber!, selectedFeeType)
         if (res.success) {
             toast.success('Referral confirmed!')
             loadReferrals()

@@ -117,14 +117,18 @@ async function main() {
             if (existingGf) {
                 await prisma.gradeFee.update({
                     where: { id: existingGf.id },
-                    data: { annualFee: baseFee }
+                    data: {
+                        annualFee_otp: baseFee,
+                        annualFee_wotp: baseFee + 5000
+                    }
                 })
             } else {
                 await prisma.gradeFee.create({
                     data: {
                         campusId: campus.id,
                         grade: grade,
-                        annualFee: baseFee,
+                        annualFee_otp: baseFee,
+                        annualFee_wotp: baseFee + 5000,
                         academicYear: '2025-2026'
                     }
                 })

@@ -71,6 +71,7 @@ export function AnalyticsDashboard({ analyticsData: initialAnalytics, trendData,
                     className="p-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
                     value={selectedCampus}
                     onChange={(e) => setSelectedCampus(e.target.value)}
+                    suppressHydrationWarning={true}
                 >
                     <option value="all">All Campuses</option>
                     {campusCompData.map(c => (

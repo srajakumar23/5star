@@ -14,31 +14,28 @@ interface MobileEntryProps {
 export const MobileEntry = ({ mobile, setMobile, onNext, loading }: MobileEntryProps) => {
     return (
         <div className="space-y-4">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-1 sm:space-y-2">
                 <img
                     src="/achariya_25_logo.jpg"
                     alt="Achariya 25th Year"
-                    className="h-20 w-auto mx-auto mb-4 shadow-2xl"
+                    className="h-14 sm:h-20 w-auto mx-auto mb-2 sm:mb-4 shadow-2xl"
                 />
 
-                {/* Brand Context - Subordinate to Logo and Title */}
-                {/* Brand Context - Subordinate to Logo and Title */}
-                <div className="flex flex-col items-center mb-6 w-full space-y-1">
-                    <p className="text-blue-200 text-[10px] font-bold uppercase tracking-[0.2em] leading-tight text-center">
-                        Achariya Partnership Program
+                <div className="flex flex-col items-center mb-4 sm:mb-6 w-full">
+                    <h2 className="text-white text-base sm:text-xl font-black tracking-tight drop-shadow-lg uppercase leading-tight text-center">
+                        Achariya
+                    </h2>
+                    <p className="text-[10px] sm:text-[11px] text-blue-200/70 font-bold uppercase tracking-widest text-center">
+                        Partnership Program
                     </p>
-                    <p className="text-blue-200 text-[10px] font-bold uppercase tracking-[0.2em] leading-tight text-center">
-                        (APP)
-                    </p>
-                    <div className="h-px w-16 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent my-2"></div>
-                    <p className="text-amber-400 text-[10px] font-black uppercase tracking-[0.25em] drop-shadow-md">
+                    <p className="text-amber-400 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] mt-1.5 drop-shadow-md text-center">
                         25<sup className="text-[0.6em]">th</sup> Year Celebration
                     </p>
                 </div>
 
                 {/* Main Action Title - Dominant */}
-                <h2 className="text-4xl font-black text-white tracking-tighter mb-2 drop-shadow-lg">Member Access</h2>
-                <p className="text-blue-200/60 text-sm font-medium tracking-wide">Enter your mobile number to begin</p>
+                <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tighter mb-1 sm:mb-2 drop-shadow-lg">Member Access</h2>
+                <p className="text-blue-200/60 text-xs sm:text-sm font-medium tracking-wide">Enter your mobile number to begin</p>
             </div>
 
             <div className="space-y-5">

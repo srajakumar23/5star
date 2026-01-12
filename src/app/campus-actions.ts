@@ -28,7 +28,7 @@ export async function addCampus(data: {
     contactEmail?: string
     contactPhone?: string
     address?: string
-    gradeFees?: Array<{ grade: string; annualFee: number }>
+    gradeFees?: Array<{ grade: string; annualFee_otp: number; annualFee_wotp: number }>
 }) {
     try {
         const user = await getCurrentUser()
@@ -87,14 +87,18 @@ export async function updateCampus(id: number, data: any) {
                     if (existingGf) {
                         await tx.gradeFee.update({
                             where: { id: existingGf.id },
-                            data: { annualFee: gf.annualFee }
+                            data: {
+                                annualFee_otp: gf.annualFee_otp,
+                                annualFee_wotp: gf.annualFee_wotp
+                            }
                         })
                     } else {
                         await tx.gradeFee.create({
                             data: {
                                 campusId: id,
                                 grade: gf.grade,
-                                annualFee: gf.annualFee,
+                                annualFee_otp: gf.annualFee_otp,
+                                annualFee_wotp: gf.annualFee_wotp,
                                 academicYear: '2025-2026' // Default or fetch current
                             }
                         })

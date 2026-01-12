@@ -26,21 +26,19 @@ export function MobileWelcome({ onGetStarted }: MobileWelcomeProps) {
                     <img
                         src="/achariya_25_logo.jpg"
                         alt="Achariya 25th Year"
-                        className="w-24 h-auto rounded-xl shadow-2xl border border-white/10"
+                        className="w-32 h-auto rounded-xl shadow-2xl border border-white/10"
                     />
 
-                    <div className="space-y-3 flex flex-col items-center">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
-                            <Star size={10} className="text-amber-400 fill-amber-400 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white">
-                                Achariya Partnership Program (APP)
-                            </span>
-                        </div>
-                        <div className="block">
-                            <span className="text-[11px] font-black text-amber-400 tracking-[0.2em] uppercase drop-shadow-md">
-                                25<sup className="text-[0.6em]">th</sup> Year Celebration
-                            </span>
-                        </div>
+                    <div className="flex flex-col items-center">
+                        <h2 className="text-white text-xl font-black tracking-tight drop-shadow-lg uppercase leading-tight text-center">
+                            Achariya
+                        </h2>
+                        <p className="text-[11px] text-blue-100/70 font-bold uppercase tracking-widest text-center">
+                            Partnership Program
+                        </p>
+                        <p className="text-amber-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 drop-shadow-md text-center">
+                            25<sup className="text-[0.6em]">th</sup> Year Celebration
+                        </p>
                     </div>
                 </motion.div>
 

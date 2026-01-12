@@ -17,7 +17,7 @@ model User {
   grade                  String?
   campusId               Int?
   bankAccountDetails     String?
-  referralCode           String          @unique
+  referralCode           String?         @unique
   confirmedReferralCount Int             @default(0)
   yearFeeBenefitPercent  Float           @default(0)
   longTermBenefitPercent Float           @default(0)
@@ -52,7 +52,6 @@ model User {
   @@index([assignedCampus])
   @@index([status])
   @@index([createdAt])
-
   @@map("User")
 }
 
@@ -73,6 +72,8 @@ model Student {
   updatedAt       DateTime      @updatedAt
   ambassadorId    Int?
   admissionNumber String?       @unique
+  selectedFeeType FeeType?
+  annualFee       Int?
   ambassador      User?         @relation("StudentAmbassador", fields: [ambassadorId], references: [userId])
   campus          Campus        @relation(fields: [campusId], references: [id])
   parent          User          @relation("StudentParent", fields: [parentId], references: [userId])
@@ -82,6 +83,11 @@ model Student {
   @@index([campusId])
   @@index([ambassadorId])
   @@index([createdAt])
+}
+
+enum FeeType {
+  OTP
+  WOTP
 }
 
 model ReferralLead {
@@ -99,6 +105,8 @@ model ReferralLead {
   leadStatus      LeadStatus @default(New)
   admissionNumber String?
   section         String?
+  selectedFeeType FeeType?
+  annualFee       Int?
   user            User       @relation(fields: [userId], references: [userId])
   student         Student?
 
@@ -353,12 +361,13 @@ model CampusTarget {
 }
 
 model GradeFee {
-  id           Int    @id @default(autoincrement())
-  grade        String
-  annualFee    Int
-  campusId     Int
-  academicYear String @default("2025-2026")
-  campus       Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  id             Int    @id @default(autoincrement())
+  grade          String
+  annualFee_otp  Int?
+  annualFee_wotp Int?
+  campusId       Int
+  academicYear   String @default("2025-2026")
+  campus         Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
 
   @@unique([campusId, grade, academicYear])
 }

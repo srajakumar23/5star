@@ -31,6 +31,7 @@ export async function getAllReferrals(
         role?: string
         campus?: string
         search?: string
+        feeType?: string
         dateRange?: { from: string; to: string } // ISO strings
     },
     sort?: { field: string; order: 'asc' | 'desc' }
@@ -59,6 +60,10 @@ export async function getAllReferrals(
 
     if (filters?.campus && filters.campus !== 'All') {
         where.campus = filters.campus
+    }
+
+    if (filters?.feeType && filters.feeType !== 'All') {
+        where.selectedFeeType = filters.feeType
     }
 
     if (filters?.search) {
@@ -147,7 +152,10 @@ export async function getAdminAnalytics(): Promise<{ success: boolean; error?: s
 
     const referrals = await prisma.referralLead.findMany({
         where: referralFilter,
-        include: { user: true }
+        include: {
+            user: true,
+            student: { select: { baseFee: true } }
+        }
     })
 
     const users = await prisma.user.findMany({
@@ -164,10 +172,16 @@ export async function getAdminAnalytics(): Promise<{ success: boolean; error?: s
     const totalAmbassadors = users.filter(u => u.role === 'Parent' || u.role === 'Staff').length
     const avgReferralsPerAmbassador = totalAmbassadors > 0 ? (totalLeads / totalAmbassadors).toFixed(1) : '0'
 
-    // Total estimated savings/incentives
+    // Total estimated savings/incentives (Based on Commission Model: Lead Fees)
     const totalEstimatedValue = referrals.reduce((sum, r) => {
-        const fee = r.user.studentFee || 60000
-        const percent = r.user.yearFeeBenefitPercent || 0
+        // Use the referred student's fee
+        const referralStudentBaseFee = (r as any).student?.baseFee
+        const fee = r.annualFee || referralStudentBaseFee || 60000
+
+        // Percent is still based on the Referrer's current tier (or potential)
+        // For a global estimate, we'll use their yearFeeBenefitPercent
+        const percent = r.user.yearFeeBenefitPercent || 5
+
         return sum + (fee * percent / 100)
     }, 0)
 
@@ -203,13 +217,19 @@ export async function getAdminAnalytics(): Promise<{ success: boolean; error?: s
         percentage: ((count / totalLeads) * 100).toFixed(1)
     }))
 
-    // Top performers
-    const userReferralCounts: Record<number, { user: { fullName: string; role: string; referralCode: string }, count: number }> = {}
+    // Top performers (Grouped by User)
+    const userReferralCounts: Record<number, { user: { fullName: string; role: string; referralCode: string }, count: number, totalValue: number }> = {}
     referrals.forEach(r => {
         if (!userReferralCounts[r.userId]) {
-            userReferralCounts[r.userId] = { user: r.user, count: 0 }
+            userReferralCounts[r.userId] = { user: r.user, count: 0, totalValue: 0 }
         }
         userReferralCounts[r.userId].count++
+
+        // Calculate the commission value for this lead
+        const referralStudentBaseFee = (r as any).student?.baseFee
+        const fee = r.annualFee || referralStudentBaseFee || 60000
+        const percent = r.user.yearFeeBenefitPercent || 5
+        userReferralCounts[r.userId].totalValue += (fee * percent / 100)
     })
 
     const topPerformers = Object.values(userReferralCounts)
@@ -219,7 +239,8 @@ export async function getAdminAnalytics(): Promise<{ success: boolean; error?: s
             name: item.user.fullName,
             role: item.user.role,
             referralCode: item.user.referralCode,
-            count: item.count
+            count: item.count,
+            totalValue: item.totalValue
         }))
 
     return {
@@ -244,7 +265,7 @@ export async function getAdminAnalytics(): Promise<{ success: boolean; error?: s
  * @param leadId - The ID of the referral lead to confirm.
  * @returns An object indicating success or failure.
  */
-export async function confirmReferral(leadId: number, admissionNumber?: string) {
+export async function confirmReferral(leadId: number, admissionNumber: string, selectedFeeType: 'OTP' | 'WOTP') {
     const admin = await getCurrentUser()
     if (!admin || !admin.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
 
@@ -255,6 +276,10 @@ export async function confirmReferral(leadId: number, admissionNumber?: string) 
 
     if (!admissionNumber) {
         return { success: false, error: 'Student ERP/Admission Number is required for confirmation' }
+    }
+
+    if (!selectedFeeType) {
+        return { success: false, error: 'Fee Type Selection (OTP or WOTP) is mandatory for confirmation' }
     }
 
     try {
@@ -268,6 +293,32 @@ export async function confirmReferral(leadId: number, admissionNumber?: string) 
                 throw new Error(`ERP Number ${admissionNumber} is already linked to another lead`)
             }
 
+            // 0. Fetch the correct fee snapshot
+            const leadRecord = await tx.referralLead.findUnique({
+                where: { leadId },
+                select: { campusId: true, gradeInterested: true }
+            })
+
+            if (!leadRecord || !leadRecord.campusId || !leadRecord.gradeInterested) {
+                throw new Error('Lead must have a campus and grade assigned before confirmation')
+            }
+
+            const feeRule = await tx.gradeFee.findFirst({
+                where: {
+                    campusId: leadRecord.campusId,
+                    grade: leadRecord.gradeInterested,
+                    academicYear: '2025-2026' // Default for now
+                }
+            })
+
+            let annualFee = 0
+            if (feeRule) {
+                const rule = feeRule as any
+                annualFee = selectedFeeType === 'OTP'
+                    ? (rule.annualFee_otp || 0)
+                    : (rule.annualFee_wotp || 0)
+            }
+
             // 1. Update Lead
             const lead = await tx.referralLead.update({
                 where: { leadId },
@@ -275,9 +326,11 @@ export async function confirmReferral(leadId: number, admissionNumber?: string) 
                 data: {
                     leadStatus: 'Confirmed',
                     confirmedDate: new Date(),
-                    admissionNumber: admissionNumber
+                    admissionNumber: admissionNumber,
+                    selectedFeeType: selectedFeeType,
+                    annualFee: annualFee
                 }
-            })
+            }).then(l => l as any)
 
             // 2. Update User Counts & Benefits (Automation)
             const userId = lead.userId
@@ -623,8 +676,7 @@ export async function bulkDeleteReferrals(leadIds: number[]) {
     try {
         await prisma.referralLead.deleteMany({
             where: {
-                leadId: { in: leadIds },
-                leadStatus: { not: 'Confirmed' } // Prevent deleting confirmed leads for data integrity (usually)
+                leadId: { in: leadIds }
             }
         })
 
@@ -644,6 +696,7 @@ export async function getReferralStats(filters?: {
     status?: string
     role?: string
     campus?: string
+    feeType?: string
     search?: string
     dateRange?: { from: string; to: string }
 }) {
@@ -664,6 +717,7 @@ export async function getReferralStats(filters?: {
     if (filters?.status && filters.status !== 'All') where.leadStatus = filters.status
     if (filters?.role && filters.role !== 'All') where.user = { role: filters.role }
     if (filters?.campus && filters.campus !== 'All') where.campus = filters.campus
+    if (filters?.feeType && filters.feeType !== 'All') where.selectedFeeType = filters.feeType
     if (filters?.search) {
         where.OR = [
             { parentName: { contains: filters.search, mode: 'insensitive' } },
@@ -714,6 +768,7 @@ export async function exportReferrals(filters?: {
     status?: string
     role?: string
     campus?: string
+    feeType?: string
     search?: string
     dateRange?: { from: string; to: string }
 }) {
@@ -731,6 +786,7 @@ export async function exportReferrals(filters?: {
     if (filters?.status && filters.status !== 'All') where.leadStatus = filters.status
     if (filters?.role && filters.role !== 'All') where.user = { role: filters.role }
     if (filters?.campus && filters.campus !== 'All') where.campus = filters.campus
+    if (filters?.feeType && filters.feeType !== 'All') where.selectedFeeType = filters.feeType
     if (filters?.search) {
         where.OR = [
             { parentName: { contains: filters.search, mode: 'insensitive' } },
@@ -793,7 +849,7 @@ export async function exportReferrals(filters?: {
  * Bulk confirms selected referrals.
  * Only processes leads that ALREADY have an admission number (from import).
  */
-export async function bulkConfirmReferrals(leadIds: number[]) {
+export async function bulkConfirmReferrals(leadIds: number[], forcedFeeType?: 'OTP' | 'WOTP') {
     const user = await getCurrentUser()
     if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
 
@@ -806,12 +862,26 @@ export async function bulkConfirmReferrals(leadIds: number[]) {
             where: {
                 leadId: { in: leadIds },
                 leadStatus: { not: 'Confirmed' },
-                admissionNumber: { not: null } // MUST have ERP number
+                admissionNumber: { not: null }, // MUST have ERP number
+                // If forcedFeeType is provided, we don't strictly require selectedFeeType to be set already
+                ...(forcedFeeType ? {} : { selectedFeeType: { not: null } })
             }
         })
 
         if (leads.length === 0) {
-            return { success: false, error: 'No eligible leads found (must have ERP Number and not be confirmed)' }
+            // Check if they were already confirmed
+            const alreadyConfirmed = await prisma.referralLead.count({
+                where: {
+                    leadId: { in: leadIds },
+                    leadStatus: 'Confirmed'
+                }
+            })
+
+            if (alreadyConfirmed === leadIds.length) {
+                return { success: false, error: 'All selected referrals are already confirmed.' }
+            }
+
+            return { success: false, error: 'No eligible leads found. (Must have ERP Number and not be confirmed)' }
         }
 
         let processed = 0
@@ -821,7 +891,10 @@ export async function bulkConfirmReferrals(leadIds: number[]) {
         for (const lead of leads) {
             // We can reuse the single confirmReferral function to ensure all side-effects (benefits, notifications) run!
             // This is slower but safer.
-            await confirmReferral(lead.leadId, lead.admissionNumber!)
+            const targetFeeType = forcedFeeType || (lead as any).selectedFeeType
+            if (!targetFeeType) continue // Skip if somehow still no fee type
+
+            await confirmReferral(lead.leadId, lead.admissionNumber!, targetFeeType)
             processed++
         }
 
@@ -849,86 +922,94 @@ export async function bulkConvertLeadsToStudents(leadIds: number[]) {
             where: {
                 leadId: { in: leadIds },
                 student: { is: null }, // Not already converted
-                // leadStatus: 'Confirmed' // Ideally should be confirmed, but user might want to force convert. Let's stick to confirmed for safety? 
-                // Let's allow non-confirmed if they have info, but standard flow is confirm first.
+                leadStatus: 'Confirmed' // Standard flow: must be confirmed
             },
             include: { user: true }
         })
+
+        if (leads.length === 0) {
+            return { success: false, error: 'No eligible leads found. (Leads must be Confirmed and not already converted)' }
+        }
 
         let processed = 0
         const errors = []
 
         for (const lead of leads) {
             try {
-                // Find or Create Parent
-                let parentId = lead.userId
-                // Logic check: The referrer 'user' might be the parent, OR the referrer is an ambassador.
-                // If referrer is Parent, use them. If referrer is Staff/Ambassador, we need the actual parent info.
-                // Current `importReferrals` stores parentName/Mobile. We need to find THAT user.
-
+                // FIND OR CREATE PARENT
                 let actualParentId = null
-
-                // Try finding parent by mobile
-                const parentUser = await prisma.user.findUnique({ where: { mobileNumber: lead.parentMobile } })
+                const parentUser = await prisma.user.findUnique({
+                    where: { mobileNumber: lead.parentMobile }
+                })
 
                 if (parentUser) {
                     actualParentId = parentUser.userId
                 } else {
-                    // Create Parent User (Shadow Account)
                     const newParent = await prisma.user.create({
                         data: {
                             fullName: lead.parentName,
                             mobileNumber: lead.parentMobile,
                             role: 'Parent',
-                            // Temp logic for other fields
-                            referralCode: 'P' + Math.floor(Math.random() * 10000),
+                            // @ts-ignore
+                            referralCode: undefined,
                             status: 'Active',
-                            password: null,
-                            childInAchariya: true // Default for created parent
+                            childInAchariya: true
                         }
                     })
                     actualParentId = newParent.userId
                 }
 
-                // Resolve Campus ID
+                // RESOLVE CAMPUS
                 let finalCampusId = lead.campusId
                 if (!finalCampusId && lead.campus) {
                     const c = await prisma.campus.findUnique({ where: { campusName: lead.campus } })
-                    // Try exact match first, else findFirst? unique is safer for campusName
                     if (c) finalCampusId = c.id
                 }
 
                 if (!finalCampusId) {
-                    console.error(`Lead ${lead.leadId} missing campus info`)
-                    errors.push(lead.leadId)
+                    // Fallback to first campus if available
+                    const firstCampus = await prisma.campus.findFirst()
+                    finalCampusId = firstCampus?.id || null
+                }
+
+                if (!finalCampusId) {
+                    errors.push({ id: lead.leadId, reason: 'No Campus found' })
                     continue
                 }
 
-                // Create Student
+                // CREATE STUDENT RECORD
                 await prisma.student.create({
                     data: {
-                        fullName: lead.studentName || lead.parentName + "'s Child",
+                        fullName: lead.studentName || (lead.parentName + "'s Child"),
                         parentId: actualParentId,
                         campusId: finalCampusId,
                         grade: lead.gradeInterested || 'N/A',
                         section: lead.section,
-                        admissionNumber: lead.admissionNumber,
-                        referralLeadId: lead.leadId,
-                        ambassadorId: lead.userId, // The original referrer
                         academicYear: lead.admittedYear || '2025-2026',
+                        referralLeadId: lead.leadId,
+                        admissionNumber: lead.admissionNumber,
+                        ambassadorId: lead.userId,
+                        selectedFeeType: lead.selectedFeeType,
+                        annualFee: lead.annualFee,
                         status: 'Active'
-                    }
+                    } as any
                 })
-                processed++
 
+                // UPDATE LEAD STATUS
+                await prisma.referralLead.update({
+                    where: { leadId: lead.leadId },
+                    data: { leadStatus: 'Admitted' }
+                })
+
+                processed++
             } catch (err: any) {
                 console.error(`Failed to convert lead ${lead.leadId}`, err)
-                errors.push(lead.leadId)
+                errors.push({ id: lead.leadId, reason: err.message })
             }
         }
 
         revalidatePath('/admin')
-        return { success: true, processed, errors }
+        return { success: true, processed, totalRequested: leadIds.length, errors }
     } catch (e: any) {
         return { success: false, error: e.message }
     }
@@ -967,6 +1048,39 @@ export async function rejectReferral(leadId: number) {
         const res = await bulkRejectReferrals([leadId])
         if (res.success) return { success: true }
         return { success: false, error: res.error || 'Rejection failed' }
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+}
+
+/**
+ * Updates referral lead details.
+ */
+export async function updateReferral(leadId: number, data: {
+    parentName: string,
+    parentMobile: string,
+    studentName?: string,
+    gradeInterested?: string,
+    campus?: string
+}) {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
+
+    if (!await canEdit('referralTracking')) return { success: false, error: 'Permission Denied' }
+
+    try {
+        await prisma.referralLead.update({
+            where: { leadId },
+            data: {
+                parentName: data.parentName,
+                parentMobile: data.parentMobile,
+                studentName: data.studentName,
+                gradeInterested: data.gradeInterested,
+                campus: data.campus
+            }
+        })
+        revalidatePath('/admin')
+        return { success: true }
     } catch (e: any) {
         return { success: false, error: e.message }
     }

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Rocket, Mail, CheckCircle2, AlertTriangle, Loader2, Users, Clock, Zap } from 'lucide-react'
-import { triggerReengagementCampaign } from '@/app/engagement-actions'
+import { triggerReengagementCampaign, getEngagementStats } from '@/app/engagement-actions'
 import { toast } from 'sonner'
 import { CampaignManager } from './CampaignManager'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -11,6 +11,20 @@ export function EngagementPanel() {
     const [activeTab, setActiveTab] = useState<'overview' | 'campaigns'>('overview')
     const [loading, setLoading] = useState(false)
     const [lastResult, setLastResult] = useState<{ sent: number, time: Date } | null>(null)
+    const [stats, setStats] = useState<{
+        totalCampaigns: number,
+        totalEmailsSent: number,
+        dormantAmbassadors: number
+    } | null>(null)
+
+    const fetchStats = async () => {
+        const res = await getEngagementStats()
+        if (res.success && res.stats) setStats(res.stats)
+    }
+
+    useEffect(() => {
+        fetchStats()
+    }, [])
 
     // Confirmation State
     const [confirmState, setConfirmState] = useState<{
@@ -67,7 +81,26 @@ export function EngagementPanel() {
             {activeTab === 'campaigns' ? (
                 <CampaignManager />
             ) : (
-                <div className="space-y-6">
+                <div className="space-y-8">
+                    {/* Stats Overview Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <p className="text-xs font-black text-violet-600 uppercase tracking-widest mb-1">Total Campaigns</p>
+                            <p className="text-3xl font-black text-gray-900">{stats?.totalCampaigns ?? '...'}</p>
+                            <div className="mt-2 text-xs text-gray-500 font-medium italic">Active & Drafted</div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">Emails Delivered</p>
+                            <p className="text-3xl font-black text-gray-900">{stats?.totalEmailsSent.toLocaleString() ?? '...'}</p>
+                            <div className="mt-2 text-xs text-gray-500 font-medium italic">Iterative Send History</div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <p className="text-xs font-black text-amber-600 uppercase tracking-widest mb-1">Dormant Audience</p>
+                            <p className="text-3xl font-black text-gray-900">{stats?.dormantAmbassadors ?? '...'}</p>
+                            <div className="mt-2 text-xs text-gray-500 font-medium italic">Inactive (14+ days)</div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Legacy Quick Campaign Card */}
                         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm relative overflow-hidden group">

@@ -1,6 +1,5 @@
 import { getMyReferrals } from '@/app/referral-actions'
 import { getCurrentUser } from '@/lib/auth-service'
-import { ReferralsExport } from '@/components/ReferralsExport'
 import { PageAnimate } from '@/components/PageAnimate'
 import { ChevronLeft, Download, Clock, CheckCircle2, MoreVertical, FileDown, User, MapPin, GraduationCap } from 'lucide-react'
 import Link from 'next/link'
@@ -12,16 +11,6 @@ export default async function ReferralsPage() {
 
     const preAsset = referrals.filter((r: any) => r.leadStatus === 'New' || r.leadStatus === 'Follow_up')
     const asset = referrals.filter((r: any) => r.leadStatus === 'Confirmed' || r.leadStatus === 'Rejected')
-
-    // Prepare data for PDF export
-    const exportData = referrals.map((r: any) => ({
-        studentName: r.studentName || r.parentName,
-        parentName: r.parentName,
-        parentMobile: r.parentMobile,
-        preferredCampus: r.campus,
-        status: r.leadStatus,
-        createdAt: r.createdAt
-    }))
 
     return (
         <div className="-mt-8 pt-8 min-h-screen relative font-[family-name:var(--font-outfit)] pb-20">
@@ -46,11 +35,6 @@ export default async function ReferralsPage() {
                         <h1 className="text-2xl font-black tracking-tight text-white">My Referrals</h1>
                     </div>
 
-                    {referrals.length > 0 && (
-                        <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
-                            <ReferralsExport referrals={exportData} ambassadorName={userName} />
-                        </div>
-                    )}
                 </header>
 
                 {/* SECTION 1: PRE-ASSET */}
@@ -80,15 +64,24 @@ export default async function ReferralsPage() {
                                     <div className="relative z-10">
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
-                                                <h3 className="font-bold text-lg text-white group-hover:text-amber-200 transition-colors">{referral.parentName}</h3>
+                                                <h3 className="font-bold text-lg text-white group-hover:text-amber-200 transition-colors uppercase">{referral.studentName}</h3>
                                                 <div className="flex items-center gap-2 text-white/50 text-[11px] font-medium uppercase tracking-wider mt-0.5">
-                                                    <span className="flex items-center gap-1"><User size={10} /> {referral.studentName}</span>
+                                                    <span className="flex items-center gap-1"><User size={10} /> {referral.parentName}</span>
                                                 </div>
                                             </div>
                                             {/* Status Pill */}
-                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-                                                <Clock size={12} className="text-amber-400" />
-                                                <span className="text-xs font-bold text-amber-300">{referral.leadStatus}</span>
+                                            {/* Status Pill & Fee */}
+                                            <div className="flex items-center gap-3">
+                                                {(referral.annualFee || referral.student?.baseFee) && (
+                                                    <div className="text-right">
+                                                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Fee</p>
+                                                        <p className="text-sm font-bold text-white">₹{(referral.annualFee || referral.student?.baseFee).toLocaleString('en-IN')}</p>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
+                                                    <Clock size={12} className="text-amber-400" />
+                                                    <span className="text-xs font-bold text-amber-300">{referral.leadStatus}</span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -136,14 +129,23 @@ export default async function ReferralsPage() {
                                     <div className="relative z-10">
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
-                                                <h3 className="font-bold text-lg text-white group-hover:text-emerald-200 transition-colors">{referral.parentName}</h3>
+                                                <h3 className="font-bold text-lg text-white group-hover:text-emerald-200 transition-colors uppercase">{referral.studentName}</h3>
                                                 <div className="flex items-center gap-2 text-white/50 text-[11px] font-medium uppercase tracking-wider mt-0.5">
-                                                    <span className="flex items-center gap-1"><User size={10} /> {referral.studentName}</span>
+                                                    <span className="flex items-center gap-1"><User size={10} /> {referral.parentName}</span>
                                                 </div>
                                             </div>
-                                            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${referral.leadStatus === 'Confirmed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
-                                                <CheckCircle2 size={12} />
-                                                <span className="text-xs font-bold">{referral.leadStatus}</span>
+                                            {/* Status Pill & Fee */}
+                                            <div className="flex items-center gap-3">
+                                                {(referral.annualFee || referral.student?.baseFee) && (
+                                                    <div className="text-right">
+                                                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-wider">Fee</p>
+                                                        <p className="text-sm font-bold text-white">₹{(referral.annualFee || referral.student?.baseFee).toLocaleString('en-IN')}</p>
+                                                    </div>
+                                                )}
+                                                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${referral.leadStatus === 'Confirmed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
+                                                    <CheckCircle2 size={12} />
+                                                    <span className="text-xs font-bold">{referral.leadStatus}</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2 text-white/60 text-xs">

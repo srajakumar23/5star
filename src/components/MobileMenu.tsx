@@ -104,7 +104,7 @@ export function MobileMenu({ navItems, user, logoutAction, onNavigate: propOnNav
                             {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement<any>, {
                                 size: isMobile ? 22 : 18,
                                 className: `flex-shrink-0 transition-colors relative z-10 ${isMobile
-                                    ? isActive ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-white/60 group-hover:text-white'
+                                    ? isActive ? 'text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'text-white/60 group-hover:text-white'
                                     : (isActive
                                         ? 'text-ui-accent'
                                         : 'text-gray-400 group-hover:text-white')}`
@@ -115,7 +115,7 @@ export function MobileMenu({ navItems, user, logoutAction, onNavigate: propOnNav
                                 fontWeight: isActive ? '700' : '500',
                                 letterSpacing: '0.02em',
                                 marginLeft: '0',
-                                color: isMobile ? (isActive ? '#fbbf24' : 'rgba(255,255,255,0.6)') : 'inherit',
+                                color: isMobile ? (isActive ? '#f59e0b' : 'rgba(255,255,255,0.6)') : 'inherit',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',

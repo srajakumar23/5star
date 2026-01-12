@@ -5,6 +5,7 @@ import { PremiumStatCard } from '@/components/premium/PremiumStatCard'
 import { getSettlements, getFinanceStats, getRegistrationTransactions } from '@/app/finance-actions'
 import { Wallet, CheckCircle, Clock, CreditCard } from 'lucide-react'
 import { FinanceClientTabs } from '@/components/finance/FinanceClientTabs'
+import { FinanceOverviewChart } from '@/components/finance/FinanceOverviewChart'
 
 export default async function FinancePage() {
     const user = await getCurrentUser()
@@ -75,6 +76,11 @@ export default async function FinancePage() {
                     subtext="Total Volume"
                 // Neutral
                 />
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <FinanceOverviewChart />
             </div>
 
             {/* Main Content with Tabs */}

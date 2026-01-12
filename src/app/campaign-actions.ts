@@ -6,8 +6,7 @@ import { logAction } from '@/lib/audit-logger'
 
 export async function getCampaigns() {
     try {
-        // Cast prisma to any to avoid build errors until client is regenerated
-        const campaigns = await (prisma as any).campaign.findMany({
+        const campaigns = await prisma.campaign.findMany({
             orderBy: { createdAt: 'desc' },
             include: {
                 logs: {
@@ -31,7 +30,7 @@ export async function createCampaign(data: {
     targetAudience?: any
 }) {
     try {
-        const campaign = await (prisma as any).campaign.create({
+        const campaign = await prisma.campaign.create({
             data: {
                 name: data.name,
                 subject: data.subject,
@@ -59,7 +58,7 @@ export async function updateCampaign(id: number, data: Partial<{
     targetAudience: any
 }>) {
     try {
-        const campaign = await (prisma as any).campaign.update({
+        const campaign = await prisma.campaign.update({
             where: { id },
             data
         })
@@ -75,7 +74,7 @@ export async function updateCampaign(id: number, data: Partial<{
 
 export async function deleteCampaign(id: number) {
     try {
-        await (prisma as any).campaign.delete({
+        await prisma.campaign.delete({
             where: { id }
         })
 
@@ -88,33 +87,116 @@ export async function deleteCampaign(id: number) {
     }
 }
 
+import { EmailService } from '@/lib/email-service'
+import { UserRole } from '@prisma/client'
+
+export async function getAudienceCount(audience: { role: string, campus: string, activityStatus: string }) {
+    try {
+        const users = await getFilteredUsers(audience)
+        return { success: true, count: users.length }
+    } catch (error) {
+        return { success: false, error: 'Failed to count audience' }
+    }
+}
+
+async function getFilteredUsers(audience: { role: string, campus: string, activityStatus: string }) {
+    const where: any = {
+        status: 'Active',
+        email: { not: null }
+    }
+
+    if (audience.role !== 'All') {
+        where.role = audience.role as UserRole
+    }
+
+    if (audience.campus !== 'All') {
+        where.assignedCampus = audience.campus
+    }
+
+    const fourteenDaysAgo = new Date()
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+
+    const users = await prisma.user.findMany({
+        where,
+        include: {
+            referrals: {
+                orderBy: { createdAt: 'desc' },
+                take: 1
+            }
+        }
+    })
+
+    if (audience.activityStatus === 'All') return users
+
+    return users.filter(u => {
+        const lastActivity = u.referrals[0]?.createdAt || u.createdAt
+        const isDormant = new Date(lastActivity) < fourteenDaysAgo
+        return audience.activityStatus === 'Dormant' ? isDormant : !isDormant
+    })
+}
+
 export async function runCampaign(id: number) {
     try {
-        const campaign = await (prisma as any).campaign.findUnique({ where: { id } })
+        const campaign = await prisma.campaign.findUnique({ where: { id } })
         if (!campaign) return { success: false, error: 'Campaign not found' }
 
-        // MOCK SENDING LOGIC FOR NOW (or move logic from engagement-actions.ts)
-        // In a real scenario, we would query users based on targetAudience and send emails.
-        const simulatedCount = Math.floor(Math.random() * 50) + 10
+        const audience = (campaign.targetAudience as any) || { role: 'All', campus: 'All', activityStatus: 'All' }
+        const targetUsers = await getFilteredUsers(audience)
 
-        await (prisma as any).campaignLog.create({
+        if (targetUsers.length === 0) {
+            return { success: false, error: 'No users match criteria' }
+        }
+
+        let sentCount = 0
+        let failedCount = 0
+        const errors: any[] = []
+
+        for (const user of targetUsers) {
+            if (!user.email) continue
+
+            // Simple template mapping
+            const personalizedSubject = campaign.subject
+                .replace(/{userName}/g, user.fullName)
+                .replace(/{referralCode}/g, user.referralCode || '')
+
+            const personalizedBody = campaign.templateBody
+                .replace(/{userName}/g, user.fullName)
+                .replace(/{referralCode}/g, user.referralCode || '')
+
+            // In a real high-volume app, consider a queue. Here we iterate small/medium sets.
+            const res = await EmailService.sendCampaignEmail(user.email, personalizedSubject, personalizedBody)
+
+            // Using a mock-like behavior if key missing is already in EmailService
+            if (res.success) {
+                sentCount++
+            } else {
+                failedCount++
+                errors.push({ email: user.email, error: res.error })
+            }
+        }
+
+        await prisma.campaignLog.create({
             data: {
                 campaignId: id,
-                status: 'SUCCESS',
-                recipientCount: simulatedCount,
-                sentCount: simulatedCount,
-                failedCount: 0
+                status: failedCount === 0 ? 'SUCCESS' : sentCount > 0 ? 'PARTIAL' : 'FAILED',
+                recipientCount: targetUsers.length,
+                sentCount,
+                failedCount,
+                errorLog: errors.length > 0 ? errors : undefined
             }
         })
 
-        await (prisma as any).campaign.update({
+        await prisma.campaign.update({
             where: { id },
-            data: { lastRunAt: new Date() }
+            data: {
+                lastRunAt: new Date(),
+                status: 'ACTIVE'
+            }
         })
 
-        await logAction('Run Campaign', 'Marketing', `Executed campaign: ${campaign.name}`, undefined)
+        await logAction('Run Campaign', 'Marketing', `Executed campaign: ${campaign.name}. Sent: ${sentCount}`, undefined)
         revalidatePath('/superadmin')
-        return { success: true, sent: simulatedCount }
+        return { success: true, sent: sentCount, failed: failedCount }
     } catch (error) {
         console.error('runCampaign error:', error)
         return { success: false, error: 'Failed to run campaign' }

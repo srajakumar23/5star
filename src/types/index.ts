@@ -1,5 +1,7 @@
 export type Role = 'Super Admin' | 'Admission Admin' | 'Campus Head' | 'Campus Admin' | 'CampusHead' | 'CampusAdmin' | 'Staff' | 'Parent' | 'Finance Admin' | 'Alumni' | 'Others'
 
+export type FeeType = 'OTP' | 'WOTP'
+
 export interface ModulePermission {
     access: boolean
     scope: 'all' | 'campus' | 'view-only' | 'campus-view' | 'none' | 'self'
@@ -64,6 +66,8 @@ export interface Student {
     status: string
     baseFee: number
     discountPercent: number
+    selectedFeeType?: FeeType | null
+    annualFee?: number | null
     parent?: { fullName: string; mobileNumber: string }
     campus?: { campusName: string }
     ambassador?: { fullName: string; mobileNumber: string; referralCode?: string; role?: string }
@@ -80,6 +84,9 @@ export interface ReferralLead {
     gradeInterested?: string | null
     leadStatus: string
     confirmedDate?: Date | null
+    admissionNumber?: string | null
+    selectedFeeType?: FeeType | null
+    annualFee?: number | null
     createdAt: Date
     user?: User
     student?: Student
@@ -98,6 +105,15 @@ export interface Campus {
     contactPhone?: string | null
     createdAt: Date
     updatedAt: Date
+}
+
+export interface GradeFee {
+    id: number
+    grade: string
+    annualFee_otp?: number | null
+    annualFee_wotp?: number | null
+    campusId: number
+    academicYear: string
 }
 
 export interface Admin {
@@ -153,6 +169,7 @@ export interface AdminAnalytics {
         role: string
         referralCode: string
         count: number
+        totalValue?: number
     }[]
 }
 

@@ -3,10 +3,27 @@
 import { useState } from 'react'
 import { DataTable } from '@/components/ui/DataTable'
 import { PremiumCard } from '@/components/premium/PremiumCard'
-import { BadgeCheck, CreditCard, Download } from 'lucide-react'
+import { BadgeCheck, CreditCard, Download, FileText } from 'lucide-react'
+
+import { format } from 'date-fns'
+import { format } from 'date-fns'
+// PDF logic moved to dynamic import inside generateReceipt to fix Turbopack chunk errors
+import { exportToCSV } from '@/lib/export-utils'
+import { toast } from 'sonner'
+
+interface Registration {
+    id: number
+    fullName: string
+    mobileNumber: string
+    role: string
+    assignedCampus: string | null
+    paymentAmount: number
+    transactionId: string | null
+    createdAt: string | Date
+}
 
 interface RegistrationTableProps {
-    data: any[]
+    data: Registration[]
 }
 
 export function RegistrationTable({ data }: RegistrationTableProps) {
@@ -20,7 +37,7 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
         {
             header: 'User Details',
             accessorKey: 'fullName',
-            cell: (row: any) => (
+            cell: (row: Registration) => (
                 <div>
                     <div className="font-bold text-gray-900 dark:text-white">{row.fullName}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{row.mobileNumber}</div>
@@ -30,7 +47,7 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
         {
             header: 'Role',
             accessorKey: 'role',
-            cell: (row: any) => (
+            cell: (row: Registration) => (
                 <span className="inline-flex px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-wider border border-gray-200">
                     {row.role}
                 </span>
@@ -40,13 +57,14 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
         {
             header: 'Campus',
             accessorKey: 'assignedCampus',
-            cell: (row: any) => (row.assignedCampus ? row.assignedCampus : <span className="text-gray-300">-</span>),
+            cell: (row: Registration) => (row.assignedCampus ? row.assignedCampus : <span className="text-gray-300">-</span>),
             filterable: true
         },
         {
             header: 'Fee Paid',
             accessorKey: 'paymentAmount',
-            cell: (row: any) => (
+            sortable: true,
+            cell: (row: Registration) => (
                 <div className="flex items-center gap-1.5 text-emerald-600 font-bold font-mono">
                     <span className="text-xs">₹</span>
                     {row.paymentAmount?.toLocaleString() || 0}
@@ -56,7 +74,7 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
         {
             header: 'Status',
             accessorKey: 'transactionId',
-            cell: (row: any) => (
+            cell: (row: Registration) => (
                 <div className="flex flex-col gap-1">
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full w-fit">
                         <BadgeCheck size={10} strokeWidth={3} />
@@ -71,24 +89,46 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
         {
             header: 'Date',
             accessorKey: 'createdAt',
-            // Use en-GB to match SettlementTable and avoid hydration errors
-            cell: (row: any) => new Date(row.createdAt).toLocaleDateString('en-GB')
+            sortable: true,
+            cell: (row: Registration) => format(new Date(row.createdAt), 'dd MMM yyyy')
+        },
+        {
+            header: 'Receipt',
+            accessorKey: 'id',
+            cell: (row: Registration) => (
+                <button
+                    onClick={() => generateReceipt(row)}
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                    title="Download Receipt"
+                >
+                    <FileText size={16} />
+                </button>
+            )
         }
     ]
 
-    const handleExport = () => {
-        // Simple CSV Export Logic
-        const headers = ['Name,Mobile,Role,Campus,Amount,Transaction ID,Date']
-        const rows = data.map(row => `${row.fullName},${row.mobileNumber},${row.role},${row.assignedCampus || ''},${row.paymentAmount},${row.transactionId},${new Date(row.createdAt).toLocaleDateString('en-GB')}`)
+    const generateReceipt = async (data: Registration) => {
+        const tid = toast.loading('Generating Receipt...')
+        try {
+            const { generateReceiptPDF } = await import('@/lib/pdf-export')
+            generateReceiptPDF(data)
+            toast.dismiss(tid)
+        } catch (error) {
+            console.error('Receipt Generation Error:', error)
+            toast.error('Failed to generate receipt', { id: tid })
+        }
+    }
 
-        const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n")
-        const encodedUri = encodeURI(csvContent)
-        const link = document.createElement("a")
-        link.setAttribute("href", encodedUri)
-        link.setAttribute("download", `registration_transactions_${new Date().toISOString().split('T')[0]}.csv`)
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+    const handleExport = () => {
+        exportToCSV(data, 'Registration_Transactions', [
+            { header: 'Full Name', accessor: (r) => r.fullName },
+            { header: 'Mobile', accessor: (r) => r.mobileNumber },
+            { header: 'Role', accessor: (r) => r.role },
+            { header: 'Campus', accessor: (r) => r.assignedCampus || '-' },
+            { header: 'Amount', accessor: (r) => r.paymentAmount },
+            { header: 'Transaction ID', accessor: (r) => r.transactionId || 'N/A' },
+            { header: 'Date', accessor: (r) => new Date(r.createdAt).toLocaleDateString() }
+        ])
     }
 
     return (
@@ -96,11 +136,7 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
             {/* Header / Actions */}
             <div className="flex justify-between items-center px-1">
                 <div className="flex gap-2">
-                    {/* Placeholder for future specific filters */}
-                    <div className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100 flex items-center gap-2">
-                        <CreditCard size={12} />
-                        Registrations
-                    </div>
+                    {/* Cleaned up redundant header info */}
                 </div>
 
                 <button
@@ -116,7 +152,7 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
                 <div className="p-2">
                     <DataTable
                         data={data}
-                        columns={columns}
+                        columns={columns as any}
                         searchKey="fullName"
                         pageSize={10}
                     />

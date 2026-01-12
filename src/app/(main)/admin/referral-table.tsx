@@ -9,7 +9,7 @@ import { bulkRejectReferrals, bulkDeleteReferrals } from '@/app/admin-actions'
 
 interface ReferralTableProps {
     referrals: any[]
-    confirmReferral: (leadId: number, admissionNumber?: string) => Promise<any>
+    confirmReferral: (leadId: number, admissionNumber?: string, selectedFeeType?: 'OTP' | 'WOTP') => Promise<any>
     convertLeadToStudent?: (leadId: number, details: any) => Promise<any>
     initialRoleFilter?: string
     initialStatusFilter?: string

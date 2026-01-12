@@ -81,3 +81,34 @@ export async function triggerReengagementCampaign() {
         return { success: false, error: 'Campaign execution failed' }
     }
 }
+
+export async function getEngagementStats() {
+    try {
+        const [campaignCount, totalSentResult, dormantCount] = await Promise.all([
+            prisma.campaign.count(),
+            prisma.campaignLog.aggregate({ _sum: { sentCount: true } }),
+            prisma.user.count({
+                where: {
+                    status: 'Active',
+                    role: { in: ['Staff', 'Alumni', 'Parent'] },
+                    referrals: {
+                        none: {
+                            createdAt: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) }
+                        }
+                    }
+                }
+            })
+        ])
+
+        return {
+            success: true,
+            stats: {
+                totalCampaigns: campaignCount,
+                totalEmailsSent: totalSentResult._sum.sentCount || 0,
+                dormantAmbassadors: dormantCount
+            }
+        }
+    } catch (error) {
+        return { success: false, error: 'Failed to fetch engagement stats' }
+    }
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, ChevronLeft } from 'lucide-react'
 
 interface RegistrationBasicProps {
     formData: any
@@ -37,9 +37,9 @@ export const RegistrationBasic = ({ formData, setFormData, onNext, onBack }: Reg
             <div className="text-center space-y-2 relative">
                 <button
                     onClick={onBack}
-                    className="absolute top-0 left-0 w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/20 text-amber-400 transition-all z-50 bg-white/10 border border-white/20 shadow-lg backdrop-blur-sm"
+                    className="absolute top-0 left-0 w-10 h-10 rounded-full flex items-center justify-center bg-white/15 border border-white/20 text-white hover:bg-white/25 transition-all z-50 group shadow-lg"
                 >
-                    <ArrowLeft className="text-amber-400 drop-shadow-sm" size={24} strokeWidth={3} />
+                    <ChevronLeft className="w-5 h-5 flex-shrink-0 group-hover:-translate-x-0.5 transition-transform" strokeWidth={2.5} />
                 </button>
                 <div className="flex flex-col items-center mb-4 w-full">
                     <p className="w-full text-blue-200 text-[10px] font-bold uppercase text-center leading-tight tracking-[0.2em] whitespace-nowrap">

@@ -42,6 +42,7 @@ export default async function DashboardPage() {
     const recentReferrals = referrals.slice(0, 5).map((r: any) => ({
         id: r.leadId,
         parentName: r.parentName,
+        studentName: r.studentName,
         status: r.leadStatus,
         createdAt: r.createdAt.toISOString()
     }))
@@ -69,6 +70,24 @@ export default async function DashboardPage() {
     // Calculate Potential/Estimated Percent based on Total Pipeline (Pending + Confirmed)
     const potentialBenefitPercent = getBenefitPercent(totalLeadsCount)
 
+    // Calculate Volumes for Lead-Based Benefit
+    const confirmedVolume = referrals
+        .filter((r: any) => r.leadStatus === 'Confirmed' && r.leadStatus !== 'Rejected')
+        .reduce((sum: number, r: any) => {
+            const fee = r.annualFee || (r.student?.baseFee) || 60000
+            return sum + fee
+        }, 0)
+
+    const totalVolume = referrals
+        .filter((r: any) => r.leadStatus !== 'Rejected')
+        .reduce((sum: number, r: any) => {
+            const fee = r.annualFee || (r.student?.baseFee) || 60000
+            return sum + fee
+        }, 0)
+
+    const earnedAmount = (confirmedVolume * realBenefitPercent) / 100
+    const estimatedAmount = (totalVolume * potentialBenefitPercent) / 100
+
     return (
         <div className="-mx-2 xl:mx-0 relative">
             {/* Royal Glass Background Layer */}
@@ -94,6 +113,8 @@ export default async function DashboardPage() {
                 whatsappUrl={whatsappUrl}
                 monthStats={monthStats}
                 totalLeadsCount={pendingCount} // Passing "Pending" count to this prop for separate buckets
+                overrideEarnedAmount={earnedAmount}
+                overrideEstimatedAmount={estimatedAmount}
             />
         </div>
     )

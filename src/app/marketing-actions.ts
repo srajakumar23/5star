@@ -3,14 +3,14 @@
 import prisma from '@/lib/prisma'
 
 // Categories for marketing assets - exposed as async function for 'use server' compatibility
-export async function getMarketingCategories() {
+export async function getMarketingCategories(): Promise<string[]> {
     return [
         'Branding',
         'WhatsApp Templates',
         'Social Media',
         'Videos',
         'Flyers'
-    ] as const
+    ]
 }
 
 // Get all active marketing assets grouped by category
@@ -27,10 +27,19 @@ export async function getMarketingAssets() {
             ]
         })
 
-        // Group by category
-        const grouped: Record<string, typeof assets> = {}
+        // Group by category and map to UI Asset type
+        const grouped: Record<string, any[]> = {}
         for (const category of categories) {
-            grouped[category] = assets.filter((a: any) => a.category === category)
+            grouped[category] = assets
+                .filter((a) => a.category === category)
+                .map(a => ({
+                    id: a.id,
+                    title: a.name,
+                    description: a.description || '',
+                    type: a.fileType as any || 'IMAGE',
+                    url: a.fileUrl,
+                    category: a.category
+                }))
         }
 
         return { success: true, assets, grouped }

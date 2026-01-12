@@ -275,7 +275,7 @@ export async function registerUser(formData: any) {
             }
         })
         if (gradeFee) {
-            studentFee = gradeFee.annualFee
+            studentFee = gradeFee.annualFee_otp || 0
         }
     }
 
@@ -324,6 +324,27 @@ export async function registerUser(formData: any) {
         // Handle Prisma Unique Constraint Violation
         if (e.code === 'P2002') {
             if (e.meta?.target?.includes('mobileNumber')) {
+                // CHECK FOR UPGRADE: If user exists but has NO referral code (Student Parent), upgrade them to Ambassador
+                const existingUser = await prisma.user.findUnique({ where: { mobileNumber } })
+                if (existingUser && !existingUser.referralCode) {
+                    // Upgrade: Generate Code & Update
+                    await prisma.user.update({
+                        where: { userId: existingUser.userId },
+                        data: {
+                            referralCode, // Use the one generated above
+                            password: await bcrypt.hash(password, 10), // Update password if they prefer
+                            // Optionally update other fields if they were missing?
+                            bankAccountDetails: bankAccountDetails ? encrypt(bankAccountDetails) : existingUser.bankAccountDetails,
+                            // Ensure they are active
+                            benefitStatus: AccountStatus.Active
+                        }
+                    })
+                    // Create session and log them in
+                    const isSuperAdmin = false // Users are never Super Admins
+                    await createSession(existingUser.userId, 'user', mapUserRole(existingUser.role), false)
+                    return { success: true }
+                }
+
                 return { success: false, error: 'This mobile number is already registered. Please login.' }
             }
             if (e.meta?.target?.includes('referralCode')) {

@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { MapPin, Edit, Trash, Plus, School, Upload } from 'lucide-react'
+import { MapPin, Edit, Trash, Plus, School, Upload, Download } from 'lucide-react'
 import { DataTable } from '@/components/ui/DataTable'
 import { Badge } from '@/components/ui/Badge'
 import { PremiumCard } from '@/components/premium/PremiumCard'
 import { PremiumHeader } from '@/components/premium/PremiumHeader'
 import CSVUploader from '@/components/CSVUploader'
+import { exportToCSV } from '@/lib/export-utils'
 
 interface Campus {
     id: number
@@ -40,7 +41,8 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
             sortable: true,
             cell: (campus: Campus) => (
                 <span className="font-bold text-gray-900">{campus.campusName}</span>
-            )
+            ),
+            filterable: true
         },
         {
             header: 'Code',
@@ -61,7 +63,8 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
                     <MapPin size={14} className="text-gray-400" />
                     <span>{campus.location}</span>
                 </div>
-            )
+            ),
+            filterable: true
         },
         ...(mode === 'management' ? [{
             header: 'Status',
@@ -80,7 +83,8 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
                         {campus.isActive ? 'Active' : 'Inactive'}
                     </button>
                 </div>
-            )
+            ),
+            filterable: true
         }] : []),
         ...(mode === 'management' ? [
             {
@@ -172,6 +176,20 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
                                 Delete ({selectedCampuses.length})
                             </button>
                         )}
+                        <button
+                            onClick={() => exportToCSV(campuses, 'Campus_List', [
+                                { header: 'Name', accessor: (c) => c.campusName },
+                                { header: 'Code', accessor: (c) => c.campusCode },
+                                { header: 'Location', accessor: (c) => c.location },
+                                { header: 'Capacity', accessor: (c) => c.maxCapacity },
+                                { header: 'Grades', accessor: (c) => c.grades },
+                                { header: 'Active', accessor: (c) => c.isActive ? 'Yes' : 'No' }
+                            ])}
+                            className="px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-50 transition-all flex items-center gap-2"
+                        >
+                            <Download size={16} strokeWidth={2.5} />
+                            Export
+                        </button>
                         <button
                             onClick={() => setShowUpload(true)}
                             className="px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-50 transition-all flex items-center gap-2"

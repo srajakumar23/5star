@@ -10,7 +10,8 @@ export interface BulkFeeData {
     campusName: string
     grade: string
     academicYear: string
-    annualFee: number
+    annualFee_otp?: number
+    annualFee_wotp?: number
 }
 
 // ========= Get Fee Structure =========
@@ -47,7 +48,8 @@ export async function getFeeStructure(filter?: { academicYear?: string, campusId
             campusId: f.campusId,
             grade: f.grade,
             academicYear: f.academicYear,
-            annualFee: f.annualFee,
+            annualFee_otp: f.annualFee_otp,
+            annualFee_wotp: f.annualFee_wotp,
             campus: {
                 id: f.campusId,
                 campusName: f.campusName,
@@ -105,13 +107,17 @@ export async function uploadFeeStructure(fees: BulkFeeData[]) {
                         academicYear: sanitizedAY
                     }
                 },
-                update: { annualFee: f.annualFee },
+                update: {
+                    annualFee_otp: f.annualFee_otp,
+                    annualFee_wotp: f.annualFee_wotp
+                } as any,
                 create: {
                     campusId,
                     grade: sanitizedGrade,
                     academicYear: sanitizedAY,
-                    annualFee: f.annualFee
-                }
+                    annualFee_otp: f.annualFee_otp,
+                    annualFee_wotp: f.annualFee_wotp
+                } as any
             })
             processed++
         }
@@ -158,16 +164,16 @@ export async function syncStudentFees(campusId?: number, academicYear?: string, 
             : Prisma.empty
 
         const fees: any[] = await prisma.$queryRaw`
-            SELECT "campusId", "grade", "academicYear", "annualFee"
+            SELECT "campusId", "grade", "academicYear", "annualFee_otp", "annualFee_wotp"
             FROM "GradeFee"
             ${feeWhere}
         `
 
-        // Build Map: "CampusID-Grade-AY" -> Fee
-        const feeMap = new Map<string, number>()
+        // Build Map: "CampusID-Grade-AY" -> { otp, wotp }
+        const feeMap = new Map<string, { otp: number; wotp: number }>()
         fees.forEach(f => {
             const key = `${f.campusId}-${f.grade.trim()}-${f.academicYear.trim()}`
-            feeMap.set(key, f.annualFee)
+            feeMap.set(key, { otp: f.annualFee_otp || 0, wotp: f.annualFee_wotp || 0 })
         })
 
         // 3. Update Students
@@ -178,13 +184,29 @@ export async function syncStudentFees(campusId?: number, academicYear?: string, 
             const sGrade = s.grade.trim()
             const sAy = (s.academicYear || '2025-2026').trim()
             const key = `${s.campusId}-${sGrade}-${sAy}`
-            const standardFee = feeMap.get(key) || 0 // Strict 0
+
+            // For student sync, we need to know WHICH fee type they have.
+            // If the student already has a record, they might have selectedFeeType.
+            const studentRecord = await prisma.student.findUnique({
+                where: { studentId: s.studentId },
+                select: { selectedFeeType: true }
+            })
+
+            const feeRule = feeMap.get(key)
+            if (!feeRule) continue
+
+            const standardFee = studentRecord?.selectedFeeType === 'WOTP'
+                ? feeRule.wotp
+                : feeRule.otp // Default or OTP
 
             // If fee differs
             if (s.baseFee !== standardFee) {
                 updates.push(prisma.student.update({
                     where: { studentId: s.studentId },
-                    data: { baseFee: standardFee }
+                    data: {
+                        baseFee: standardFee,
+                        annualFee: standardFee // Keep snapshot in sync too
+                    } as any
                 }))
                 updatedCount++
             }
@@ -203,5 +225,43 @@ export async function syncStudentFees(campusId?: number, academicYear?: string, 
     } catch (error) {
         console.error('Error syncing fees:', error)
         return { success: false, error: 'Sync failed' }
+    }
+}
+
+// ========= Delete Fee Structure =========
+export async function deleteFeeStructure(id: number) {
+    try {
+        const user = await getCurrentUser()
+        if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
+
+        await prisma.gradeFee.delete({
+            where: { id }
+        })
+
+        revalidatePath('/superadmin')
+        return { success: true }
+    } catch (error) {
+        console.error('Error deleting fee:', error)
+        return { success: false, error: 'Failed to delete fee' }
+    }
+}
+
+// ========= Bulk Delete Fee Structures =========
+export async function bulkDeleteFeeStructures(ids: number[]) {
+    try {
+        const user = await getCurrentUser()
+        if (!user || user.role !== 'Super Admin') return { success: false, error: 'Unauthorized' }
+
+        await prisma.gradeFee.deleteMany({
+            where: {
+                id: { in: ids }
+            }
+        })
+
+        revalidatePath('/superadmin')
+        return { success: true }
+    } catch (error) {
+        console.error('Error deleting fees:', error)
+        return { success: false, error: 'Failed to delete fees' }
     }
 }

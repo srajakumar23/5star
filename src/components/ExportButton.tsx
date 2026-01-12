@@ -1,7 +1,7 @@
 'use client'
 
 import { FileDown } from 'lucide-react'
-import { exportReferralsToPDF, exportUsersToPDF, generatePDFReport } from '@/lib/pdf-export'
+// PDF logic moved to dynamic import inside handleExport to fix Turbopack chunk errors
 import { toast } from 'sonner'
 
 interface ExportButtonProps {
@@ -22,30 +22,39 @@ export function ExportButton({
     title = 'Report'
 }: ExportButtonProps) {
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (data.length === 0) {
             toast.error('No data to export')
             return
         }
 
-        switch (type) {
-            case 'referrals':
-                exportReferralsToPDF(data, ambassadorName)
-                break
-            case 'users':
-                exportUsersToPDF(data, title)
-                break
-            case 'custom':
-                generatePDFReport({
-                    title,
-                    fileName: fileName || 'report',
-                    columns: Object.keys(data[0]).map(key => ({
-                        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-                        dataKey: key
-                    })),
-                    data
-                })
-                break
+        const tid = toast.loading('Preparing PDF...')
+        try {
+            const { exportReferralsToPDF, exportUsersToPDF, generatePDFReport } = await import('@/lib/pdf-export')
+
+            switch (type) {
+                case 'referrals':
+                    exportReferralsToPDF(data, ambassadorName)
+                    break
+                case 'users':
+                    exportUsersToPDF(data, title)
+                    break
+                case 'custom':
+                    generatePDFReport({
+                        title,
+                        fileName: fileName || 'report',
+                        columns: Object.keys(data[0]).map(key => ({
+                            header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+                            dataKey: key
+                        })),
+                        data
+                    })
+                    break
+            }
+            toast.dismiss(tid)
+        } catch (error) {
+            console.error('PDF Export Error:', error)
+            toast.error('Failed to generate PDF', { id: tid })
         }
     }
 

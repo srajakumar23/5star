@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { bulkAdminAction } from '@/app/bulk-admin-actions'
 import { mapAdminRole } from '@/lib/enum-utils'
+import { exportToCSV } from '@/lib/export-utils'
 
 interface AdminTableProps {
     admins: Admin[]
@@ -97,7 +98,7 @@ export function AdminTable({
                 <Badge variant="outline" className="font-black text-[10px] tracking-wider uppercase border-gray-200">
                     {mapAdminRole(admin.role as any)}
                 </Badge>
-            )
+            ),
         },
         {
             header: 'Campus',
@@ -109,7 +110,7 @@ export function AdminTable({
                     <Building2 size={14} className="text-gray-400" />
                     <span className="text-xs font-bold text-gray-600">{admin.assignedCampus || 'Global Management'}</span>
                 </div>
-            )
+            ),
         },
         {
             header: 'Status',
@@ -120,7 +121,7 @@ export function AdminTable({
                 <Badge variant={admin.status === 'Active' ? 'success' : 'error'} className="font-black text-[10px] tracking-wider uppercase">
                     {admin.status}
                 </Badge>
-            )
+            ),
         },
         {
             header: 'Actions',
@@ -216,7 +217,14 @@ export function AdminTable({
             >
                 <div className="flex gap-4">
                     <button
-                        onClick={onBulkAdd}
+                        onClick={() => exportToCSV(admins, 'System_Admins', [
+                            { header: 'Name', accessor: (a) => a.adminName },
+                            { header: 'Mobile', accessor: (a) => a.adminMobile },
+                            { header: 'Role', accessor: (a) => a.role },
+                            { header: 'Campus', accessor: (a) => a.assignedCampus || 'Global' },
+                            { header: 'Status', accessor: (a) => a.status },
+                            { header: 'Created On', accessor: (a) => a.createdAt }
+                        ])}
                         className="px-8 py-4 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-xs hover:bg-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-3 uppercase tracking-widest"
                         suppressHydrationWarning
                     >

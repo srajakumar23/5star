@@ -91,34 +91,36 @@ export default function MobileSidebarWrapper({ children }: { children: React.Rea
                                 </button>
                             </div>
 
-                            <div className="flex items-center gap-4 px-4 pb-4">
+                            <div className="flex items-center gap-2 px-2 pb-4 overflow-hidden">
                                 <div className="relative group shrink-0">
-                                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-amber-500 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                                    <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-amber-500 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
                                     <img
                                         src="/achariya_25_logo.jpg"
                                         alt="Achariya 25th Year"
-                                        className="relative object-contain shadow-2xl h-14 w-auto"
+                                        className="relative object-contain shadow-2xl h-12 w-auto"
                                     />
                                 </div>
 
-                                <div className="flex flex-col min-w-0 justify-center">
-                                    <h2 className="text-white text-[9px] font-black tracking-tight drop-shadow-lg uppercase leading-tight text-left whitespace-nowrap">
-                                        Achariya Partnership Program (APP)
+                                <div className="flex flex-col min-w-0 justify-center flex-1">
+                                    <h2 className="text-white text-[13px] font-black tracking-tight drop-shadow-lg uppercase leading-tight text-left">
+                                        Achariya
                                     </h2>
-                                    <p className="text-[8px] uppercase tracking-[0.2em] font-black text-amber-500/90 drop-shadow-md text-left mt-0.5 whitespace-nowrap">
+                                    <p className="text-[10px] text-blue-100/60 font-bold uppercase tracking-widest">
+                                        Partnership Program
+                                    </p>
+                                    <p className="text-[9px] uppercase tracking-[0.2em] font-black text-amber-500/90 drop-shadow-md mt-0.5">
                                         25<sup className="text-[0.6em]">th</sup> Year Celebration
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Content - Scrollable with safe padding */}
+                            <div className="flex-1 overflow-y-auto pb-8 relative z-10" style={{ maxHeight: 'calc(90vh - 60px)' }}>
+                                {children}
+                            </div>
                         </div>
 
-                        {/* Content - Scrollable with safe padding */}
-                        <div className="flex-1 overflow-y-auto pb-8 relative z-10" style={{ maxHeight: 'calc(90vh - 60px)' }}>
-                            {children}
-                        </div>
                     </div>
-
-
                 </div>,
                 document.body
             )}
