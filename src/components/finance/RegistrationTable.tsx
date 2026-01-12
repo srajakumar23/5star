@@ -6,7 +6,6 @@ import { PremiumCard } from '@/components/premium/PremiumCard'
 import { BadgeCheck, CreditCard, Download, FileText } from 'lucide-react'
 
 import { format } from 'date-fns'
-import { format } from 'date-fns'
 // PDF logic moved to dynamic import inside generateReceipt to fix Turbopack chunk errors
 import { exportToCSV } from '@/lib/export-utils'
 import { toast } from 'sonner'
