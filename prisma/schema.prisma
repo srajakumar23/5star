@@ -94,9 +94,9 @@ model ReferralLead {
   confirmedDate   DateTime?
   createdAt       DateTime   @default(now())
   studentName     String?
+  leadStatus      LeadStatus @default(New)
   admissionNumber String?
   section         String?
-  leadStatus      LeadStatus @default(New)
   user            User       @relation(fields: [userId], references: [userId])
   student         Student?
 
@@ -176,9 +176,9 @@ model SecuritySettings {
   maxLoginAttempts         Int      @default(5)
   passwordResetExpiryHours Int      @default(24)
   twoFactorAuthEnabled     Boolean  @default(false)
-  ipWhitelist              String?  @db.Text
   updatedAt                DateTime @updatedAt
   updatedBy                String?
+  ipWhitelist              String?
 }
 
 model DataRetentionSettings {
@@ -238,10 +238,10 @@ model RolePermissions {
   deletionHubScope         String   @default("none")
   passwordResetAccess      Boolean  @default(false)
   passwordResetScope       String   @default("none")
-  feeManagementAccess      Boolean  @default(false)
-  feeManagementScope       String   @default("none")
   engagementCentreAccess   Boolean  @default(false)
   engagementCentreScope    String   @default("none")
+  feeManagementAccess      Boolean  @default(false)
+  feeManagementScope       String   @default("none")
 }
 
 model Settlement {
@@ -411,46 +411,11 @@ model Notification {
   user      User?    @relation(fields: [userId], references: [userId])
 }
 
-enum AccountStatus {
-  Active
-  Inactive
-  Pending
-  Suspended
-  Deletion_Requested @map("Deletion Requested")
-  Deleted
-}
-
-enum AdminRole {
-  Super_Admin     @map("Super Admin")
-  Finance_Admin   @map("Finance Admin")
-  Campus_Head     @map("Campus Head")
-  Campus_Admin    @map("Campus Admin")
-  Admission_Admin @map("Admission Admin")
-}
-
-enum LeadStatus {
-  New
-  Interested
-  Contacted
-  Follow_up  @map("Follow-up")
-  Confirmed
-  Admitted
-  Closed
-  Rejected
-}
-
-enum UserRole {
-  Parent
-  Staff
-  Alumni
-  Others
-}
-
 model Campaign {
   id             Int           @id @default(autoincrement())
   name           String
   subject        String
-  templateBody   String        @db.Text
+  templateBody   String
   type           String        @default("EMAIL")
   status         String        @default("DRAFT")
   targetAudience Json?
@@ -470,12 +435,46 @@ model CampaignLog {
   sentCount      Int      @default(0)
   failedCount    Int      @default(0)
   errorLog       Json?
-
   campaign       Campaign @relation(fields: [campaignId], references: [id])
 }
 
 model RateLimit {
-  key       String   @id
-  count     Int      @default(0)
-  resetAt   DateTime
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+}
+
+enum AccountStatus {
+  Active
+  Inactive
+  Pending
+  Suspended
+  Deletion_Requested @map("Deletion Requested")
+  Deleted
+}
+
+enum AdminRole {
+  Super_Admin     @map("Super Admin")
+  Finance_Admin   @map("Finance Admin")
+  Campus_Head     @map("Campus Head")
+  Admission_Admin @map("Admission Admin")
+  Campus_Admin    @map("Campus Admin")
+}
+
+enum LeadStatus {
+  New
+  Interested
+  Contacted
+  Follow_up  @map("Follow-up")
+  Confirmed
+  Admitted
+  Closed
+  Rejected
+}
+
+enum UserRole {
+  Parent
+  Staff
+  Alumni
+  Others
 }
