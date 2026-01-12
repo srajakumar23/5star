@@ -210,12 +210,14 @@ export function UserTable({
                     <button
                         onClick={() => onToggleStatus(user.userId, user.status)}
                         className={`p-2 rounded-xl transition-all shadow-sm bg-white border border-gray-100 flex items-center justify-center hover:scale-110 active:scale-95 ${user.status === 'Active' ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-50' : 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                        suppressHydrationWarning
                     >
                         {user.status === 'Active' ? <XCircle size={16} strokeWidth={2.5} /> : <CheckCircle size={16} strokeWidth={2.5} />}
                     </button>
                     <button
                         onClick={() => onDelete(user.userId, user.fullName)}
                         className="p-2 rounded-xl text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-50 shadow-sm bg-white hover:scale-110 active:scale-95 group"
+                        suppressHydrationWarning
                     >
                         <Trash2 size={16} strokeWidth={2.5} className="group-hover:animate-pulse" />
                     </button>
@@ -401,6 +403,7 @@ export function UserTable({
                     <button
                         onClick={() => setShowExportModal(true)}
                         className="px-4 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-xs hover:bg-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 uppercase tracking-widest"
+                        suppressHydrationWarning
                     >
                         <Download size={16} /> Export
                     </button>
@@ -415,6 +418,7 @@ export function UserTable({
                             a.click()
                         }}
                         className="px-4 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-xs hover:bg-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 uppercase tracking-widest"
+                        suppressHydrationWarning
                     >
                         <Download size={16} /> Template
                     </button>

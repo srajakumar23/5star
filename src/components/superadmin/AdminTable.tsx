@@ -130,18 +130,21 @@ export function AdminTable({
                     <button
                         onClick={() => onEdit?.(admin)}
                         className="p-2 rounded-xl text-blue-600 hover:text-white hover:bg-blue-600 transition-all border border-blue-50 shadow-sm bg-white hover:scale-110 active:scale-95 group"
+                        suppressHydrationWarning
                     >
                         <Edit2 size={16} strokeWidth={2.5} />
                     </button>
                     <button
                         onClick={() => onToggleStatus(admin.adminId, admin.status)}
                         className={`p-2 rounded-xl transition-all shadow-sm bg-white border border-gray-100 flex items-center justify-center hover:scale-110 active:scale-95 ${admin.status === 'Active' ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-50' : 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                        suppressHydrationWarning
                     >
                         {admin.status === 'Active' ? <XCircle size={16} strokeWidth={2.5} /> : <CheckCircle size={16} strokeWidth={2.5} />}
                     </button>
                     <button
                         onClick={() => onDelete(admin.adminId, admin.adminName)}
                         className="p-2 rounded-xl text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-50 shadow-sm bg-white hover:scale-110 active:scale-95 group"
+                        suppressHydrationWarning
                     >
                         <Trash2 size={16} strokeWidth={2.5} className="group-hover:animate-pulse" />
                     </button>

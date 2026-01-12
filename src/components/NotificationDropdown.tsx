@@ -85,6 +85,7 @@ export function NotificationDropdown() {
                 onClick={() => setIsOpen(!isOpen)}
                 className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
                 title="Notifications"
+                suppressHydrationWarning
             >
                 <Bell size={20} className="text-gray-600" />
                 {unreadCount > 0 && (

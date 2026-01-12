@@ -224,6 +224,7 @@ export function DataTable<T>({
                                 setCurrentPage(1)
                             }}
                             className="w-full pl-14 pr-6 py-4 bg-white border-transparent ring-1 ring-gray-200 rounded-[20px] outline-none focus:ring-2 focus:ring-red-500 focus:shadow-lg focus:shadow-red-500/10 transition-all text-sm font-bold text-gray-700 placeholder:text-gray-400 placeholder:font-medium"
+                            suppressHydrationWarning
                         />
                     </div>
                 )}
@@ -455,6 +456,7 @@ export function DataTable<T>({
                                     ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
                                     : 'bg-white border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-600 hover:shadow-lg hover:shadow-red-500/10 active:scale-95'
                                     }`}
+                                suppressHydrationWarning
                             >
                                 <ChevronLeft size={18} strokeWidth={2.5} />
                             </button>
@@ -480,6 +482,7 @@ export function DataTable<T>({
                                     ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
                                     : 'bg-white border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-600 hover:shadow-lg hover:shadow-red-500/10 active:scale-95'
                                     }`}
+                                suppressHydrationWarning
                             >
                                 <ChevronRight size={18} strokeWidth={2.5} />
                             </button>

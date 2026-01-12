@@ -52,6 +52,8 @@ model User {
   @@index([assignedCampus])
   @@index([status])
   @@index([createdAt])
+
+  @@map("User")
 }
 
 model Student {
