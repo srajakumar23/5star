@@ -24,6 +24,8 @@ interface UserTableProps {
     onEdit?: (user: User) => void
 }
 
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
 export function UserTable({
     users,
     onAddUser,
@@ -42,26 +44,40 @@ export function UserTable({
     const [selectedUserForAudit, setSelectedUserForAudit] = useState<User | null>(null)
     const router = useRouter()
 
-    // Bulk Action Handler
-    const handleBulkAction = async (action: 'activate' | 'suspend' | 'delete' | 'deactivate') => {
-        const confirmMessage = action === 'delete'
-            ? `DANGER: You are about to PERMANENTLY DELETE ${selectedUsers.length} ambassadors and all their associated referral leads. This action CANNOT be undone. Are you absolutely sure?`
-            : `Are you sure you want to ${action} ${selectedUsers.length} selected ambassadors?`
+    // Bulk Confirmation State
+    const [bulkConfirmation, setBulkConfirmation] = useState<{ isOpen: boolean, action: 'activate' | 'suspend' | 'delete' | 'deactivate' | null }>({
+        isOpen: false,
+        action: null
+    })
 
-        if (!confirm(confirmMessage)) return
+    // Bulk Action Handler
+    const handleBulkAction = (action: 'activate' | 'suspend' | 'delete' | 'deactivate') => {
+        setBulkConfirmation({ isOpen: true, action })
+    }
+
+    const executeBulkAction = async () => {
+        const action = bulkConfirmation.action
+        if (!action) return
 
         setIsProcessing(true)
         try {
             const res = await bulkUserAction(selectedUsers.map(u => u.userId), action)
             if (res.success) {
-                toast.success(`Bulk ${action} successful: ${res.count} users affected`)
+                if (res.message) {
+                    toast.success(res.message)
+                } else {
+                    toast.success(`Bulk ${action} successful: ${res.count} users affected`)
+                }
                 setSelectedUsers([])
+                setBulkConfirmation({ isOpen: false, action: null })
                 router.refresh()
             } else {
                 toast.error(res.error || 'Bulk action failed')
+                setBulkConfirmation({ isOpen: false, action: null })
             }
         } catch (error) {
             toast.error('Connection error during bulk action')
+            setBulkConfirmation({ isOpen: false, action: null })
         } finally {
             setIsProcessing(false)
         }
@@ -258,7 +274,7 @@ export function UserTable({
             </div>
 
             {/* Quick Actions or more details could go here */}
-            <div className="mt-8 pt-6 border-t border-gray-100 flex gap-4">
+            <div className="mt-8 pt-6 border-t border-gray-100 flex flex-wrap gap-4">
                 <button
                     onClick={() => onViewReferrals?.(user.referralCode)}
                     className="text-[10px] font-black text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl border border-red-100 transition-all uppercase tracking-widest"
@@ -381,7 +397,7 @@ export function UserTable({
                 gradientFrom="from-red-600"
                 gradientTo="to-red-600"
             >
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setShowExportModal(true)}
                         className="px-4 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-xs hover:bg-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 uppercase tracking-widest"
@@ -541,6 +557,29 @@ export function UserTable({
                     }}
                 />
             )}
+
+            {/* Bulk Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={bulkConfirmation.isOpen}
+                title={`Confirm Bulk ${bulkConfirmation.action === 'delete' ? 'Deletion' : 'Update'}`}
+                description={
+                    bulkConfirmation.action === 'delete' ? (
+                        <p className="text-red-600 font-medium">
+                            DANGER: You are about to PERMANENTLY DELETE <strong>{selectedUsers.length}</strong> ambassadors.
+                            <br />This will also delete all associated referral leads. This action CANNOT be undone.
+                        </p>
+                    ) : (
+                        <p>
+                            Are you sure you want to <strong>{bulkConfirmation.action}</strong> {selectedUsers.length} selected ambassadors?
+                        </p>
+                    )
+                }
+                confirmText={`Yes, ${bulkConfirmation.action} All`}
+                variant={bulkConfirmation.action === 'delete' ? 'danger' : 'warning'}
+                onConfirm={executeBulkAction}
+                onCancel={() => setBulkConfirmation({ isOpen: false, action: null })}
+                isLoading={isProcessing}
+            />
         </div>
     )
 }

@@ -217,8 +217,8 @@ export async function getLoginRedirect(mobile: string) {
         else if (adminRole === 'Finance Admin') {
             return '/finance'
         }
-        // Then check Campus Head
-        else if (adminRole === 'Campus Head') {
+        // Then check Campus Head & Campus Admin
+        else if (adminRole === 'Campus Head' || adminRole === 'Campus Admin') {
             return '/campus'
         }
         // Finally, regular admins (like "Admission Admin")

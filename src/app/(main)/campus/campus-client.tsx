@@ -9,7 +9,7 @@ interface CampusClientProps {
     campus: string
     analytics: any
     referrals: any[]
-    confirmReferral: (leadId: number, campus: string) => Promise<any>
+    confirmReferral: (leadId: number, campus: string, admissionNumber?: string) => Promise<any>
 }
 
 export function CampusClient({ campus, analytics, referrals, confirmReferral }: CampusClientProps) {
@@ -20,8 +20,8 @@ export function CampusClient({ campus, analytics, referrals, confirmReferral }: 
         setStatusFilter(filter)
     }
 
-    const confirmReferralWrapper = async (leadId: number) => {
-        await confirmReferral(leadId, campus)
+    const confirmReferralWrapper = async (leadId: number, admissionNumber?: string) => {
+        await confirmReferral(leadId, campus, admissionNumber)
     }
 
     return (

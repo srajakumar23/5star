@@ -55,7 +55,7 @@ export default function MobileSidebarWrapper({ children }: { children: React.Rea
             {/* Hamburger Button (Mobile Only) */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="xl:hidden p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                className="xl:hidden p-2 text-white hover:bg-white/10 rounded-full transition-colors"
                 aria-label="Open Menu"
             >
                 <Menu size={24} />
@@ -66,27 +66,54 @@ export default function MobileSidebarWrapper({ children }: { children: React.Rea
                 <div className="fixed inset-0 xl:hidden" style={{ zIndex: 99999 }}>
                     {/* Backdrop */}
                     <div
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
                         onClick={() => setIsOpen(false)}
                     />
 
-                    {/* Top Dropdown Drawer - Full Height */}
+                    {/* Top Dropdown Drawer - Royal Glass Theme */}
                     <div
-                        className="fixed top-2 left-2 right-2 bg-white dark:bg-gray-900 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700"
+                        className="fixed top-2 left-2 right-2 bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col rounded-2xl border border-white/20 ring-1 ring-white/10"
                         style={{ zIndex: 100000 }}
                     >
+                        {/* decorative glow */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/20 blur-[60px] rounded-full pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/20 blur-[60px] rounded-full pointer-events-none" />
+
                         {/* Header with Close Button */}
-                        <div className="flex justify-end p-2 border-b border-gray-100 dark:border-gray-700">
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
+                        {/* Header with Close Button & Branding */}
+                        <div className="relative border-b border-white/10 bg-black/20 backdrop-blur-xl z-10 pb-4">
+                            <div className="flex justify-end p-2">
+                                <button
+                                    onClick={() => setIsOpen(false)}
+                                    className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-4 px-4 pb-4">
+                                <div className="relative group shrink-0">
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-amber-500 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                                    <img
+                                        src="/achariya_25_logo.jpg"
+                                        alt="Achariya 25th Year"
+                                        className="relative object-contain shadow-2xl h-14 w-auto"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col min-w-0 justify-center">
+                                    <h2 className="text-white text-[9px] font-black tracking-tight drop-shadow-lg uppercase leading-tight text-left whitespace-nowrap">
+                                        Achariya Partnership Program (APP)
+                                    </h2>
+                                    <p className="text-[8px] uppercase tracking-[0.2em] font-black text-amber-500/90 drop-shadow-md text-left mt-0.5 whitespace-nowrap">
+                                        25<sup className="text-[0.6em]">th</sup> Year Celebration
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Content - Scrollable with safe padding */}
-                        <div className="flex-1 overflow-y-auto pb-8" style={{ maxHeight: 'calc(90vh - 60px)' }}>
+                        <div className="flex-1 overflow-y-auto pb-8 relative z-10" style={{ maxHeight: 'calc(90vh - 60px)' }}>
                             {children}
                         </div>
                     </div>

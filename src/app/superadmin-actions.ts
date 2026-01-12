@@ -673,12 +673,14 @@ export async function deleteUser(userId: number) {
     }
 
     // Delete all referrals first due to foreign key constraint
-    await prisma.referralLead.deleteMany({
-        where: { userId }
-    })
+    return await prisma.$transaction(async (tx) => {
+        await tx.referralLead.deleteMany({
+            where: { userId }
+        })
 
-    return await prisma.user.delete({
-        where: { userId }
+        return await tx.user.delete({
+            where: { userId }
+        })
     })
 }
 

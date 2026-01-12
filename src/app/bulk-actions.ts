@@ -13,16 +13,43 @@ export async function bulkUserAction(userIds: number[], action: 'activate' | 'su
         }
 
         if (action === 'delete') {
-            // Delete leads first
-            await prisma.referralLead.deleteMany({
-                where: { userId: { in: userIds } }
+            // 1. Unlink as Ambassador (Set ambassadorId to null for associated students)
+            await prisma.student.updateMany({
+                where: { ambassadorId: { in: userIds } },
+                data: { ambassadorId: null }
             })
 
-            const res = await prisma.user.deleteMany({
-                where: { userId: { in: userIds } }
+            // 2. Check if any users are PARENTS of students
+            const parentUsers = await prisma.student.findMany({
+                where: { parentId: { in: userIds } },
+                select: { parentId: true },
+                distinct: ['parentId']
             })
-            await logAction('DELETE', 'user', `Bulk deleted ${res.count} users`, null, null, { userIds })
+
+            const parentIds = new Set(parentUsers.map(s => s.parentId))
+            const safeToDeleteIds = userIds.filter(id => !parentIds.has(id))
+            const skippedCount = userIds.length - safeToDeleteIds.length
+
+            if (safeToDeleteIds.length === 0) {
+                return { success: false, error: 'Cannot delete: All selected users are linked to active students as Parents.' }
+            }
+
+            // 3. Delete associated ReferralLeads for safe users
+            await prisma.referralLead.deleteMany({
+                where: { userId: { in: safeToDeleteIds } }
+            })
+
+            // 4. Delete Users
+            const res = await prisma.user.deleteMany({
+                where: { userId: { in: safeToDeleteIds } }
+            })
+
+            await logAction('DELETE', 'user', `Bulk deleted ${res.count} users (${skippedCount} skipped as parents)`, null, null, { deleted: safeToDeleteIds, skipped: Array.from(parentIds) })
             revalidatePath('/superadmin')
+
+            if (skippedCount > 0) {
+                return { success: true, count: res.count, message: `Deleted ${res.count} users. Skipped ${skippedCount} users who are parents of enrolled students.` }
+            }
             return { success: true, count: res.count }
         }
 

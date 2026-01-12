@@ -15,12 +15,21 @@ interface AdminPanelProps {
     campuses: Campus[]
 }
 
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
 export function AdminPanel({ admins, campuses }: AdminPanelProps) {
     const router = useRouter()
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddAdminModal, setShowAddAdminModal] = useState(false)
     const [modalLoading, setModalLoading] = useState(false)
     const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null)
+
+    // Delete Confirmation State
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, adminId: number | null, adminName: string }>({
+        isOpen: false,
+        adminId: null,
+        adminName: ''
+    })
 
     // Reset Password State
     const [resetTarget, setResetTarget] = useState<{ id: number, name: string, type: 'user' | 'admin' } | null>(null)
@@ -82,15 +91,24 @@ export function AdminPanel({ admins, campuses }: AdminPanelProps) {
         }
     }
 
-    const handleDeleteAdmin = async (id: number, name: string) => {
-        if (!confirm(`Are you sure you want to delete admin "${name}"?`)) {
-            return
-        }
-        const result = await deleteAdmin(id)
+    const handleDeleteAdmin = (id: number, name: string) => {
+        setDeleteConfirmation({ isOpen: true, adminId: id, adminName: name })
+    }
+
+    const confirmDeleteAdmin = async () => {
+        if (!deleteConfirmation.adminId) return
+
+        setModalLoading(true)
+        const result = await deleteAdmin(deleteConfirmation.adminId)
+        setModalLoading(false)
+
         if (result.success) {
+            setDeleteConfirmation({ isOpen: false, adminId: null, adminName: '' })
             router.refresh()
+            toast.success('Admin deleted successfully')
         } else {
             toast.error(result.error || 'Failed to delete admin')
+            setDeleteConfirmation({ isOpen: false, adminId: null, adminName: '' })
         }
     }
 
@@ -223,6 +241,24 @@ export function AdminPanel({ admins, campuses }: AdminPanelProps) {
                     setResetTarget(null)
                 }}
                 target={resetTarget}
+            />
+
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirmation.isOpen}
+                title="Delete Administrator?"
+                description={
+                    <p>
+                        Are you sure you want to permanently delete <strong>{deleteConfirmation.adminName}</strong>?
+                        <br />
+                        This action cannot be undone and will revoke their access immediately.
+                    </p>
+                }
+                confirmText="Yes, Delete Admin"
+                variant="danger"
+                onConfirm={confirmDeleteAdmin}
+                onCancel={() => setDeleteConfirmation({ isOpen: false, adminId: null, adminName: '' })}
+                isLoading={modalLoading}
             />
         </div>
     )

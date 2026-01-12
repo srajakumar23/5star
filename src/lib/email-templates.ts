@@ -71,11 +71,11 @@ export async function sendWelcomeEmail(to: string, name: string, referralCode: s
         await resend.emails.send({
             from: 'Achariya Ambassador <noreply@ambassador.achariya.in>',
             to,
-            subject: '🎉 Welcome to Achariya 5-Star Ambassador Program!',
+            subject: '🎉 Welcome to Achariya Partnership Program (APP)!',
             html: getEmailTemplate({
                 title: 'Welcome to Ambassador Program',
                 greeting: `Welcome, ${name}!`,
-                body: `Congratulations on joining the Achariya 5-Star Ambassador Program as part of our 25th Year Celebration!
+                body: `Congratulations on joining the Achariya Partnership Program (APP) as part of our 25th Year Celebration!
 
 Your unique referral code is: <strong style="color: #CC0000; font-size: 18px;">${referralCode}</strong>
 

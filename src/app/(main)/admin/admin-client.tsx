@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Users, TrendingUp, Award, BarChart3, IndianRupee, CheckCircle, RefreshCw, Trophy, Building2, BookOpen, Shield, GraduationCap, Phone, Mail, Clock, Plus, Filter, Search, X, Pencil } from 'lucide-react'
-import { ReferralTable } from './referral-table'
+import { ReferralManagementTable } from './referral-table-advanced'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { PremiumHeader } from '@/components/premium/PremiumHeader'
@@ -18,12 +18,24 @@ import {
 import { addStudent, updateStudent } from '@/app/student-actions'
 import { User, Student, ReferralLead, RolePermissions, AdminAnalytics, CampusPerformance, Admin, Campus } from '@/types'
 
-
-
 interface AdminClientProps {
     referrals: ReferralLead[]
+    referralMeta?: {
+        total: number
+        page: number
+        limit: number
+        totalPages: number
+    }
+    referralStats?: {
+        success: boolean
+        error?: string
+        total?: number
+        confirmed?: number
+        pending?: number
+        conversionRate?: number
+    }
     analytics: AdminAnalytics
-    confirmReferral: (leadId: number) => Promise<{ success: boolean; error?: string }>
+    confirmReferral: (leadId: number, admissionNumber?: string) => Promise<{ success: boolean; error?: string }>
     initialView?: string
     campuses?: Campus[]
     users?: User[]
@@ -33,7 +45,7 @@ interface AdminClientProps {
     permissions?: RolePermissions
 }
 
-export function AdminClient({ referrals, analytics, confirmReferral, initialView = 'analytics', campuses = [], users = [], students = [], admins = [], campusPerformance = [], permissions }: AdminClientProps) {
+export function AdminClient({ referrals, referralMeta, referralStats, analytics, confirmReferral, initialView = 'analytics', campuses = [], users = [], students = [], admins = [], campusPerformance = [], permissions }: AdminClientProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [statusFilter, setStatusFilter] = useState<string>('All')
@@ -118,6 +130,7 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
             case 'admins': return 'Admin Management';
             case 'students': return 'Student Management';
             case 'home': return 'Dashboard';
+            case 'referrals': return 'Referral Management'; // Added
             case 'reports': return 'Detailed Reports';
             default: return 'Analytics Overview';
         }
@@ -130,6 +143,7 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
             case 'admins': return 'Manage system administrators';
             case 'students': return 'View registered students';
             case 'home': return 'Quick overview and actions';
+            case 'referrals': return 'Process, verify, and manage referral leads'; // Added
             case 'reports': return 'Generate and download data exports';
             default: return 'Operational insights and lead conversion';
         }
@@ -228,13 +242,25 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
                             )}
                             {(permissions?.analytics?.access) && (
                                 <button
-                                    onClick={() => router.push('/admin?view=analytics')}
+                                    onClick={() => router.push('/admin?view=reports')}
                                     className="flex flex-col items-center gap-3 p-6 bg-gray-50 hover:bg-white hover:shadow-xl hover:shadow-purple-500/10 border border-gray-100 hover:border-purple-100 rounded-2xl transition-all group"
                                 >
                                     <div className="p-3 bg-purple-50 rounded-xl group-hover:scale-110 transition-transform">
                                         <BarChart3 size={24} className="text-purple-600" />
                                     </div>
-                                    <span className="text-sm font-bold text-gray-700">Full Analytics</span>
+                                    <span className="text-sm font-bold text-gray-700">Analytics</span>
+                                </button>
+                            )}
+                            {/* New Referrals Button */}
+                            {(permissions?.referralTracking?.access || permissions?.referralTracking?.scope !== 'none') && (
+                                <button
+                                    onClick={() => router.push('/admin?view=referrals')}
+                                    className="flex flex-col items-center gap-3 p-6 bg-gray-50 hover:bg-white hover:shadow-xl hover:shadow-red-500/10 border border-gray-100 hover:border-red-100 rounded-2xl transition-all group"
+                                >
+                                    <div className="p-3 bg-red-50 rounded-xl group-hover:scale-110 transition-transform">
+                                        <CheckCircle size={24} className="text-red-600" />
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">Referrals</span>
                                 </button>
                             )}
                         </div>
@@ -474,10 +500,57 @@ export function AdminClient({ referrals, analytics, confirmReferral, initialView
                         </PremiumCard>
                     </div>
 
-                    <ReferralTable
+                </div>
+            )}
+
+            {/* REFERRALS VIEW */}
+            {selectedView === 'referrals' && (
+                <div className="space-y-8">
+                    {/* Dynamic Status Stats */}
+                    {referralStats && referralStats.success && (
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                <div>
+                                    <p className="text-2xl font-black text-gray-900">{referralStats.total || 0}</p>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Filtered Leads</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+                                    <Filter size={18} />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                <div>
+                                    <p className="text-2xl font-black text-green-600">{referralStats.confirmed || 0}</p>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Confirmed</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                                    <CheckCircle size={18} />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                <div>
+                                    <p className="text-2xl font-black text-amber-500">{referralStats.pending || 0}</p>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pending</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                                    <Clock size={18} />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                <div>
+                                    <p className="text-2xl font-black text-purple-600">{referralStats.conversionRate || 0}%</p>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Conversion</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                                    <TrendingUp size={18} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <ReferralManagementTable
                         referrals={referrals}
-                        confirmReferral={confirmReferral}
-                        initialStatusFilter={statusFilter}
+                        meta={referralMeta || { page: 1, limit: 50, total: referrals.length, totalPages: 1 }}
                         isReadOnly={permissions?.referralTracking?.scope === 'view-only'}
                     />
                 </div>

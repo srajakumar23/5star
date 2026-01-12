@@ -33,7 +33,7 @@ export async function backupDatabase() {
             prisma.referralLead.findMany(),
             prisma.admin.findMany(),
             prisma.campus.findMany(),
-            prisma.feeStructure.findMany(),
+            prisma.gradeFee.findMany(), // Changed from prisma.feeStructure.findMany()
             prisma.systemSettings.findFirst()
         ])
 
@@ -123,7 +123,7 @@ export async function restoreDatabase(backupData: any) {
             await tx.user.deleteMany({}) // Parents/Ambassadors
             await tx.admin.deleteMany({}) // Admins
             await tx.campus.deleteMany({})
-            await tx.feeStructure.deleteMany({})
+            await tx.gradeFee.deleteMany({})
 
             // System Settings (Upsert usually, but we can delete and create)
             await tx.systemSettings.deleteMany({})
@@ -139,7 +139,7 @@ export async function restoreDatabase(backupData: any) {
 
             // Fee Structures
             if (feeStructures && feeStructures.length > 0) {
-                await tx.feeStructure.createMany({ data: feeStructures })
+                await tx.gradeFee.createMany({ data: feeStructures })
             }
 
             // Campuses

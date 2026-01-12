@@ -32,28 +32,33 @@ export function ReferralCardClient({ referral }: ReferralCardClientProps) {
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:border-gray-200">
+        <div className="glass-panel rounded-[24px] border border-white/20 shadow-xl overflow-hidden transition-all hover:scale-[1.01] hover:shadow-2xl group">
             <div
                 className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <div>
-                    <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-lg text-gray-900">{referral.parentName}</h3>
-                        {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 dark:bg-white/5 dark:border-white/5 group-hover:bg-ui-primary/10 transition-colors">
+                        <UserCheck size={24} className="text-ui-primary opacity-60 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                        {(referral.leadStatus === 'Confirmed' && referral.student?.campus?.campusName)
-                            ? <span className="font-semibold text-emerald-600">Joined: {referral.student.campus.campusName}</span>
-                            : referral.campus}
-                        {' • '}{referral.gradeInterested} • {referral.admittedYear || '2025-2026'}
-                    </p>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-black text-lg text-gray-900 dark:text-white tracking-tight">{referral.parentName}</h3>
+                            {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                        </div>
+                        <p className="text-xs font-bold text-gray-500 dark:text-white/40 mt-1 uppercase tracking-wider">
+                            {(referral.leadStatus === 'Confirmed' && referral.student?.campus?.campusName)
+                                ? <span className="text-emerald-500">Joined: {referral.student.campus.campusName}</span>
+                                : referral.campus}
+                            {' • '}{referral.gradeInterested} • {referral.admittedYear || '2025-2026'}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <StatusBadge status={referral.leadStatus} />
                     {referral.leadStatus === 'Confirmed' && referral.confirmedDate && (
-                        <p className="text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-lg">
+                        <p className="text-[10px] text-emerald-500 font-black bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 uppercase tracking-widest">
                             {new Date(referral.confirmedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </p>
                     )}
@@ -61,50 +66,50 @@ export function ReferralCardClient({ referral }: ReferralCardClientProps) {
             </div>
 
             {isExpanded && (
-                <div className="px-5 pb-6 pt-2 border-t border-gray-50 bg-gray-50/30 animate-in slide-in-from-top-2 duration-200">
+                <div className="px-6 pb-6 pt-2 border-t border-black/5 bg-black/5 dark:bg-white/5 animate-in slide-in-from-top-2 duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Student Details</h4>
-                                <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
-                                    <GraduationCap size={14} className="text-red-500" />
+                                <h4 className="text-[9px] font-black text-ui-primary uppercase tracking-[0.2em] mb-2 opacity-60">Student Details</h4>
+                                <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                                    <GraduationCap size={16} className="text-ui-primary" />
                                     {referral.studentName || 'Not specified'}
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Grade Interested</h4>
-                                <p className="text-sm font-bold text-gray-700">{referral.gradeInterested}</p>
+                                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Grade Level</h4>
+                                <p className="text-sm font-black text-gray-700 dark:text-white/80">{referral.gradeInterested}</p>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Preferred Campus</h4>
-                                <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
-                                    <MapPin size={14} className="text-blue-500" />
+                                <h4 className="text-[9px] font-black text-ui-primary uppercase tracking-[0.2em] mb-2 opacity-60">Preferred Hub</h4>
+                                <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                                    <MapPin size={16} className="text-ui-accent" />
                                     {referral.campus}
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Contact Status</h4>
-                                <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
-                                    <Phone size={14} className="text-emerald-500" />
+                                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Contact Link</h4>
+                                <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-white/80">
+                                    <Phone size={16} className="text-emerald-500" />
                                     {referral.parentMobile.replace(/.(?=.{4})/g, '•')}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4 text-right md:text-left">
                             <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Referral Date</h4>
-                                <p className="text-sm font-bold text-gray-700">
+                                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Timestamp</h4>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">
                                     {new Date(referral.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                                 </p>
                             </div>
                             <div>
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Last Update</h4>
-                                <p className="text-sm font-bold text-gray-500 italic">
-                                    {referral.leadStatus === 'Confirmed' ? 'Successfully converted' : 'Awaiting campus follow-up'}
+                                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Status Log</h4>
+                                <p className="text-[10px] font-black text-gray-400 italic uppercase tracking-wider">
+                                    {referral.leadStatus === 'Confirmed' ? 'Verification Successful' : 'Processing in Queue'}
                                 </p>
                             </div>
                         </div>

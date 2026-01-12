@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/auth-service'
 import { redirect } from 'next/navigation'
-import { getAllReferrals, getAdminAnalytics, getAdminUsers, getAdminStudents, getAdminAdmins, getAdminCampusPerformance } from '@/app/admin-actions'
+import { getAllReferrals, getAdminAnalytics, getAdminUsers, getAdminStudents, getAdminAdmins, getAdminCampusPerformance, getReferralStats } from '@/app/admin-actions'
 import { getCampuses } from '@/app/campus-actions'
 import { confirmReferral } from '@/app/admin-actions'
 import { AdminClient } from './admin-client'
@@ -21,18 +21,41 @@ function serializeData<T>(data: T): T {
     return data
 }
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+type SearchParams = Promise<{
+    view?: string
+    page?: string
+    status?: string
+    role?: string
+    campus?: string
+    search?: string
+    from?: string
+    to?: string
+    // Add other filters as needed
+}>
+
+export default async function AdminPage({ searchParams }: { searchParams: SearchParams }) {
     const user = await getCurrentUser()
     if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) redirect('/dashboard')
 
     const params = await searchParams
     const view = params?.view || 'home'
 
+    // Parse Filters
+    const page = parseInt(params.page || '1')
+    const filters = {
+        status: params.status,
+        role: params.role,
+        campus: params.campus,
+        search: params.search,
+        dateRange: (params.from && params.to) ? { from: params.from, to: params.to } : undefined
+    }
+
     // Parallel data fetching
-    const [referrals, analytics, campusesResult] = await Promise.all([
-        getAllReferrals(),
+    const [referrals, analytics, campusesResult, referralStats] = await Promise.all([
+        getAllReferrals(page, 50, filters),
         getAdminAnalytics(),
-        getCampuses()
+        getCampuses(),
+        getReferralStats(filters)
     ])
 
     // Conditional fetching for heavier views
@@ -71,6 +94,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <ErrorBoundary>
             <AdminClient
                 referrals={serializeData(referrals.success ? referrals.referrals : []) as any}
+                referralMeta={referrals.success && referrals.meta ? referrals.meta : { page: 1, limit: 50, total: 0, totalPages: 1 }}
+                referralStats={referralStats.success ? referralStats : undefined}
                 analytics={analytics.success ? analytics : {} as any}
                 confirmReferral={confirmReferral}
                 initialView={view}

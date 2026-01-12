@@ -3,12 +3,31 @@
 @tailwind utilities;
 
 :root {
-  /* Brand Colors - Achariya Official */
-  --primary-red: #CC0000;
-  --primary-red-hover: #AA0000;
-  --accent-gold: #FFD936;
-  --deep-gold: #DAB200;
-  --olive-green: #536942;
+  /* Brand Colors - Achariya Official (Modern Refresh) */
+  --primary-red: #E11D48;
+  /* Vibrant Rose/Crimson */
+  --primary-red-hover: #BE123C;
+  --accent-gold: #FDE68A;
+  /* Sun-washed Gold */
+  --deep-gold: #D97706;
+  /* Deep Amber */
+  --olive-green: #475569;
+  /* Slate as neutral olive fallback */
+
+  /* Enterprise Semantic Design Tokens */
+  --ui-primary: var(--primary-red);
+  --ui-accent: var(--accent-gold);
+  --ui-surface: rgba(255, 255, 255, 0.7);
+  --ui-surface-border: rgba(255, 255, 255, 0.3);
+  --ui-surface-hover: rgba(255, 255, 255, 0.85);
+  --ui-border: #E2E8F0;
+  /* Slate 200 */
+  --ui-neutral: #F1F5F9;
+  /* Slate 100 */
+  --ui-text-main: #0F172A;
+  /* Slate 900 */
+  --ui-text-muted: #64748B;
+  /* Slate 500 */
 
   /* Legacy color names for backward compatibility */
   --primary-gold: #FFD936;
@@ -48,36 +67,47 @@
   --font-sans: 'DM Sans', 'Inter', sans-serif;
   --font-heading: 'DM Sans', 'Inter', sans-serif;
 
-  /* Premium Gradients */
-  --grad-crimson: linear-gradient(135deg, #CC0000 0%, #FF4D4D 100%);
-  --grad-sapphire: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-  --grad-emerald: linear-gradient(135deg, #065F46 0%, #10B981 100%);
-  --grad-amber: linear-gradient(135deg, #92400E 0%, #F59E0B 100%);
-  --grad-violet: linear-gradient(135deg, #5B21B6 0%, #8B5CF6 100%);
-  --grad-rose: linear-gradient(135deg, #9D174D 0%, #EC4899 100%);
-  --grad-dark: linear-gradient(135deg, #111827 0%, #374151 100%);
+  /* Premium Gradients (Refined) */
+  --grad-crimson: linear-gradient(135deg, #E11D48 0%, #FB7185 100%);
+  --grad-sapphire: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+  --grad-emerald: linear-gradient(135deg, #059669 0%, #34D399 100%);
+  --grad-amber: linear-gradient(135deg, #F59E0B 0%, #FDE68A 100%);
+  --grad-violet: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+  --grad-rose: linear-gradient(135deg, #BE123C 0%, #FB7185 100%);
+  --grad-dark: linear-gradient(135deg, #0F172A 0%, #334155 100%);
 }
 
 /* Dark Mode Theme Variables */
 .dark {
-  --primary-red: #EF4444;
-  --primary-red-hover: #DC2626;
-  --accent-gold: #FBBF24;
-  --deep-gold: #F59E0B;
+  --primary-red: #FB7185;
+  --primary-red-hover: #E11D48;
+  --accent-gold: #FDE68A;
+  --deep-gold: #FBBF24;
 
-  --text-primary: #F9FAFB;
-  --text-secondary: #9CA3AF;
+  --ui-primary: var(--primary-red);
+  --ui-accent: var(--accent-gold);
+  --ui-surface: rgba(15, 23, 42, 0.6);
+  --ui-surface-border: rgba(255, 255, 255, 0.1);
+  --ui-surface-hover: rgba(30, 41, 59, 0.8);
+  --ui-border: #334155;
+  --ui-neutral: #1E293B;
+  --ui-text-main: #F8FAFC;
+  --ui-text-muted: #94A3B8;
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
   --text-on-gold: #000000;
   --text-on-red: #FFFFFF;
 
-  --bg-deep: #111827;
-  --bg-card: #1F2937;
-  --bg-input: #374151;
-  --bg-secondary: #1F2937;
+  --bg-deep: #020617;
+  /* Darker slate/black */
+  --bg-card: #0F172A;
+  --bg-input: #1E293B;
+  --bg-secondary: #0F172A;
 
-  --success: #34D399;
+  --success: #10B981;
   --error: #EF4444;
-  --border-color: #374151;
+  --border-color: #334155;
 }
 
 /* ===== DARK MODE COMPONENT OVERRIDES ===== */
@@ -768,11 +798,19 @@ a {
 
 /* Premium Redesign Utilities */
 .glass-card {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--ui-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--ui-surface-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
+
+.glass-panel {
+  background: var(--ui-surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  border: 1px solid var(--ui-surface-border);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.03);
 }
 
 .glass-card-dark {

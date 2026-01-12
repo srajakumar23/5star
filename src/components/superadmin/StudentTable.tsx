@@ -18,6 +18,8 @@ interface StudentTableProps {
     campuses?: any[]
 }
 
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
 export function StudentTable({
     students,
     searchTerm,
@@ -33,14 +35,22 @@ export function StudentTable({
     const [isProcessing, setIsProcessing] = useState(false)
     const [showTransferModal, setShowTransferModal] = useState(false)
     const [targetCampusId, setTargetCampusId] = useState<number | null>(null)
+    const [deleteId, setDeleteId] = useState<number | null>(null)
+
+    // Bulk Confirmation State
+    const [bulkConfirmation, setBulkConfirmation] = useState<{ isOpen: boolean, action: 'activate' | 'suspend' | 'delete' | null }>({
+        isOpen: false,
+        action: null
+    })
 
     // Bulk Action Handler
-    const handleBulkAction = async (action: 'activate' | 'suspend' | 'delete') => {
-        const confirmMessage = action === 'delete'
-            ? `DANGER: You are about to PERMANENTLY DELETE ${selectedStudents.length} students. This action CANNOT be undone. Are you absolutely sure?`
-            : `Are you sure you want to ${action} ${selectedStudents.length} selected students?`
+    const handleBulkAction = (action: 'activate' | 'suspend' | 'delete') => {
+        setBulkConfirmation({ isOpen: true, action })
+    }
 
-        if (!confirm(confirmMessage)) return
+    const executeBulkAction = async () => {
+        const action = bulkConfirmation.action
+        if (!action) return
 
         setIsProcessing(true)
         try {
@@ -48,12 +58,35 @@ export function StudentTable({
             if (res.success) {
                 toast.success(`Bulk ${action} successful: ${res.count} students affected`)
                 setSelectedStudents([])
+                setBulkConfirmation({ isOpen: false, action: null })
                 router.refresh()
             } else {
                 toast.error(res.error || 'Bulk action failed')
+                setBulkConfirmation({ isOpen: false, action: null })
             }
         } catch (error) {
             toast.error('Connection error during bulk action')
+            setBulkConfirmation({ isOpen: false, action: null })
+        } finally {
+            setIsProcessing(false)
+        }
+    }
+
+    const executeSingleDelete = async () => {
+        if (!deleteId) return
+
+        setIsProcessing(true)
+        try {
+            const res = await bulkStudentAction([deleteId], 'delete')
+            if (res.success) {
+                toast.success('Student deleted successfully')
+                setDeleteId(null)
+                router.refresh()
+            } else {
+                toast.error(res.error || 'Failed to delete student')
+            }
+        } catch (error) {
+            toast.error('Connection error during deletion')
         } finally {
             setIsProcessing(false)
         }
@@ -180,7 +213,10 @@ export function StudentTable({
                     >
                         <Edit size={16} strokeWidth={2.5} />
                     </button>
-                    <button className="p-2 rounded-xl border border-red-100 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm bg-white hover:scale-110">
+                    <button
+                        onClick={() => setDeleteId(student.studentId)}
+                        className="p-2 rounded-xl border border-red-100 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm bg-white hover:scale-110"
+                    >
                         <Trash2 size={16} strokeWidth={2.5} />
                     </button>
                 </div>
@@ -424,6 +460,45 @@ export function StudentTable({
                     />
                 </div>
             </div>
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={bulkConfirmation.isOpen}
+                title={`Confirm Bulk ${bulkConfirmation.action === 'delete' ? 'Deletion' : 'Update'}`}
+                description={
+                    bulkConfirmation.action === 'delete' ? (
+                        <p className="text-red-600 font-medium">
+                            DANGER: You are about to PERMANENTLY DELETE <strong>{selectedStudents.length}</strong> students.
+                            <br />This action CANNOT be undone. Are you absolutely sure?
+                        </p>
+                    ) : (
+                        <p>
+                            Are you sure you want to <strong>{bulkConfirmation.action}</strong> {selectedStudents.length} selected students?
+                        </p>
+                    )
+                }
+                confirmText={`Yes, ${bulkConfirmation.action} All`}
+                variant={bulkConfirmation.action === 'delete' ? 'danger' : 'warning'}
+                onConfirm={executeBulkAction}
+                onCancel={() => setBulkConfirmation({ isOpen: false, action: null })}
+                isLoading={isProcessing}
+            />
+
+            {/* Single Delete Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={!!deleteId}
+                title="Delete Student?"
+                description={
+                    <p className="text-red-600 font-medium">
+                        Are you sure you want to PERMANENTLY DELETE this student?
+                        <br />This action cannot be undone.
+                    </p>
+                }
+                confirmText="Delete Student"
+                variant="danger"
+                onConfirm={executeSingleDelete}
+                onCancel={() => setDeleteId(null)}
+                isLoading={isProcessing}
+            />
         </div>
     )
 }

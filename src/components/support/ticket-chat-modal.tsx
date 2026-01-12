@@ -94,7 +94,7 @@ export function TicketChatModal({ ticket, currentUserType, currentUserId, onClos
         )
 
         if (!result.success) {
-            alert('Failed to send message')
+            toast.error('Failed to send message')
             // Revert optimistic update if needed, but for now just alert
         } else {
             // Update the real message from server if needed, mostly for ID

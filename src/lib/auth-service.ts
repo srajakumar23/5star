@@ -19,9 +19,16 @@ export const getCurrentUser = cache(async () => {
             if (admin.assignedCampus) {
                 const campus = await prisma.campus.findUnique({
                     where: { campusName: admin.assignedCampus },
-                    select: { id: true }
+                    select: { id: true, isActive: true }
                 })
-                if (campus) campusId = campus.id
+                if (campus) {
+                    // BLOCK LOGIN IF CAMPUS IS INACTIVE
+                    // Use string comparison as AdminRole enum doesn't overlap with 'Super Admin' literal in types sometimes
+                    if (!campus.isActive && String(admin.role) !== 'Super Admin') {
+                        return null
+                    }
+                    campusId = campus.id
+                }
             }
 
             // Map to User-like structure for compatibility

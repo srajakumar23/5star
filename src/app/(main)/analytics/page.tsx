@@ -1,8 +1,7 @@
-
 import { getCurrentUser } from '@/lib/auth-service'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Share2, CheckCircle, AlertCircle, TrendingUp, Wallet, ArrowLeft, Star } from 'lucide-react'
+import { Share2, CheckCircle, AlertCircle, TrendingUp, Wallet, ArrowLeft, Star, Clock, ChevronRight, BarChart3, ChevronDown } from 'lucide-react'
 import { YearDropdown } from '../dashboard/year-dropdown'
 import { getSystemSettings } from '@/app/settings-actions'
 import { getMyPermissions } from '@/lib/permission-service'
@@ -13,276 +12,199 @@ export default async function AnalyticsPage() {
     const user = await getCurrentUser()
     if (!user) redirect('/')
 
-    // Check admin roles in specific order (Super Admin contains "Admin" so check it first)
-    if (user.role === 'Super Admin') {
-        redirect('/superadmin')
-    }
-    if (user.role.includes('Campus')) {
-        redirect('/campus')
-    }
-    if (user.role.includes('Admin')) {
-        redirect('/admin')
-    }
+    // Check admin roles
+    if (user.role === 'Super Admin') redirect('/superadmin')
+    if (user.role.includes('Campus')) redirect('/campus')
+    if (user.role.includes('Admin')) redirect('/admin')
 
-    // Use DB fields as primary source of truth.
-
-    // Fallback cast to any because we handled Admin redirect above
     const userData = user as any;
-
     const isBenefitActive = userData.benefitStatus === 'Active'
 
-    // Build WhatsApp share URL
-    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://achariya-5star.vercel.app'
-
-    // Check if we are in development to help the user test locally
-    if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_APP_URL) {
-        baseUrl = 'http://localhost:3000'
-    }
-
-    const referralLink = `${baseUrl}/refer?ref=${userData.referralCode}`
-
-    const systemSettings = await getSystemSettings() as any
-
-    const welcomeMessage = userData.role === 'Staff'
-        ? (systemSettings?.staffWelcomeMessage || 'Staff Ambassador Dashboard')
-        : userData.role === 'Alumni'
-            ? (systemSettings?.alumniWelcomeMessage || 'Alumni Ambassador Dashboard')
-            : (systemSettings?.parentWelcomeMessage || 'Parent Ambassador Dashboard')
-
-    let rawShareText = ''
-    if (userData.role === 'Staff') {
-        rawShareText = systemSettings?.staffReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`
-    } else if (userData.role === 'Alumni') {
-        rawShareText = systemSettings?.alumniReferralText || `Hello 👋 I'm a proud Alumni of Achariya. I recommend you to explore admission for your child and experience the 5-Star Education. Click here: {referralLink}`
-    } else {
-        // Parent and others
-        rawShareText = systemSettings?.parentReferralText || `Hello 👋 I'm part of Achariya's 5-Star Ambassador Program. I recommend you to explore admission for your child. Click here: {referralLink}`
-    }
-
-    const shareText = rawShareText
-        .replace(/\{referralLink\}|\$\{referralLink\}/g, referralLink)
-        .replace(/\{academicYear\}|\$\{academicYear\}/g, userData.academicYear || '2025-2026')
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
-
-    const permissions = await getMyPermissions()
-    if (!permissions) redirect('/')
-
+    // Fee Calculation
+    const totalFee = userData.studentFee || 60000
+    const benefitPercent = userData.yearFeeBenefitPercent || 0
+    const benefitValue = (totalFee * benefitPercent) / 100
 
     return (
-        <div className="-mx-2 xl:mx-0">
-            <div className="space-y-6 md:space-y-8 max-w-2xl mx-auto pb-10">
+        <div className="-mx-2 xl:mx-0 min-h-screen bg-slate-50/50 pb-20 p-4">
+            {/* Back Navigation & Header */}
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <Link href="/dashboard" className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
+                        <ArrowLeft size={20} strokeWidth={2.5} />
+                    </Link>
+                    <h1 className="text-2xl font-black text-slate-800 tracking-tight">Your Analytics</h1>
+                </div>
 
-                {/* Back to Home Link */}
-                <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm font-bold no-underline transition-colors px-2">
-                    <ArrowLeft size={16} strokeWidth={2.5} /> Back to Home
-                </Link>
+                <div className="bg-white rounded-full px-4 py-2 shadow-sm border border-slate-200 flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Academic Year</span>
+                    <YearDropdown currentYear={userData.academicYear || '2025-2026'} />
+                </div>
+            </div>
 
-                {/* Dynamic Header - Mobile Optimized */}
-                <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 md:p-8 flex flex-wrap items-center justify-between gap-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gray-50 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+            <div className="space-y-6 max-w-2xl mx-auto">
 
-                    <div className="flex items-center gap-5 relative z-10">
-                        <div className="relative flex items-center justify-center w-6 h-6">
-                            <div className={`w-3 h-3 rounded-full z-10 ${isBenefitActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                            <div className={`absolute inset-0 rounded-full animate-ping opacity-30 ${isBenefitActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                {/* === TOP SECTION (Green/White from Image 0) === */}
+
+                {/* 1. Welcome Card */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden">
+                    <div className="flex items-start gap-4">
+                        <div className="mt-1">
+                            <div className={`w-3 h-3 rounded-full ${isBenefitActive ? 'bg-emerald-500' : 'bg-amber-500'} ring-4 ${isBenefitActive ? 'ring-emerald-100' : 'ring-amber-100'}`} />
                         </div>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
-                                {welcomeMessage}
+                            <h1 className="text-2xl font-black text-slate-800 leading-tight mb-2">
+                                Welcome to the {userData.role} Ambassador Dashboard
                             </h1>
-                            <p className="text-sm md:text-base font-medium text-gray-500 mt-1 flex items-center gap-2">
-                                <span className={isBenefitActive ? 'text-emerald-600' : 'text-red-600'}>{isBenefitActive ? 'Benefits Active' : 'Benefits Inactive'}</span>
-                                <span className="text-gray-300">•</span>
-                                <span>{userData.academicYear || '2025-2026'}</span>
+                            <p className={`text-sm font-bold ${isBenefitActive ? 'text-emerald-600' : 'text-amber-600'} flex items-center gap-2`}>
+                                {isBenefitActive ? 'Benefits Active' : 'Action Required'}
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-500">{userData.academicYear || '2025-2026'}</span>
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Year Selector - Floating Card - High Z-Index */}
-                <div className="-mt-6 md:-mt-8 mx-4 relative z-50 bg-white rounded-2xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.08)] border border-gray-100 p-2 md:p-3 flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-700 delay-75 fill-mode-both">
-                    <div className="bg-gray-50 rounded-xl px-4 py-1 flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Academic Year</span>
-                        <YearDropdown currentYear={userData.academicYear || '2025-2026'} />
-                    </div>
-                </div>
-
-                {/* Status Banner - Compact & Clean */}
-                <div className={`
-                flex items-center gap-4 p-5 md:p-6 rounded-[24px] border border-l-4 shadow-sm
-                ${isBenefitActive ? 'bg-white border-l-emerald-500 border-gray-100' : 'bg-white border-l-red-500 border-gray-100'}
-            `}>
-                    <div className={`p-2 rounded-xl flex-shrink-0 ${isBenefitActive ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                        {isBenefitActive ? <CheckCircle size={20} className="text-emerald-600" /> : <AlertCircle size={20} className="text-red-600" />}
+                {/* 2. Benefits Active Status Card */}
+                <div className={`bg-white rounded-3xl p-6 shadow-sm border border-slate-100 border-l-[6px] ${isBenefitActive ? 'border-l-emerald-500' : 'border-l-amber-500'} flex items-start gap-4`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isBenefitActive ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {isBenefitActive ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
                     </div>
                     <div>
-                        <h3 className="text-base font-bold text-gray-900 mb-0.5">
-                            {isBenefitActive ? 'Benefits Active' : 'Benefits Inactive'}
+                        <h3 className="text-xl font-bold text-slate-800 mb-1">
+                            {isBenefitActive ? 'Benefits Active' : 'Unlock Benefits'}
                         </h3>
-                        <p className="text-xs md:text-sm text-gray-500 font-medium leading-relaxed">
+                        <p className="text-slate-500 text-sm leading-relaxed">
                             {isBenefitActive
                                 ? 'Make at least 1 confirmed referral every year to keep benefits active.'
-                                : 'Benefits inactive. Make at least 1 confirmed referral this year to reactivate.'}
+                                : 'Refer 1 student to unlock your staff fee benefits.'}
                         </p>
                     </div>
                 </div>
 
-                {/* Earnings Card - Premium Gradient */}
-                {permissions.savingsCalculator.access && (
-                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-[28px] p-6 md:p-8 relative overflow-hidden shadow-[0_20px_40px_-12px_rgba(16,185,129,0.3)] text-white">
-                        <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-                        <div className="absolute -top-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+                {/* 3. Estimated Savings (Green Card) */}
+                <div className={`rounded-3xl p-8 relative overflow-hidden shadow-lg ${isBenefitActive ? 'bg-[#059669]' : 'bg-slate-800'}`}>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-                        <div className="relative z-10 flex justify-between items-start gap-4">
-                            <div>
-                                <p className="text-xs md:text-sm font-semibold text-emerald-100 mb-2 uppercase tracking-wider">
-                                    Estimated {userData.role === 'Alumni' ? 'Benefit Value' : 'Savings'} ({userData.academicYear || '2025-2026'})
-                                </p>
-                                <div className="flex flex-wrap items-baseline gap-3 mb-4">
-                                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter">
-                                        ₹{((userData.studentFee || 60000) * (userData.yearFeeBenefitPercent || 0) / 100).toLocaleString('en-IN')}
-                                    </h2>
-                                    <span className="text-xs font-bold bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-white/10">
-                                        {userData.yearFeeBenefitPercent}% Off
-                                    </span>
-                                </div>
-                                <p className="text-[10px] md:text-xs text-emerald-100/70 font-medium max-w-sm">
-                                    * Based on incentive structure for the current academic year.
-                                </p>
-                            </div>
-                            <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner">
-                                <Wallet size={24} className="text-white" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-4">
+                                ESTIMATED SAVINGS ({userData.academicYear || '2025-2026'})
+                            </p>
+                            <div className="flex items-center gap-3 mb-2">
+                                <h2 className="text-5xl font-black text-white">
+                                    ₹{benefitValue.toLocaleString('en-IN')}
+                                </h2>
+                                <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold border border-white/10">
+                                    {userData.yearFeeBenefitPercent}% Off
+                                </span>
                             </div>
                         </div>
+                        <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-sm">
+                            <Wallet size={24} className="text-white" />
+                        </div>
                     </div>
-                )}
 
-
-
-
-
-                {/* Stats Grid - Mobile Stacked */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 fill-mode-both">
-                    {/* Confirmed Referrals - Red */}
-                    <StatCard
-                        title="Total Referrals"
-                        value={userData.confirmedReferralCount}
-                        icon={TrendingUp}
-                        theme="red"
-                    />
-
-                    {/* This Year Fee Benefit - Amber/Gold */}
-                    <StatCard
-                        title={userData.role === 'Alumni' ? 'Year Benefit' : 'Fee Benefit'}
-                        value={`${userData.yearFeeBenefitPercent}%`}
-                        icon={Wallet}
-                        theme="amber"
-                    />
-
-                    {/* Long-Term Benefit - Dynamic State */}
-                    <div className="md:col-span-2 lg:col-span-1">
-                        {userData.confirmedReferralCount >= 5 ? (
-                            <StatCard
-                                title="Long-Term"
-                                value={`${userData.longTermBenefitPercent}%`}
-                                icon={Star}
-                                theme="orange"
-                            />
-                        ) : (
-                            <StatCard
-                                title="Next Milestone"
-                                value="5-Star"
-                                icon={Star}
-                                theme="gray"
-                                subValue={`${5 - userData.confirmedReferralCount} Referrals to Unlock`}
-                            />
-                        )}
-                    </div>
+                    <p className="text-white/40 text-[10px] mt-6 font-medium">
+                        * Based on incentive structure for the current academic year.
+                    </p>
                 </div>
 
-                {/* Benefit Structure Card */}
-                <div className="bg-white rounded-[28px] p-6 md:p-8 border border-gray-100 shadow-sm space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300 fill-mode-both">
-                    <div>
-                        <h3 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight mb-6 flex items-center gap-2">
-                            Benefit Structure
-                        </h3>
 
-                        {/* Short Term Benefits */}
-                        <div className="mb-8">
-                            <h4 className="text-xs font-bold text-red-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                                Short Term (This Year)
-                            </h4>
-                            <BenefitGrid currentCount={userData.currentYearCount !== undefined ? userData.currentYearCount : userData.confirmedReferralCount} />
+                {/* === MIDDLE SECTION (Red/Orange/Gray from Image 1) === */}
+
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest pt-4">Performance</h3>
+
+                <StatCard
+                    title="Total Referrals"
+                    value={userData.confirmedReferralCount}
+                    icon={TrendingUp}
+                    theme="red"
+                    className="!h-48 !rounded-[32px] shadow-[0_20px_40px_-15px_rgba(225,29,72,0.4)]"
+                />
+
+                <StatCard
+                    title="Fee Benefit"
+                    value={`${userData.yearFeeBenefitPercent}%`}
+                    icon={Wallet}
+                    theme="orange"
+                    className="!h-48 !rounded-[32px] shadow-[0_20px_40px_-15px_rgba(249,115,22,0.4)]"
+                />
+
+                <div className="bg-slate-600 rounded-[32px] p-8 text-white relative overflow-hidden h-48 flex flex-col justify-center shadow-xl">
+                    <div className="absolute -right-10 -bottom-10 opacity-10">
+                        <Star size={150} />
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="p-2 bg-white/10 rounded-lg backdrop-blur-md">
+                            <Star size={18} className="text-white" />
+                        </div>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/80">Next Milestone</span>
+                    </div>
+
+                    <h2 className="text-4xl font-black tracking-tight mb-2">5-Star</h2>
+                    <p className="text-white/60 font-medium text-sm">5 Referrals to Unlock</p>
+                </div>
+
+
+                {/* === BOTTOM SECTION (Benefit Structure from Image 2) === */}
+
+                <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100">
+                    <h2 className="text-2xl font-black text-slate-900 mb-6">Benefit Structure</h2>
+
+                    <div className="mb-4 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-xs font-bold text-red-500 uppercase tracking-widest">Short Term (This Year)</span>
+                    </div>
+
+                    {/* Short Term Grid */}
+                    <div className="mb-8">
+                        <BenefitGrid currentCount={userData.confirmedReferralCount} />
+                    </div>
+
+                    {/* Long Term Benefits (Red Card Section) */}
+                    <div className="bg-[#6B121A] rounded-[32px] p-8 text-white text-center relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+
+                        {/* Stars Decor */}
+                        <div className="flex justify-center gap-4 mb-6 relative z-10 opacity-20">
+                            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={24} fill="currentColor" />)}
                         </div>
 
-                        {/* Long Term Benefits - Premium Dark Card */}
-                        <div className="bg-gradient-to-br from-[#420a15] via-[#700f1c] to-[#8a1c2a] p-6 md:p-8 rounded-[24px] relative overflow-hidden border border-red-900/50 shadow-2xl">
-                            {/* Details */}
-                            <div className="relative z-10 text-center space-y-6">
-                                <div>
-                                    <p className="text-[10px] font-extrabold text-red-400 uppercase tracking-[0.2em] mb-2">Exclusive Rewards</p>
-                                    <h4 className="text-2xl md:text-3xl font-black text-white tracking-tight">Long Term Benefits</h4>
-                                    <p className="text-xs text-white/50 font-medium mt-1">From 2nd Year Onwards</p>
-                                </div>
+                        <div className="relative z-10 mb-8">
+                            <p className="text-red-200 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Exclusive Rewards</p>
+                            <h3 className="text-3xl font-black mb-1">Long Term Benefits</h3>
+                            <p className="text-red-200/60 text-xs font-medium">From 2nd Year Onwards</p>
+                        </div>
 
-                                {/* Stars */}
-                                <div className="flex justify-center gap-3">
-                                    {[1, 2, 3, 4, 5].map((star) => {
-                                        const isAchieved = userData.confirmedReferralCount >= star;
-                                        return (
-                                            <div key={star} className={`transition-all duration-500 ${isAchieved ? 'scale-110 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'opacity-20 grayscale'}`}>
-                                                <span className="text-2xl md:text-3xl">⭐</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                        <div className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm mb-8 relative z-10">
+                            <span className="text-sm font-bold text-yellow-400">
+                                <span className="text-white">5 more to unlock</span> 5-Star Status
+                            </span>
+                        </div>
 
-                                {/* Unlock Status */}
-                                <div className={`
-                                        inline-block px-6 py-3 rounded-xl border backdrop-blur-md
-                                        ${userData.confirmedReferralCount >= 5
-                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                        : 'bg-white/5 border-white/10 text-white/70'}
-                                    `}>
-                                    {userData.confirmedReferralCount >= 5 ? (
-                                        <span className="font-bold text-sm">✨ You're a 5-Star Ambassador! ✨</span>
-                                    ) : (
-                                        <span className="text-sm font-medium">
-                                            <span className="text-white font-bold">{5 - userData.confirmedReferralCount}</span> more to unlock <span className="text-amber-400 font-bold">5-Star Status</span>
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Grid */}
-                                <div className="grid grid-cols-2 gap-4 pt-4">
-                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Base Benefit</p>
-                                        <p className="text-3xl font-black text-amber-400">15%</p>
-                                        <p className="text-[10px] text-white/30 font-medium mt-1">3% × 5 referrals</p>
-                                    </div>
-                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Per Referral</p>
-                                        <p className="text-3xl font-black text-emerald-400">+5%</p>
-                                        <p className="text-[10px] text-white/30 font-medium mt-1">Short term extra</p>
-                                    </div>
-                                </div>
-                                <p className="text-[10px] md:text-xs text-white/30 italic mt-6">* Requires minimum 1 referral in the new year to unlock</p>
+                        <div className="grid grid-cols-2 gap-4 relative z-10">
+                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                <p className="text-[10px] font-bold text-red-200/50 uppercase tracking-widest mb-1">Base Benefit</p>
+                                <p className="text-3xl font-black text-yellow-400">15%</p>
+                                <p className="text-[9px] text-zinc-500 mt-1">3% × 5 referrals</p>
+                            </div>
+                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                <p className="text-[10px] font-bold text-red-200/50 uppercase tracking-widest mb-1">Per Referral</p>
+                                <p className="text-3xl font-black text-emerald-400">+5%</p>
+                                <p className="text-[9px] text-zinc-500 mt-1">Short term extra</p>
                             </div>
                         </div>
 
+                        <p className="text-[9px] text-white/20 mt-6 relative z-10">
+                            * Requires minimum 1 referral in the new year to unlock
+                        </p>
                     </div>
+
                 </div>
-            </div >
+
+            </div>
         </div>
     )
 }
-
-function StarIcon({ size, className, style }: { size: number, className?: string, style?: React.CSSProperties }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ stroke: 'none', color: 'rgba(255,255,255,0.9)', ...style }}>
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-        </svg>
-    )
-}
-

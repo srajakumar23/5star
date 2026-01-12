@@ -14,14 +14,17 @@ const RetentionHeatmap = dynamic(() => import('@/components/analytics/RetentionH
     loading: () => <div className="h-96 w-full animate-pulse bg-gray-100 rounded-3xl" />
 })
 
+import { AnalyticsCharts } from '@/components/superadmin/AnalyticsCharts'
+
 interface AnalyticsDashboardProps {
     analyticsData: SystemAnalytics
     trendData: { date: string; users: number }[]
     campusCompData: CampusPerformance[]
     onCampusClick: (campusName: string) => void
+    deepTrends?: any
 }
 
-export function AnalyticsDashboard({ analyticsData: initialAnalytics, trendData, campusCompData, onCampusClick }: AnalyticsDashboardProps) {
+export function AnalyticsDashboard({ analyticsData: initialAnalytics, trendData, campusCompData, onCampusClick, deepTrends }: AnalyticsDashboardProps) {
     const [isTableExpanded, setIsTableExpanded] = useState(false)
     const [selectedCampus, setSelectedCampus] = useState<string>('all')
 
@@ -77,6 +80,14 @@ export function AnalyticsDashboard({ analyticsData: initialAnalytics, trendData,
             </div>
 
             <StatsCards analytics={displayedAnalytics} growthTrend={trendData} />
+
+            {/* NEW: Analytics Deep Dive Charts */}
+            {deepTrends && selectedCampus === 'all' && (
+                <AnalyticsCharts
+                    admissionTrend={deepTrends.trends}
+                    referrerDistribution={deepTrends.referrerDistribution}
+                />
+            )}
 
             {/* SECTION 1: SYSTEM OVERVIEW Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

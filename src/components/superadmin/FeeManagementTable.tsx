@@ -7,6 +7,7 @@ import { getCampuses } from '@/app/campus-actions'
 import { getAcademicYears } from '@/app/settings-actions'
 import CSVUploader from '@/components/CSVUploader'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface FeeManagementTableProps {
     academicYears?: any[]
@@ -17,6 +18,14 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
     const [loading, setLoading] = useState(false)
     const [search, setSearch] = useState('')
     const [showUploader, setShowUploader] = useState(false)
+
+    // Confirmation State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        data?: any
+    }>({
+        isOpen: false
+    })
 
     // Filters
     const [campuses, setCampuses] = useState<any[]>([])
@@ -64,11 +73,12 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
         }
     }
 
-    const handleSyncFees = async () => {
-        const confirmMsg = `Are you sure you want to sync fees for:\n${selectedCampus ? 'Selected Campus' : 'All Campuses'}\n${selectedGrade ? 'Selected Grade' : 'All Grades'}\n${selectedAY ? selectedAY : 'All Years'}?\n\nThis will update student fees to match the fee structure.`
+    const handleSyncFees = () => {
+        setConfirmState({ isOpen: true })
+    }
 
-        if (!confirm(confirmMsg)) return
-
+    const executeSyncFees = async () => {
+        setConfirmState({ isOpen: false })
         setLoading(true)
         try {
             const res = await syncStudentFees(
@@ -208,6 +218,27 @@ export function FeeManagementTable({ academicYears: initialAcademicYears = [] }:
                     }}
                 />
             )}
+
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title="Sync Student Fees?"
+                description={
+                    <p className="text-sm">
+                        Are you sure you want to sync fees for:
+                        <ul className="list-disc pl-4 mt-2 mb-2 font-medium">
+                            <li>{selectedCampus ? 'Selected Campus' : 'All Campuses'}</li>
+                            <li>{selectedGrade ? 'Selected Grade' : 'All Grades'}</li>
+                            <li>{selectedAY ? selectedAY : 'All Years'}</li>
+                        </ul>
+                        This will update student fees to match the fee structure.
+                    </p>
+                }
+                confirmText="Start Sync"
+                variant="warning"
+                onConfirm={executeSyncFees}
+                onCancel={() => setConfirmState({ isOpen: false })}
+            />
         </div>
     )
 }

@@ -5,14 +5,27 @@ import { Rocket, Mail, CheckCircle2, AlertTriangle, Loader2, Users, Clock, Zap }
 import { triggerReengagementCampaign } from '@/app/engagement-actions'
 import { toast } from 'sonner'
 import { CampaignManager } from './CampaignManager'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export function EngagementPanel() {
     const [activeTab, setActiveTab] = useState<'overview' | 'campaigns'>('overview')
     const [loading, setLoading] = useState(false)
     const [lastResult, setLastResult] = useState<{ sent: number, time: Date } | null>(null)
 
-    const handleTriggerCampaign = async () => {
-        if (!confirm('Are you sure? This will send emails to ALL ambassadors inactive for 14+ days.')) return
+    // Confirmation State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        data?: any
+    }>({
+        isOpen: false
+    })
+
+    const handleTriggerCampaign = () => {
+        setConfirmState({ isOpen: true })
+    }
+
+    const executeTriggerCampaign = async () => {
+        setConfirmState({ isOpen: false })
         setLoading(true)
         try {
             const res = await triggerReengagementCampaign()
@@ -121,6 +134,20 @@ export function EngagementPanel() {
                     </div>
                 </div>
             )}
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title="Run Re-engagement?"
+                description={
+                    <p>
+                        Are you sure? This will send emails to <strong>ALL ambassadors</strong> inactive for 14+ days.
+                    </p>
+                }
+                confirmText="Run Logic"
+                variant="warning"
+                onConfirm={executeTriggerCampaign}
+                onCancel={() => setConfirmState({ isOpen: false })}
+            />
         </div>
     )
 }

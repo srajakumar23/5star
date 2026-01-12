@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { getAllReferrals, confirmReferral } from '@/app/admin-actions'
 import { convertLeadToStudent } from '@/app/student-actions'
 import { ReferralTable } from '@/app/(main)/admin/referral-table'
+import CSVUploader from '@/components/CSVUploader'
 
 export function ReferralPanel() {
     const router = useRouter()
@@ -14,6 +15,7 @@ export function ReferralPanel() {
 
     const [referrals, setReferrals] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [showBulkUpload, setShowBulkUpload] = useState(false)
 
     const loadReferrals = async () => {
         setLoading(true)
@@ -35,14 +37,14 @@ export function ReferralPanel() {
         loadReferrals()
     }, [])
 
-    const handleConfirmReferral = async (leadId: number) => {
-        const res = await confirmReferral(leadId)
+    const handleConfirmReferral = async (leadId: number, admissionNumber?: string) => {
+        const res = await confirmReferral(leadId, admissionNumber)
         if (res.success) {
             toast.success('Referral confirmed!')
             loadReferrals()
             router.refresh()
         } else {
-            toast.error(res.error || 'Failed to confirm')
+            return res
         }
     }
 
@@ -52,13 +54,27 @@ export function ReferralPanel() {
 
     return (
         <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-black text-gray-900 tracking-tighter hidden md:block">Referral Management</h1>
+            </div>
+
             <ReferralTable
-                initialSearch={initialSearch}
                 referrals={referrals}
                 confirmReferral={handleConfirmReferral}
                 convertLeadToStudent={convertLeadToStudent}
-                isSuperAdmin={true} // Assuming super admin context
+                onBulkAdd={() => setShowBulkUpload(true)}
             />
+
+            {showBulkUpload && (
+                <CSVUploader
+                    type="referrals"
+                    onClose={() => setShowBulkUpload(false)}
+                    onUpload={async () => {
+                        await loadReferrals()
+                        return { success: true, added: 0, failed: 0, errors: [] }
+                    }}
+                />
+            )}
         </div>
     )
 }

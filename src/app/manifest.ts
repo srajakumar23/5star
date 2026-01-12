@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: '5-Star Ambassador',
-        short_name: '5-Star',
-        description: 'Achariya 5-Star Ambassador Program Portal',
+        name: 'Achariya Partnership Program',
+        short_name: 'APP',
+        description: 'Achariya Partnership Program (APP) Portal',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',

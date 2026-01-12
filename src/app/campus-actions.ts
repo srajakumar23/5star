@@ -110,6 +110,27 @@ export async function updateCampus(id: number, data: any) {
     }
 }
 
+export async function toggleCampusStatus(id: number, isActive: boolean) {
+    try {
+        const user = await getCurrentUser()
+        if (!user || user.role !== 'Super Admin') {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        await prisma.campus.update({
+            where: { id },
+            data: { isActive }
+        })
+
+        revalidatePath('/dashboard')
+        revalidatePath('/campus')
+        return { success: true }
+    } catch (error) {
+        console.error('Error toggling campus status:', error)
+        return { success: false, error: 'Failed to update campus status' }
+    }
+}
+
 export async function deleteCampus(id: number, force: boolean = false) {
     try {
         const user = await getCurrentUser()
@@ -327,13 +348,17 @@ export async function getCampusReferrals(campusName: string) {
     }
 }
 
-export async function confirmCampusReferral(leadId: number, campusName: string) {
+export async function confirmCampusReferral(leadId: number, campusName: string, admissionNumber?: string) {
     const user = await getCurrentUser()
     if (!user) return { success: false, error: 'Unauthorized' }
 
     // Permission check
     if (user.role !== 'Super Admin' && user.assignedCampus !== campusName) {
         return { success: false, error: 'Forbidden' }
+    }
+
+    if (!admissionNumber) {
+        return { success: false, error: 'Student ERP/Admission Number is required for confirmation' }
     }
 
     // Adapter to match existing confirmReferral logic but with revalidation for campus
@@ -345,11 +370,20 @@ export async function confirmCampusReferral(leadId: number, campusName: string) 
 
         if (!lead) return { success: false, error: 'Lead not found' }
 
+        // Check if admission number is already used (Optional uniqueness check)
+        const existing = await prisma.referralLead.findFirst({
+            where: { admissionNumber, leadId: { not: leadId } }
+        })
+        if (existing) {
+            return { success: false, error: `ERP Number ${admissionNumber} is already linked to another lead: ${existing.studentName || 'Student'}` }
+        }
+
         await prisma.referralLead.update({
             where: { leadId },
             data: {
                 leadStatus: 'Confirmed',
-                confirmedDate: new Date()
+                confirmedDate: new Date(),
+                admissionNumber: admissionNumber
             }
         })
 

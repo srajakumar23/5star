@@ -5,6 +5,7 @@ import { Trash2, CheckCircle, XCircle, Clock, ShieldAlert } from 'lucide-react'
 import { PremiumCard } from '@/components/premium/PremiumCard'
 import { approveDeletion, rejectDeletion } from '@/app/deletion-actions'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface DeletionRequest {
     userId: number
@@ -24,10 +25,25 @@ interface Props {
 export function DeletionRequestsTable({ requests, onRefresh }: Props) {
     const [loadingId, setLoadingId] = useState<number | null>(null)
 
-    const handleApprove = async (userId: number) => {
-        if (!confirm('Are you sure you want to PERMANENTLY scrub this user\'s data? This cannot be undone.')) return
+    // Confirmation State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        data?: number
+    }>({
+        isOpen: false
+    })
 
+    const handleApprove = (userId: number) => {
+        setConfirmState({ isOpen: true, data: userId })
+    }
+
+    const executeApprove = async () => {
+        const userId = confirmState.data
+        if (!userId) return
+
+        setConfirmState({ isOpen: false })
         setLoadingId(userId)
+
         const res = await approveDeletion(userId)
         setLoadingId(null)
 
@@ -146,6 +162,22 @@ export function DeletionRequestsTable({ requests, onRefresh }: Props) {
                     </table>
                 </div>
             </div>
+
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title="Permanent Account Deletion"
+                description={
+                    <p className="text-red-600 font-medium">
+                        Are you sure you want to <strong>PERMANENTLY scrub</strong> this user's data?
+                        <br />This action cannot be undone and is irreversible.
+                    </p>
+                }
+                confirmText="Confirm Deletion"
+                variant="danger"
+                onConfirm={executeApprove}
+                onCancel={() => setConfirmState({ isOpen: false })}
+            />
         </div>
     )
 }

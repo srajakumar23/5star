@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, runCampaign } from '@/app/campaign-actions'
+import { getCampuses } from '@/app/campus-actions'
 import { toast } from 'sonner'
 import { Plus, Play, Edit, Trash2, Mail, Clock, CheckCircle2, AlertTriangle, Loader2, Users, Building2, Eye, Filter } from 'lucide-react'
+
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export function CampaignManager() {
     const [campaigns, setCampaigns] = useState<any[]>([])
@@ -13,6 +16,17 @@ export function CampaignManager() {
     const [showPreviewModal, setShowPreviewModal] = useState(false)
     const [previewCampaign, setPreviewCampaign] = useState<any>(null)
     const [editingCampaign, setEditingCampaign] = useState<any>(null)
+    const [campuses, setCampuses] = useState<any[]>([])
+
+    // Confirmation State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        type: 'run' | 'delete' | null
+        data?: any
+    }>({
+        isOpen: false,
+        type: null
+    })
     const [form, setForm] = useState({
         name: '',
         subject: '',
@@ -33,6 +47,9 @@ export function CampaignManager() {
 
     useEffect(() => {
         loadCampaigns()
+        getCampuses().then(res => {
+            if (res.success) setCampuses(res.campuses || [])
+        })
     }, [])
 
     const handleSubmit = async () => {
@@ -75,9 +92,18 @@ export function CampaignManager() {
         }
     }
 
-    const handleRun = async (id: number, name: string) => {
-        if (!confirm(`Run campaign "${name}" now? This will send emails to matching users.`)) return
+    const handleRun = (id: number, name: string) => {
+        setConfirmState({ isOpen: true, type: 'run', data: { id, name } })
+    }
+
+    const executeRun = async () => {
+        const { id, name } = confirmState.data
+        if (!id) return
+
         const tid = toast.loading('Starting campaign...')
+        // Close dialog immediately
+        setConfirmState({ isOpen: false, type: null })
+
         const res = await runCampaign(id)
         if (res.success) {
             toast.success(`Campaign finished. Sent: ${res.sent}`, { id: tid })
@@ -87,14 +113,22 @@ export function CampaignManager() {
         }
     }
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Delete this campaign?')) return
+    const handleDelete = (id: number) => {
+        setConfirmState({ isOpen: true, type: 'delete', data: id })
+    }
+
+    const executeDelete = async () => {
+        const id = confirmState.data
+        if (!id) return
+
         const res = await deleteCampaign(id)
         if (res.success) {
             toast.success('Campaign deleted')
             loadCampaigns()
+            setConfirmState({ isOpen: false, type: null })
         } else {
             toast.error(res.error || 'Failed to delete')
+            setConfirmState({ isOpen: false, type: null })
         }
     }
 
@@ -261,7 +295,9 @@ export function CampaignManager() {
                                             className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
                                         >
                                             <option value="All">All Campuses</option>
-                                            {/* TODO: Dynamically load campuses */}
+                                            {campuses.map((c: any) => (
+                                                <option key={c.id} value={c.campusName}>{c.campusName}</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div>
@@ -355,6 +391,31 @@ export function CampaignManager() {
                     </div>
                 </div>
             )}
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title={confirmState.type === 'run' ? 'Run Campaign?' : 'Delete Campaign?'}
+                description={
+                    confirmState.type === 'run' ? (
+                        <p>
+                            Are you sure you want to run <strong>{confirmState.data?.name}</strong>?
+                            <br />This will immediately send emails to all matching users.
+                        </p>
+                    ) : (
+                        <p>
+                            Are you sure you want to permanently delete this campaign?
+                            <br />This action cannot be undone.
+                        </p>
+                    )
+                }
+                confirmText={confirmState.type === 'run' ? 'Yes, Run Campaign' : 'Delete Campaign'}
+                variant={confirmState.type === 'run' ? 'warning' : 'danger'}
+                onConfirm={() => {
+                    if (confirmState.type === 'run') executeRun()
+                    else executeDelete()
+                }}
+                onCancel={() => setConfirmState({ isOpen: false, type: null })}
+            />
         </div>
     )
 }

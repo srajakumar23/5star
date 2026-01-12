@@ -13,7 +13,8 @@ function parseCSV(csvText: string) {
     const lines = cleanText.split(/\r?\n/).filter(line => line.trim() !== '')
     if (lines.length < 2) return []
 
-    const headers = lines[0].split(',').map(h => h.trim())
+    // Parse Headers: Trim and Lowercase for consistent matching
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
 
     return lines.slice(1).map(line => {
         // Handle quoted values correctly
@@ -37,14 +38,12 @@ function parseCSV(csvText: string) {
         // Map headers to values
         const row: any = {}
         headers.forEach((h, i) => {
-            // Remove any potential quotes from headers
-            const cleanHeader = h.replace(/^"|"$/g, '').trim()
             let value = values[i] || ''
             // Remove quotes from value if present
             if (value.startsWith('"') && value.endsWith('"')) {
                 value = value.slice(1, -1)
             }
-            row[cleanHeader] = value
+            row[h] = value
         })
         return row
     })
@@ -119,9 +118,9 @@ export async function importAmbassadors(csvData: string) {
 
         for (const [index, row] of rows.entries()) {
             // Flexible Header Mapping (Support both camelCase and Human Readable)
-            const fullName = row.fullName || row['Full Name']
-            const mobileNumber = row.mobileNumber || row['Mobile Number']
-            const roleStr = row.role || row['Role']
+            const fullName = row.fullname || row['full name']
+            const mobileNumber = row.mobilenumber || row['mobile number']
+            const roleStr = row.role || row['role']
             // Normalize Role (Capitalize first letter to match Enum)
             const roleNorm = roleStr ? (roleStr.charAt(0).toUpperCase() + roleStr.slice(1).toLowerCase()) : ''
 
@@ -132,13 +131,13 @@ export async function importAmbassadors(csvData: string) {
                 continue
             }
             const role = roleNorm as UserRole
-            const email = row.email || row['Email'] || null
-            const assignedCampus = row.assignedCampus || row['Campus Name'] || row['Campus'] || null
-            const empId = row.empId || row['EMP.ID.'] || row['Emp ID'] || null
-            const childEprNo = row.childEprNo || row['ERP No'] || row['ERP No.'] || null
-            const academicYear = row.academicYear || row['Academic Year'] || '2025-2026'
-            const password = row.password || row['Password'] || null
-            const referralCode = row.referralCode || row['Referral Code'] || null
+            const email = row.email || row['email'] || null
+            const assignedCampus = row.assignedcampus || row['campus name'] || row['campus'] || null
+            const empId = row.empid || row['emp.id.'] || row['emp id'] || null
+            const childEprNo = row.childeprno || row['erp no'] || row['erp no.'] || null
+            const academicYear = row.academicyear || row['academic year'] || '2025-2026'
+            const password = row.password || row['password'] || null
+            const referralCode = row.referralcode || row['referral code'] || null
 
             // Basic Validation
             if (!fullName || !mobileNumber || !role) {
@@ -204,15 +203,15 @@ export async function importStudents(csvData: string) {
 
         for (const [index, row] of rows.entries()) {
             // Flexible Headers
-            const parentMobile = row.parentMobile || row['Parent Mobile']
-            const parentName = row.parentName || row['Parent Name']
-            const fullName = row.fullName || row['Student Name'] || row['Full Name']
-            const grade = row.grade || row['Grade']
-            const campusName = row.campusName || row['Campus Name Studying'] || row['Campus Name']
-            const section = row.section || row['Section'] || null
-            const admissionNumber = row.admissionNumber || row['ERP Number'] || row['ERP No'] || row['ERP No.'] || null
-            const rollNumber = row.rollNumber || row['Roll Number'] || null
-            const ambassadorMobile = row.ambassadorMobile || row['Ambassador Mobile'] || null
+            const parentMobile = row.parentmobile || row['parent mobile']
+            const parentName = row.parentname || row['parent name']
+            const fullName = row.fullname || row['student name'] || row['full name']
+            const grade = row.grade || row['grade']
+            const campusName = row.campusname || row['campus name studying'] || row['campus name']
+            const section = row.section || row['section'] || null
+            const admissionNumber = row.admissionnumber || row['erp number'] || row['erp no'] || row['erp no.'] || null
+            const rollNumber = row.rollnumber || row['roll number'] || null
+            const ambassadorMobile = row.ambassadormobile || row['ambassador mobile'] || null
 
             if (!parentMobile || !fullName || !grade || !campusName) {
                 errors.push(`Row ${index + 2}: Missing required fields`)
@@ -253,9 +252,33 @@ export async function importStudents(csvData: string) {
 
             // Find Ambassador
             let ambassadorId: number | null = null
+
+            // 1. Try Mobile First (Primary Key)
             if (ambassadorMobile) {
                 const amb = await prisma.user.findUnique({ where: { mobileNumber: ambassadorMobile } })
-                if (amb) ambassadorId = amb.userId
+                if (amb) {
+                    ambassadorId = amb.userId
+                }
+            }
+
+            // 2. Try Name Second (if mobile not provided or not found)
+            if (!ambassadorId) {
+                const ambassadorName = row.ambassadorName || row['Ambassador Name'] || null
+
+                if (ambassadorName) {
+                    // Search by name (insensitive)
+                    const matches = await prisma.user.findMany({
+                        where: {
+                            fullName: { equals: ambassadorName, mode: 'insensitive' },
+                            role: { not: 'Student' as any } // Exclude students from being ambassadors
+                        }
+                    })
+
+                    if (matches.length === 1) {
+                        ambassadorId = matches[0].userId
+                    }
+                    // If multiple matches, we can't safely assign. 
+                }
             }
 
             // Check admission number uniqueness
@@ -417,6 +440,161 @@ export async function importCampuses(csvData: string) {
         }
 
         return { success: true, processed, errors }
+    } catch (error: any) {
+        return { success: false, error: error.message }
+    }
+}
+
+// --- Import Referrals (Leads Only) ---
+export async function importReferrals(csvData: string) {
+    const admin = await getCurrentUser()
+    if (!admin || !admin.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
+
+    try {
+        const rows = parseCSV(csvData)
+        let processed = 0
+        let errors: string[] = []
+
+        // Campuses map
+        const campuses = await prisma.campus.findMany()
+        const campusMap = new Map(campuses.map(c => [c.campusName.toLowerCase(), c.id]))
+
+        // Keep track of ambassadors to update stats for
+        const ambassadorsToUpdate = new Set<number>()
+
+        // Debug Log
+        if (rows.length > 0) {
+            console.log('First Row Keys:', Object.keys(rows[0]))
+        }
+
+        for (const [index, row] of rows.entries()) {
+            const parentName = row.parentname || row['parent name']
+            const parentMobile = row.parentmobile || row['parent mobile']
+            const grade = row.grade || row['grade']
+            const section = row.section || row['section'] || null
+            const campusName = row.campusname || row['campus name'] || row['campus']
+            const ambassadorMobile = row.ambassadormobile || row['ambassador mobile']
+            const admissionNumber = row.admissionnumber || row['erp no'] || row['admission number'] || null
+
+            // Auto-confirm if ERP number is present, otherwise default to status column or 'Confirmed'
+            let status = row.status || row['status'] || 'Confirmed'
+            if (admissionNumber && !row.status) {
+                status = 'Confirmed'
+            }
+
+            if (!parentName || !parentMobile || !grade || !campusName) {
+                const missing = []
+                if (!parentName) missing.push('Parent Name')
+                if (!parentMobile) missing.push('Parent Mobile')
+                if (!grade) missing.push('Grade')
+                if (!campusName) missing.push('Campus Name')
+
+                // Debugging: Show what keys were found
+                const foundKeys = Object.keys(row).join(', ')
+                errors.push(`Row ${index + 2}: Missing required fields: ${missing.join(', ')}. Found keys: [${foundKeys}]`)
+                continue
+            }
+
+            // Find Campus
+            const campusId = campusMap.get(campusName.toLowerCase())
+            if (!campusId) {
+                errors.push(`Row ${index + 2}: Campus '${campusName}' not found`)
+                continue
+            }
+
+            // Find Ambassador
+            let ambassadorId: number | null = null
+
+            // 1. Try Mobile First
+            if (ambassadorMobile) {
+                const amb = await prisma.user.findUnique({ where: { mobileNumber: ambassadorMobile } })
+                if (amb) ambassadorId = amb.userId
+            }
+
+            // 2. Try Name Second
+            if (!ambassadorId) {
+                const ambassadorName = row.ambassadorName || row['Ambassador Name'] || null
+                if (ambassadorName) {
+                    const matches = await prisma.user.findMany({
+                        where: {
+                            fullName: { equals: ambassadorName, mode: 'insensitive' },
+                            role: { not: 'Student' as any }
+                        }
+                    })
+                    if (matches.length === 1) ambassadorId = matches[0].userId
+                }
+            }
+
+            if (!ambassadorId) {
+                errors.push(`Row ${index + 2}: Ambassador not found (provide valid Mobile or Unique Name)`)
+                continue
+            }
+
+            // Check if Lead Exists
+            const existingLead = await prisma.referralLead.findFirst({
+                where: { userId: ambassadorId, parentMobile: parentMobile }
+            })
+
+            if (existingLead) {
+                errors.push(`Row ${index + 2}: Referral already exists for this Parent + Ambassador`)
+                continue
+            }
+
+            // Create Referral Lead
+            await prisma.referralLead.create({
+                data: {
+                    userId: ambassadorId,
+                    parentName,
+                    parentMobile,
+                    studentName: row.studentName || row['Student Name'] || null, // Optional
+                    gradeInterested: grade,
+                    section: section,
+                    campusId,
+                    campus: campusName,
+                    leadStatus: status, // Typically 'Confirmed'
+                    confirmedDate: status === 'Confirmed' ? new Date() : null,
+                    admittedYear: row.academicYear || '2025-2026',
+                    admissionNumber: admissionNumber // Storing ERP No
+                }
+            })
+
+            if (status === 'Confirmed') {
+                ambassadorsToUpdate.add(ambassadorId)
+            }
+
+            processed++
+        }
+
+        // --- Post-Processing: Update Ambassador Stats ---
+        if (ambassadorsToUpdate.size > 0) {
+            const defaultSlabs: Record<number, number> = { 1: 5, 2: 10, 3: 25, 4: 30, 5: 50 }
+
+            for (const userId of ambassadorsToUpdate) {
+                const count = await prisma.referralLead.count({
+                    where: { userId, leadStatus: 'Confirmed' }
+                })
+
+                const lookupCount = Math.min(count, 5)
+                const slab = await prisma.benefitSlab.findFirst({
+                    where: { referralCount: lookupCount }
+                })
+
+                const yearFeeBenefit = slab ? slab.yearFeeBenefitPercent : (defaultSlabs[lookupCount] || 0)
+
+                await prisma.user.update({
+                    where: { userId },
+                    data: {
+                        confirmedReferralCount: count,
+                        yearFeeBenefitPercent: yearFeeBenefit,
+                        benefitStatus: count >= 1 ? 'Active' : 'Inactive',
+                        lastActiveYear: 2025
+                    }
+                })
+            }
+        }
+
+        return { success: true, processed, errors }
+
     } catch (error: any) {
         return { success: false, error: error.message }
     }

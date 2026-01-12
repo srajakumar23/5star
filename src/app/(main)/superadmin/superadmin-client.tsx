@@ -10,7 +10,8 @@ import { MessageSquare } from 'lucide-react'
 import { getCampuses } from '@/app/campus-actions'
 import { getBenefitSlabs, updateBenefitSlab, addBenefitSlab, deleteBenefitSlab } from '@/app/benefit-actions'
 import { getCampusDetails } from '@/app/superadmin-actions'
-import { getRolePermissions, updateRolePermissions } from '@/app/permission-actions'
+import { getRolePermissions, updateRolePermissions, resetRolePermissions } from '@/app/permission-actions'
+import { confirmReferral, convertLeadToStudent, rejectReferral } from '@/app/admin-actions' // Import server actions
 
 import { MarketingManager } from '@/components/MarketingManager'
 // Report actions are handled within ReportsPanel, superadmin-client just executes the passed function
@@ -21,8 +22,10 @@ import { CampusPanel } from '@/components/superadmin/CampusPanel'
 import { UserPanel } from '@/components/superadmin/UserPanel'
 import { AdminPanel } from '@/components/superadmin/AdminPanel'
 import { StudentPanel } from '@/components/superadmin/StudentPanel'
-import { ReferralPanel } from '@/components/superadmin/ReferralPanel'
+// import { ReferralPanel } from '@/components/superadmin/ReferralPanel' // Removing old panel
+import { ReferralManagementTable } from '@/app/(main)/admin/referral-table-advanced' // New Table
 import { ReportsPanel } from '@/components/superadmin/ReportsPanel'
+import CSVUploader from '@/components/CSVUploader' // Re-added CSVUploader
 
 // Dynamic Imports
 const PermissionsMatrix = dynamic(() => import('@/components/superadmin/PermissionsMatrix').then(m => m.PermissionsMatrix), { ssr: false, loading: () => <div className="h-96 w-full animate-pulse bg-gray-100 rounded-lg" /> })
@@ -46,19 +49,26 @@ interface Props {
     initialView?: string
     marketingAssets?: MarketingAsset[]
     growthTrend: { date: string; users: number }[]
+    deepTrends?: any
     urgentTicketCount?: number
+    referrals?: any[]
+    referralMeta?: any
 }
 
 export default function SuperadminClient({ analytics, campusComparison = [], users = [], admins = [], students = [], initialView = 'analytics', marketingAssets = [],
     currentUser,
     growthTrend = [],
-    urgentTicketCount = 0
+    deepTrends = null,
+    urgentTicketCount = 0,
+    referrals = [],
+    referralMeta
 }: Props) {
     const searchParams = useSearchParams()
     const router = useRouter()
 
     // Core State
     const [loading, setLoading] = useState(false)
+    const [showBulkUpload, setShowBulkUpload] = useState(false) // Added state
 
     // View State
     const mapViewParam = (view: string): ViewType => {
@@ -216,6 +226,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                         trendData={trendData}
                         campusCompData={campusCompData}
                         onCampusClick={handleCampusClick}
+                        deepTrends={deepTrends}
                     />
                 )}
 
@@ -247,7 +258,29 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                 )}
 
                 {selectedView === 'referrals' && (
-                    <ReferralPanel />
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h1 className="text-3xl font-black text-gray-900 tracking-tighter">Referral Management</h1>
+                        </div>
+                        <ReferralManagementTable
+                            referrals={referrals}
+                            meta={referralMeta || { page: 1, limit: 50, total: referrals.length, totalPages: 1 }}
+                            onBulkAdd={() => setShowBulkUpload(true)}
+                            confirmReferral={confirmReferral}
+                            convertLeadToStudent={convertLeadToStudent}
+                            rejectReferral={rejectReferral}
+                        />
+                        {showBulkUpload && (
+                            <CSVUploader
+                                type="referrals"
+                                onClose={() => setShowBulkUpload(false)}
+                                onUpload={async () => {
+                                    router.refresh()
+                                    return { success: true, added: 0, failed: 0, errors: [] }
+                                }}
+                            />
+                        )}
+                    </div>
                 )}
 
                 {selectedView === 'reports' && (
@@ -297,6 +330,28 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
                                     toast.error('Failed to save permissions')
                                 } finally {
                                     setLoading(false)
+                                }
+                            }}
+                            onReset={async (role: string) => {
+                                if (confirm(`Are you sure you want to RESET permissions for ${role} to system defaults? This cannot be undone.`)) {
+                                    setLoading(true)
+                                    try {
+                                        const res = await resetRolePermissions(role)
+                                        if (res.success) {
+                                            toast.success(`Permissions for ${role} reset to defaults.`)
+                                            // Refresh permissions
+                                            const newPerms = await getRolePermissions(role)
+                                            if (newPerms.success && newPerms.permissions) {
+                                                setRolePermissionsMatrix(prev => ({ ...prev, [role]: newPerms.permissions! }))
+                                            }
+                                        } else {
+                                            toast.error(res.error || 'Failed to reset permissions')
+                                        }
+                                    } catch (err) {
+                                        toast.error('Error resetting permissions')
+                                    } finally {
+                                        setLoading(false)
+                                    }
                                 }
                             }}
                         />

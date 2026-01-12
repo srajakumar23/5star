@@ -12,34 +12,40 @@ interface StatCardProps {
 
 const themeStyles = {
     red: {
-        bg: 'bg-gradient-to-br from-red-500 to-rose-600',
-        shadow: 'shadow-[0_15px_30px_-10px_rgba(239,68,68,0.3)]',
-        text: 'text-red-100'
+        bg: 'bg-grad-crimson',
+        shadow: 'shadow-[0_20px_40px_-15px_rgba(225,29,72,0.25)]',
+        text: 'text-red-50',
+        iconBg: 'bg-white/10'
     },
     emerald: {
-        bg: 'bg-gradient-to-br from-emerald-500 to-emerald-700',
-        shadow: 'shadow-[0_15px_30px_-10px_rgba(16,185,129,0.3)]',
-        text: 'text-emerald-100'
+        bg: 'bg-grad-emerald',
+        shadow: 'shadow-[0_20px_40px_-15px_rgba(16,185,129,0.25)]',
+        text: 'text-emerald-50',
+        iconBg: 'bg-white/10'
     },
     amber: {
-        bg: 'bg-gradient-to-br from-amber-400 to-amber-600',
-        shadow: 'shadow-[0_15px_30px_-10px_rgba(245,158,11,0.3)]',
-        text: 'text-white'
+        bg: 'bg-grad-amber',
+        shadow: 'shadow-[0_20px_40px_-15px_rgba(217,119,6,0.25)]',
+        text: 'text-amber-50',
+        iconBg: 'bg-white/10'
     },
     orange: {
-        bg: 'bg-gradient-to-br from-orange-500 to-orange-600',
-        shadow: 'shadow-[0_15px_30px_-10px_rgba(249,115,22,0.3)]',
-        text: 'text-white'
+        bg: 'bg-gradient-to-br from-orange-400 to-orange-600',
+        shadow: 'shadow-[0_20px_40px_-15px_rgba(249,115,22,0.25)]',
+        text: 'text-orange-50',
+        iconBg: 'bg-white/10'
     },
     blue: {
-        bg: 'bg-gradient-to-br from-blue-500 to-blue-600',
-        shadow: 'shadow-[0_15px_30px_-10px_rgba(59,130,246,0.3)]',
-        text: 'text-blue-100'
+        bg: 'bg-grad-sapphire',
+        shadow: 'shadow-[0_20px_40px_-15px_rgba(37,99,235,0.25)]',
+        text: 'text-blue-50',
+        iconBg: 'bg-white/10'
     },
     gray: {
-        bg: 'bg-gradient-to-br from-gray-500 to-gray-600',
-        shadow: 'shadow-[0_15px_30px_-10px_rgba(75,85,99,0.3)]',
-        text: 'text-gray-100'
+        bg: 'glass-panel',
+        shadow: 'shadow-[0_15px_30px_-10px_rgba(0,0,0,0.05)]',
+        text: 'text-slate-600 dark:text-slate-300',
+        iconBg: 'bg-slate-500/10'
     }
 }
 
@@ -47,21 +53,59 @@ export function StatCard({ title, value, icon: Icon, theme, subValue, className 
     const styles = themeStyles[theme]
 
     return (
-        <div className={`${styles.bg} p-6 rounded-[24px] relative overflow-hidden ${styles.shadow} text-white group hover:scale-[1.02] transition-transform ${className}`}>
-            <div className="absolute right-[-10px] bottom-[-10px] opacity-10 rotate-[-10deg] group-hover:rotate-0 transition-transform duration-500">
-                <Icon size={80} />
+        <div className={`${styles.bg} p-6 rounded-[28px] relative overflow-hidden ${styles.shadow} group hover:scale-[1.03] transition-all duration-300 ${className}`}>
+            {/* Shimmer Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2.5s_infinite] transition-transform" />
+
+            {/* Hover Flare */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                <div className="absolute top-0 left-0 w-24 h-24 bg-white/20 rounded-full blur-2xl -translate-y-1/2 -translate-x-1/2 group-hover:translate-x-[200%] transition-transform duration-1000" />
             </div>
-            <div className="relative z-10">
-                <div className={`flex items-center gap-2 mb-3 ${styles.text}`}>
-                    <div className="p-1.5 bg-white/10 rounded-lg backdrop-blur-sm">
-                        <Icon size={16} />
+
+            <div className="absolute right-[-15px] bottom-[-15px] opacity-10 rotate-[-15deg] group-hover:rotate-0 group-hover:scale-110 transition-transform duration-700">
+                <Icon size={100} />
+            </div>
+
+            <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                    <div className={`flex items-center gap-2 mb-4`}>
+                        <div className={`p-2 ${styles.iconBg} rounded-xl backdrop-blur-md border border-white/10 group-hover:scale-110 transition-transform`}>
+                            <Icon size={18} className={theme === 'gray' ? 'text-ui-primary' : 'text-white'} />
+                        </div>
+                        <span className={`text-[11px] font-bold uppercase tracking-[0.15em] ${theme === 'gray' ? 'text-slate-500' : 'text-white/80'}`}>{title}</span>
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-wider">{title}</span>
+
+                    <p className={`text-4xl md:text-5xl font-black tracking-tight ${theme === 'gray' ? 'text-ui-text-main' : 'text-white'}`}>
+                        {value}
+                    </p>
+
+                    {subValue && (
+                        <p className={`text-xs font-semibold mt-2 ${theme === 'gray' ? 'text-slate-400' : 'text-white/60'}`}>
+                            {subValue}
+                        </p>
+                    )}
                 </div>
-                <p className="text-4xl font-extrabold tracking-tight">{value}</p>
-                {subValue && (
-                    <p className={`text-xs font-medium mt-1 opacity-80 ${styles.text}`}>{subValue}</p>
-                )}
+
+                {/* Mock Sparkline Visual */}
+                <div className="mt-6 opacity-30 group-hover:opacity-60 transition-opacity h-12 w-full">
+                    <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full">
+                        <path
+                            d="M0 15 Q 10 5, 20 12 T 40 8 T 60 15 T 80 5 T 100 12"
+                            fill="none"
+                            stroke={theme === 'gray' ? 'currentColor' : 'white'}
+                            strokeWidth="2"
+                            className="text-ui-primary"
+                        >
+                            <animate
+                                attributeName="stroke-dasharray"
+                                from="0,100"
+                                to="100,0"
+                                dur="1.5s"
+                                repeatCount="1"
+                            />
+                        </path>
+                    </svg>
+                </div>
             </div>
         </div>
     )

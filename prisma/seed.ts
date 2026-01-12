@@ -56,7 +56,7 @@ async function main() {
                 adminName: admin.name,
                 adminMobile: admin.mobile,
                 password: '123456',
-                role: admin.role
+                role: admin.role as any
             }
         })
     }
@@ -151,7 +151,7 @@ async function generateGroup(names: string[], role: string, mobilePrefix: string
                     fullName: name,
                     mobileNumber: mobile,
                     password: '123456',
-                    role: role,
+                    role: role as any,
                     childInAchariya: true,
                     referralCode: refCode,
                     confirmedReferralCount: referralCount,

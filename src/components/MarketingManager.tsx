@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Eye, EyeOff, Save, X, Upload, FileText, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { createMarketingAsset, deleteMarketingAsset, toggleAssetVisibility } from '@/app/marketing-actions'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 const MARKETING_CATEGORIES = ['Branding', 'WhatsApp Templates', 'Social Media', 'Videos', 'Flyers']
 
@@ -17,6 +19,14 @@ export function MarketingManager({ assets }: MarketingManagerProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [deletingId, setDeletingId] = useState<number | null>(null)
 
+    // Confirmation State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        data?: any
+    }>({
+        isOpen: false
+    })
+
     // Form state
     const [name, setName] = useState('')
     const [category, setCategory] = useState<string>(MARKETING_CATEGORIES[0])
@@ -25,7 +35,7 @@ export function MarketingManager({ assets }: MarketingManagerProps) {
 
     const handleSubmit = async () => {
         if (!name.trim() || !fileUrl.trim()) {
-            alert('Please fill in name and file URL')
+            toast.error('Please fill in name and file URL')
             return
         }
 
@@ -39,6 +49,7 @@ export function MarketingManager({ assets }: MarketingManagerProps) {
         setIsSubmitting(false)
 
         if (result.success) {
+            toast.success('Asset created successfully')
             setShowForm(false)
             setName('')
             setCategory(MARKETING_CATEGORIES[0])
@@ -46,17 +57,32 @@ export function MarketingManager({ assets }: MarketingManagerProps) {
             setFileUrl('')
             router.refresh()
         } else {
-            alert(result.error || 'Failed to create asset')
+            toast.error(result.error || 'Failed to create asset')
         }
     }
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this asset?')) return
+    const handleDelete = (id: number) => {
+        setConfirmState({ isOpen: true, data: id })
+    }
 
+    const executeDelete = async () => {
+        const id = confirmState.data
+        if (!id) return
+
+        setConfirmState({ isOpen: false })
         setDeletingId(id)
-        await deleteMarketingAsset(id)
-        setDeletingId(null)
-        router.refresh()
+
+        // Optimistic UI or wait? The original used await.
+        // We will wait for server action
+        try {
+            await deleteMarketingAsset(id)
+            toast.success('Asset deleted')
+            router.refresh()
+        } catch (e) {
+            toast.error('Failed to delete asset')
+        } finally {
+            setDeletingId(null)
+        }
     }
 
     const handleToggle = async (id: number, currentState: boolean) => {
@@ -319,6 +345,22 @@ export function MarketingManager({ assets }: MarketingManagerProps) {
                     </div>
                 </div>
             )}
+
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title="Delete Marketing Asset?"
+                description={
+                    <p>
+                        Are you sure you want to delete this asset?
+                        <br />This action cannot be undone.
+                    </p>
+                }
+                confirmText="Delete Asset"
+                variant="danger"
+                onConfirm={executeDelete}
+                onCancel={() => setConfirmState({ isOpen: false })}
+            />
         </div>
     )
 }

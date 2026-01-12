@@ -3,39 +3,36 @@
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-service'
 
-export async function getAuditLogs(filters?: {
-    module?: string,
-    action?: string,
+export async function getAuditLogs(params: {
     search?: string
+    module?: string
     startDate?: string
     endDate?: string
 }) {
     try {
-        const currentUser = await getCurrentUser()
-        if (!currentUser || currentUser.role !== 'Super Admin') {
-            return { success: false, error: 'Unauthorized' }
+        const user = await getCurrentUser()
+        if (!user || user.role !== 'Super Admin') {
+            return { error: 'Unauthorized' }
         }
 
         const where: any = {}
 
-        if (filters?.module && filters.module !== 'All') {
-            where.module = filters.module
-        }
-
-        if (filters?.search) {
+        if (params.search) {
             where.OR = [
-                { description: { contains: filters.search, mode: 'insensitive' } },
-                { action: { contains: filters.search, mode: 'insensitive' } },
-                // Add Admin Name search if needed by joining, but simple text search on description is often enough if we include names there
+                { description: { contains: params.search, mode: 'insensitive' } },
+                { action: { contains: params.search, mode: 'insensitive' } }
             ]
         }
 
-        if (filters?.startDate) {
-            where.createdAt = { ...where.createdAt, gte: new Date(filters.startDate) }
+        if (params.module && params.module !== 'All') {
+            where.module = params.module
         }
 
-        if (filters?.endDate) {
-            where.createdAt = { ...where.createdAt, lte: new Date(filters.endDate) }
+        if (params.startDate && params.endDate) {
+            where.createdAt = {
+                gte: new Date(params.startDate),
+                lte: new Date(params.endDate)
+            }
         }
 
         const logs = await prisma.activityLog.findMany({
@@ -44,106 +41,145 @@ export async function getAuditLogs(filters?: {
             take: 100
         })
 
-        // Manual relation fetching since relations aren't defined in schema
-        const adminIds = [...new Set(logs.map(l => l.adminId).filter(Boolean))] as number[]
-        const userIds = [...new Set(logs.map(l => l.userId).filter(Boolean))] as number[]
+        // Manually populate actor details since no direct relation exists in schema
+        const adminIds = logs.map(l => l.adminId).filter(Boolean) as number[]
+        const userIds = logs.map(l => l.userId).filter(Boolean) as number[]
 
-        const [admins, users] = await Promise.all([
-            adminIds.length ? prisma.admin.findMany({
-                where: { adminId: { in: adminIds } },
-                select: { adminId: true, adminName: true, role: true }
-            }) : [],
-            userIds.length ? prisma.user.findMany({
-                where: { userId: { in: userIds } },
-                select: { userId: true, fullName: true, role: true }
-            }) : []
-        ])
+        const admins = await prisma.admin.findMany({
+            where: { adminId: { in: adminIds } },
+            select: { adminId: true, adminName: true, role: true }
+        })
 
-        const adminMap = new Map(admins.map(a => [a.adminId, a]))
-        const userMap = new Map(users.map(u => [u.userId, u]))
+        const users = await prisma.user.findMany({
+            where: { userId: { in: userIds } },
+            select: { userId: true, fullName: true, role: true }
+        })
 
-        const fullLogs = logs.map(log => ({
+        const enrichedLogs = logs.map(log => ({
             ...log,
-            admin: log.adminId ? adminMap.get(log.adminId) : null,
-            user: log.userId ? userMap.get(log.userId) : null
+            admin: log.adminId ? admins.find(a => a.adminId === log.adminId) : null,
+            user: log.userId ? users.find(u => u.userId === log.userId) : null
         }))
 
-        return { success: true, logs: fullLogs }
-
-    } catch (error: any) {
-        console.error('Error fetching audit logs:', error)
-        return { success: false, error: 'Failed to fetch logs' }
+        return { success: true, logs: enrichedLogs }
+    } catch (error) {
+        console.error('getAuditLogs error:', error)
+        return { error: 'Failed' }
     }
 }
 
 export async function getAuditStats() {
     try {
-        const currentUser = await getCurrentUser()
-        if (!currentUser || currentUser.role !== 'Super Admin') {
-            return { success: false, error: 'Unauthorized' }
-        }
+        const user = await getCurrentUser()
+        if (!user || user.role !== 'Super Admin') return { error: 'Unauthorized' }
 
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+        const now = new Date()
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-        // 1. Total Daily Volume
-        const dailyCount = await prisma.activityLog.count({
-            where: { createdAt: { gte: twentyFourHoursAgo } }
+        // 1. Daily Volume
+        const dailyVolume = await prisma.activityLog.count({
+            where: { createdAt: { gte: startOfDay } }
         })
 
-        // 2. Security Alerts (Critical Actions)
+        // 2. Security Alerts (Critical actions)
         const securityAlerts = await prisma.activityLog.count({
             where: {
-                OR: [
-                    { action: { contains: 'DELETE' } },
-                    { action: { contains: 'BAN' } },
-                    { action: { contains: 'SECURITY' } },
-                    { action: { contains: 'PERMISSION' } }
-                ],
-                createdAt: { gte: twentyFourHoursAgo }
+                createdAt: { gte: startOfDay },
+                module: { in: ['SECURITY', 'AUTH'] },
+                action: { in: ['BAN', 'DELETE', 'FAILED_LOGIN'] }
             }
         })
 
-        // 3. System Health (Module Distribution)
-        const moduleCounts = await prisma.activityLog.groupBy({
-            by: ['module'],
-            _count: { _all: true },
-            where: { createdAt: { gte: twentyFourHoursAgo } },
-            orderBy: { _count: { module: 'desc' } },
-            take: 5
+        // 3. Module Health (Group by module)
+        const logs = await prisma.activityLog.findMany({
+            where: { createdAt: { gte: startOfDay } },
+            select: { module: true }
+        })
+        const moduleCounts: Record<string, number> = {}
+        logs.forEach(l => {
+            moduleCounts[l.module] = (moduleCounts[l.module] || 0) + 1
+        })
+        const moduleHealth = Object.entries(moduleCounts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+
+        // 4. Top Actor
+        // Simplification: just find most frequent actor ID in logs
+        // Proper way requires GroupBy which might be tedious with mixed user/admin IDs
+        // We'll estimate from the fetched logs for "Active Module" logic
+
+        // Let's do a quick aggregate for Top Actor from the logs we fetched
+        // Or fetch specific Top Actor
+        const actorCounts: Record<string, number> = {}
+        const _logsDetails = await prisma.activityLog.findMany({
+            where: { createdAt: { gte: startOfDay } },
+            take: 500
+        })
+        _logsDetails.forEach(l => {
+            const key = l.adminId ? `admin:${l.adminId}` : l.userId ? `user:${l.userId}` : 'system'
+            actorCounts[key] = (actorCounts[key] || 0) + 1
         })
 
-        // 4. Most Active Actor
-        const topActor = await prisma.activityLog.groupBy({
-            by: ['adminId', 'userId'],
-            _count: { _all: true },
-            where: { createdAt: { gte: twentyFourHoursAgo } },
-            orderBy: { _count: { id: 'desc' } },
-            take: 1
+        let topActorKey = 'None'
+        let topActorCount = 0
+        Object.entries(actorCounts).forEach(([key, count]) => {
+            if (count > topActorCount) {
+                topActorCount = count
+                topActorKey = key
+            }
         })
 
         let topActorName = 'System'
-        if (topActor[0]?.adminId) {
-            const admin = await prisma.admin.findUnique({ where: { adminId: topActor[0].adminId }, select: { adminName: true } })
-            topActorName = admin?.adminName || 'Admin'
-        } else if (topActor[0]?.userId) {
-            const user = await prisma.user.findUnique({ where: { userId: topActor[0].userId }, select: { fullName: true } })
-            topActorName = user?.fullName || 'User'
+        if (topActorKey.startsWith('admin:')) {
+            const aid = parseInt(topActorKey.split(':')[1])
+            const a = await prisma.admin.findUnique({ where: { adminId: aid }, select: { adminName: true } })
+            if (a) topActorName = a.adminName
+        } else if (topActorKey.startsWith('user:')) {
+            const uid = parseInt(topActorKey.split(':')[1])
+            const u = await prisma.user.findUnique({ where: { userId: uid }, select: { fullName: true } })
+            if (u) topActorName = u.fullName
         }
 
         return {
             success: true,
             stats: {
-                dailyVolume: dailyCount,
+                dailyVolume,
                 securityAlerts,
-                moduleHealth: moduleCounts.map(m => ({ name: m.module, count: m._count._all })),
-                topActor: {
-                    name: topActorName,
-                    count: topActor[0]?._count._all || 0
-                }
+                moduleHealth,
+                topActor: { name: topActorName, count: topActorCount }
             }
         }
+
     } catch (error) {
-        console.error('Error fetching audit stats:', error)
-        return { success: false, error: 'Failed to fetch audit stats' }
+        console.error('getAuditStats error:', error)
+        return { error: 'Failed' }
+    }
+}
+
+
+export async function getUserAuditLogs(userId: number) {
+    try {
+        const user = await getCurrentUser()
+        if (!user || !['Super Admin', 'Campus Head', 'Admission Admin'].includes(user.role)) {
+            return { error: 'Unauthorized' }
+        }
+
+        // Check if admin has access to view audit logs or specific permissions
+        // For now, we allow admins to view user logs as part of user management
+
+        const logs = await prisma.activityLog.findMany({
+            where: {
+                userId: userId
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            take: 100 // Limit to last 100 logs
+        })
+
+        return { success: true, logs }
+    } catch (error) {
+        console.error('Error fetching user audit logs:', error)
+        return { error: 'Failed to fetch audit logs' }
     }
 }

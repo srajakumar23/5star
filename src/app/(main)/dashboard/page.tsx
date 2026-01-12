@@ -1,7 +1,7 @@
 import { getCurrentUser } from '@/lib/auth-service'
 import { redirect } from 'next/navigation'
-import { getMyReferrals, getMyComparisonStats } from '@/app/referral-actions'
-import { ActionHome } from '@/components/ActionHome'
+import { getMyReferrals, getMyComparisonStats, getDynamicFeeForUser } from '@/app/referral-actions'
+import { ActionHomeBlueUnified } from '@/components/themes/ActionHomeBlueUnified'
 import { encryptReferralCode } from '@/lib/crypto'
 
 
@@ -13,11 +13,12 @@ export default async function DashboardPage() {
     if (user.role === 'Super Admin') redirect('/superadmin')
     if (user.role === 'Finance Admin') redirect('/finance')
     if (user.role.includes('Campus')) redirect('/campus')
-    if (user.role.includes('Admin')) redirect('/admin')
+    if (user.role.includes('Admin') && user.role !== 'Admission Admin') redirect('/admin')
 
     const userData = user as any
-    const [referrals] = await Promise.all([
+    const [referrals, dynamicStudentFee] = await Promise.all([
         getMyReferrals(),
+        getDynamicFeeForUser()
     ])
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://5starambassador.com'
@@ -38,29 +39,61 @@ export default async function DashboardPage() {
 
 
     // Prepare recent referrals for ActionHome
-    const recentReferrals = referrals.slice(0, 5).map(r => ({
+    const recentReferrals = referrals.slice(0, 5).map((r: any) => ({
         id: r.leadId,
         parentName: r.parentName,
         status: r.leadStatus,
         createdAt: r.createdAt.toISOString()
     }))
 
+    // FORCE REVALIDATION: Debug Logging
+    console.log('[Dashboard] Referrals Fetched:', referrals.length)
+
+    // Calculate Real-Time Counts (Fixes Database Double-Count Issue)
+    const realConfirmedCount = referrals.filter((r: any) => r.leadStatus === 'Confirmed').length
+    const totalLeadsCount = referrals.length
+    // "Pending" bucket: Not Confirmed AND Not Rejected (if rejected exists)
+    // This creates the "Move" effect: Pending -> Confirmed
+    const pendingCount = referrals.filter((r: any) => r.leadStatus !== 'Confirmed' && r.leadStatus !== 'Rejected').length
+
+    // Calculate Real-Time Benefit Percent (Ensure Calculation is strictly based on Confirmed)
+    const getBenefitPercent = (count: number) => {
+        if (count >= 5) return 50
+        if (count === 4) return 30
+        if (count === 3) return 25
+        if (count === 2) return 10
+        if (count === 1) return 5
+        return 0
+    }
+    const realBenefitPercent = getBenefitPercent(realConfirmedCount)
+    // Calculate Potential/Estimated Percent based on Total Pipeline (Pending + Confirmed)
+    const potentialBenefitPercent = getBenefitPercent(totalLeadsCount)
+
     return (
-        <div className="-mx-2 xl:mx-0">
-            <ActionHome
+        <div className="-mx-2 xl:mx-0 relative">
+            {/* Royal Glass Background Layer */}
+            <div className="fixed inset-0 bg-[#0f172a] -z-50" />
+            <div className="fixed inset-0 bg-[url('/bg-pattern.png')] bg-cover opacity-10 -z-40 pointer-events-none" />
+            <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 -z-40 pointer-events-none" />
+            <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[100px] rounded-full -translate-x-1/3 translate-y-1/3 -z-40 pointer-events-none" />
+
+            <ActionHomeBlueUnified
                 user={{
                     fullName: userData.fullName,
                     role: userData.role,
                     referralCode: userData.referralCode,
-                    confirmedReferralCount: userData.confirmedReferralCount || 0,
-                    yearFeeBenefitPercent: userData.yearFeeBenefitPercent || 0,
+                    confirmedReferralCount: realConfirmedCount, // Real-Time Count
+                    yearFeeBenefitPercent: realBenefitPercent, // Real-Time Earned Percent
+                    potentialFeeBenefitPercent: potentialBenefitPercent, // Real-Time Estimated Percent
                     benefitStatus: userData.benefitStatus || 'Active',
                     empId: userData.empId,
-                    assignedCampus: userData.assignedCampus
+                    assignedCampus: userData.assignedCampus,
+                    studentFee: dynamicStudentFee || 60000
                 }}
                 recentReferrals={recentReferrals}
                 whatsappUrl={whatsappUrl}
                 monthStats={monthStats}
+                totalLeadsCount={pendingCount} // Passing "Pending" count to this prop for separate buckets
             />
         </div>
     )

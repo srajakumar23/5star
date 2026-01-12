@@ -199,7 +199,7 @@ export async function updateRolePermissions(role: string, permissions: RolePermi
         revalidatePath('/')
 
         // Log the action (1.5)
-        await logAction('PERMISSION_CHANGE', 'permissions', `Updated permissions for role: ${role}`, role, { permissions })
+        await logAction('PERMISSION_CHANGE', 'permissions', `Updated permissions for role: ${role}`, role, JSON.stringify({ permissions }))
 
         return { success: true }
     } catch (error) {

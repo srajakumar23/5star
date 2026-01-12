@@ -28,7 +28,7 @@ async function main() {
             create: {
                 fullName: `Analytics User ${i + 1}`,
                 mobileNumber: mobile,
-                role: roles[Math.floor(Math.random() * roles.length)],
+                role: roles[Math.floor(Math.random() * roles.length)] as any,
                 referralCode: code,
                 createdAt: date,
                 status: 'Active',

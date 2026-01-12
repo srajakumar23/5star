@@ -22,7 +22,7 @@ export function NativeLogin({ onMobileFill }: { onMobileFill?: (mobile: string) 
 
         try {
             const verified = await NativeBiometric.verifyIdentity({
-                reason: "FaceID for 5-Star Ambassador",
+                reason: "FaceID for Achariya Partnership Program",
                 title: "Log in",
                 subtitle: "Use FaceID or Fingerprint",
                 description: "Authenticate to access your dashboard",

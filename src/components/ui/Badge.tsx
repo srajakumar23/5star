@@ -12,20 +12,20 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
     const getVariantClasses = () => {
         switch (variant) {
             case 'success':
-                return "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
             case 'warning':
-                return "bg-amber-50 text-amber-600 border border-amber-100"
+                return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
             case 'error':
-                return "bg-red-50 text-red-600 border border-red-100"
+                return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
             case 'info':
-                return "bg-blue-50 text-blue-600 border border-blue-100"
+                return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
             case 'purple':
-                return "bg-purple-50 text-purple-600 border border-purple-100"
+                return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
             case 'outline':
-                return "bg-white text-gray-600 border border-gray-200"
+                return "bg-transparent text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
             case 'default':
             default:
-                return "bg-gray-100 text-gray-700 border border-transparent"
+                return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-transparent"
         }
     }
 

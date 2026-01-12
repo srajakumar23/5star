@@ -2,7 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-service'
-import { getScopeFilter, canEdit, hasPermission } from '@/lib/permission-service'
+import { getScopeFilter, canEdit, canDelete, hasPermission } from '@/lib/permission-service'
 import { revalidatePath } from 'next/cache'
 import { logAction } from '@/lib/audit-logger'
 import { mapLeadStatus, mapUserRole, mapAccountStatus } from '@/lib/enum-utils'
@@ -15,24 +15,106 @@ import { AdminAnalytics } from '@/types'
  * 
  * @returns Object containing success status and array of referrals
  */
-export async function getAllReferrals() {
+/**
+ * Fetches paginated and filtered referral leads.
+ * 
+ * @param page - Page number (1-based)
+ * @param limit - Items per page
+ * @param filters - Filter criteria
+ * @param sort - Sorting configuration
+ */
+export async function getAllReferrals(
+    page: number = 1,
+    limit: number = 50,
+    filters?: {
+        status?: string
+        role?: string
+        campus?: string
+        search?: string
+        dateRange?: { from: string; to: string } // ISO strings
+    },
+    sort?: { field: string; order: 'asc' | 'desc' }
+) {
     const user = await getCurrentUser()
-    if (!user || !user.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
 
     // Get scope filter based on permission settings
-    const { filter, isReadOnly } = await getScopeFilter('referralTracking', {
+    const { filter: scopeFilter, isReadOnly } = await getScopeFilter('referralTracking', {
         campusField: 'campus',
         useCampusName: true
     })
 
-    if (filter === null) return { success: false, error: 'No access to referral data' }
+    if (scopeFilter === null) return { success: false, error: 'No access to referral data' }
 
-    const referrals = await prisma.referralLead.findMany({
-        where: filter,
-        include: { user: true, student: true },
-        orderBy: { createdAt: 'desc' }
-    })
-    return { success: true, referrals, isReadOnly }
+    // Build Dynamic Where Clause
+    const where: any = { ...scopeFilter }
+
+    if (filters?.status && filters.status !== 'All') {
+        where.leadStatus = filters.status
+    }
+
+    if (filters?.role && filters.role !== 'All') {
+        where.user = { role: filters.role } // Filter by relation
+    }
+
+    if (filters?.campus && filters.campus !== 'All') {
+        where.campus = filters.campus
+    }
+
+    if (filters?.search) {
+        where.OR = [
+            { parentName: { contains: filters.search, mode: 'insensitive' } },
+            { parentMobile: { contains: filters.search } },
+            { studentName: { contains: filters.search, mode: 'insensitive' } },
+            { admissionNumber: { contains: filters.search, mode: 'insensitive' } },
+            { user: { fullName: { contains: filters.search, mode: 'insensitive' } } },
+            { user: { referralCode: { contains: filters.search, mode: 'insensitive' } } }
+        ]
+    }
+
+    if (filters?.dateRange?.from || filters?.dateRange?.to) {
+        where.createdAt = {}
+        if (filters.dateRange.from) where.createdAt.gte = new Date(filters.dateRange.from)
+        if (filters.dateRange.to) where.createdAt.lte = new Date(filters.dateRange.to)
+    }
+
+    // Build Order By
+    let orderBy: any = { createdAt: 'desc' }
+    if (sort) {
+        if (sort.field === 'parentName') orderBy = { parentName: sort.order }
+        else if (sort.field === 'campus') orderBy = { campus: sort.order }
+        else if (sort.field === 'status') orderBy = { leadStatus: sort.order }
+        else if (sort.field === 'date') orderBy = { createdAt: sort.order }
+    }
+
+    try {
+        // Run Count and Find in Parallel
+        const [total, referrals] = await prisma.$transaction([
+            prisma.referralLead.count({ where }),
+            prisma.referralLead.findMany({
+                where,
+                include: { user: true, student: true },
+                orderBy,
+                skip: (page - 1) * limit,
+                take: limit
+            })
+        ])
+
+        return {
+            success: true,
+            referrals,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            },
+            isReadOnly
+        }
+    } catch (error: any) {
+        console.error('getAllReferrals error:', error)
+        return { success: false, error: error.message || 'Failed to fetch referrals' }
+    }
 }
 
 /**
@@ -162,7 +244,7 @@ export async function getAdminAnalytics(): Promise<{ success: boolean; error?: s
  * @param leadId - The ID of the referral lead to confirm.
  * @returns An object indicating success or failure.
  */
-export async function confirmReferral(leadId: number) {
+export async function confirmReferral(leadId: number, admissionNumber?: string) {
     const admin = await getCurrentUser()
     if (!admin || !admin.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
 
@@ -171,15 +253,29 @@ export async function confirmReferral(leadId: number) {
         return { success: false, error: 'Permission Denied: You do not have confirm rights' }
     }
 
+    if (!admissionNumber) {
+        return { success: false, error: 'Student ERP/Admission Number is required for confirmation' }
+    }
+
     try {
         const result = await prisma.$transaction(async (tx) => {
+            // Check if admission number is already used (Optional uniqueness check)
+            const existing = await tx.referralLead.findFirst({
+                where: { admissionNumber, leadId: { not: leadId } }
+            })
+            if (existing) {
+                // Must throw in transaction to rollback, or return strict error object (but transaction requires throw to abort)
+                throw new Error(`ERP Number ${admissionNumber} is already linked to another lead`)
+            }
+
             // 1. Update Lead
             const lead = await tx.referralLead.update({
                 where: { leadId },
                 include: { user: true },
                 data: {
                     leadStatus: 'Confirmed',
-                    confirmedDate: new Date()
+                    confirmedDate: new Date(),
+                    admissionNumber: admissionNumber
                 }
             })
 
@@ -291,9 +387,9 @@ export async function confirmReferral(leadId: number) {
         await logAction('UPDATE', 'referral', `Confirmed referral lead: ${result.leadId}`, result.leadId.toString(), null, { userId: result.userId })
 
         return { success: true }
-    } catch (e) {
+    } catch (e: any) {
         console.error(e)
-        return { success: false, error: 'Failed' }
+        return { success: false, error: e.message || 'Failed' }
     }
 }
 
@@ -483,5 +579,395 @@ export async function getAdminCampusPerformance() {
     } catch (error) {
         console.error('getAdminCampusPerformance error:', error)
         return { success: false, error: 'Failed to fetch campus management' }
+    }
+}
+
+// --- Bulk Actions ---
+
+export async function bulkRejectReferrals(leadIds: number[]) {
+    const admin = await getCurrentUser()
+    if (!admin || !admin.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
+
+    // Strict Permission Check
+    if (!await canEdit('referralTracking')) {
+        return { success: false, error: 'Permission Denied' }
+    }
+
+    try {
+        await prisma.referralLead.updateMany({
+            where: {
+                leadId: { in: leadIds },
+                leadStatus: { not: 'Confirmed' } // Protect confirmed leads
+            },
+            data: { leadStatus: 'Rejected' }
+        })
+
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (e) {
+        console.error(e)
+        return { success: false, error: 'Bulk reject failed' }
+    }
+}
+
+export async function bulkDeleteReferrals(leadIds: number[]) {
+    const admin = await getCurrentUser()
+    if (!admin || !admin.role.includes('Admin')) return { success: false, error: 'Unauthorized' }
+
+
+    // Strict Permission Check
+    if (!await canEdit('referralTracking')) {
+        return { success: false, error: 'Permission Denied: Delete access required' }
+    }
+
+    try {
+        await prisma.referralLead.deleteMany({
+            where: {
+                leadId: { in: leadIds },
+                leadStatus: { not: 'Confirmed' } // Prevent deleting confirmed leads for data integrity (usually)
+            }
+        })
+
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (e) {
+        console.error(e)
+        return { success: false, error: 'Bulk delete failed' }
+    }
+}
+
+/**
+ * Calculates realtime stats based on the current applied filters.
+ * Used for dynamic dashboard cards.
+ */
+export async function getReferralStats(filters?: {
+    status?: string
+    role?: string
+    campus?: string
+    search?: string
+    dateRange?: { from: string; to: string }
+}) {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
+
+    // Get scope filter
+    const { filter: scopeFilter } = await getScopeFilter('referralTracking', {
+        campusField: 'campus',
+        useCampusName: true
+    })
+
+    if (scopeFilter === null) return { success: false, error: 'No access' }
+
+    // Reconstruct Where Clause (Same logic as getAllReferrals)
+    const where: any = { ...scopeFilter }
+
+    if (filters?.status && filters.status !== 'All') where.leadStatus = filters.status
+    if (filters?.role && filters.role !== 'All') where.user = { role: filters.role }
+    if (filters?.campus && filters.campus !== 'All') where.campus = filters.campus
+    if (filters?.search) {
+        where.OR = [
+            { parentName: { contains: filters.search, mode: 'insensitive' } },
+            { parentMobile: { contains: filters.search } },
+            { studentName: { contains: filters.search, mode: 'insensitive' } },
+            { admissionNumber: { contains: filters.search, mode: 'insensitive' } },
+            { user: { fullName: { contains: filters.search, mode: 'insensitive' } } },
+            { user: { referralCode: { contains: filters.search, mode: 'insensitive' } } }
+        ]
+    }
+    if (filters?.dateRange?.from || filters?.dateRange?.to) {
+        where.createdAt = {}
+        if (filters.dateRange.from) where.createdAt.gte = new Date(filters.dateRange.from)
+        if (filters.dateRange.to) where.createdAt.lte = new Date(filters.dateRange.to)
+    }
+
+    try {
+        const total = await prisma.referralLead.count({ where })
+
+        const confirmed = await prisma.referralLead.count({
+            where: { ...where, leadStatus: 'Confirmed' }
+        })
+
+        const pending = await prisma.referralLead.count({
+            where: { ...where, leadStatus: { in: ['New', 'Follow-up'] } }
+        })
+
+        const conversionRate = total > 0 ? parseFloat(((confirmed / total) * 100).toFixed(1)) : 0
+
+        return {
+            success: true,
+            total,
+            confirmed,
+            pending,
+            conversionRate
+        }
+    } catch (error) {
+        console.error('getReferralStats error', error)
+        return { success: false, error: 'Failed to calc stats' }
+    }
+}
+
+/**
+ * Exports referrals to CSV based on current filters.
+ * Returns a CSV string.
+ */
+export async function exportReferrals(filters?: {
+    status?: string
+    role?: string
+    campus?: string
+    search?: string
+    dateRange?: { from: string; to: string }
+}) {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
+
+    const { filter: scopeFilter } = await getScopeFilter('referralTracking', {
+        campusField: 'campus',
+        useCampusName: true
+    })
+
+    if (scopeFilter === null) return { success: false, error: 'No access' }
+
+    const where: any = { ...scopeFilter }
+    if (filters?.status && filters.status !== 'All') where.leadStatus = filters.status
+    if (filters?.role && filters.role !== 'All') where.user = { role: filters.role }
+    if (filters?.campus && filters.campus !== 'All') where.campus = filters.campus
+    if (filters?.search) {
+        where.OR = [
+            { parentName: { contains: filters.search, mode: 'insensitive' } },
+            { parentMobile: { contains: filters.search } },
+            { studentName: { contains: filters.search, mode: 'insensitive' } },
+            { admissionNumber: { contains: filters.search, mode: 'insensitive' } },
+            { user: { fullName: { contains: filters.search, mode: 'insensitive' } } },
+            { user: { referralCode: { contains: filters.search, mode: 'insensitive' } } }
+        ]
+    }
+    if (filters?.dateRange?.from || filters?.dateRange?.to) {
+        where.createdAt = {}
+        if (filters.dateRange.from) where.createdAt.gte = new Date(filters.dateRange.from)
+        if (filters.dateRange.to) where.createdAt.lte = new Date(filters.dateRange.to)
+    }
+
+    try {
+        const referrals = await prisma.referralLead.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: {
+                    select: {
+                        fullName: true,
+                        role: true,
+                        assignedCampus: true,
+                        mobileNumber: true
+                    }
+                }
+            }
+        })
+
+        // Manual CSV Generation
+        const headers = ['Lead ID', 'Parent Name', 'Parent Mobile', 'Student Name', 'Grade', 'Campus', 'Status', 'Referrer', 'Referrer Role', 'Referrer Mobile', 'Date Created', 'ERP Number']
+        const rows = referrals.map(r => [
+            r.leadId,
+            `"${r.parentName.replace(/"/g, '""')}"`,
+            r.parentMobile,
+            `"${(r.studentName || '').replace(/"/g, '""')}"`,
+            r.gradeInterested || '',
+            r.campus || '',
+            r.leadStatus,
+            `"${r.user.fullName.replace(/"/g, '""')}"`,
+            r.user.role,
+            r.user.mobileNumber,
+            new Date(r.createdAt).toLocaleDateString(),
+            r.admissionNumber || ''
+        ])
+
+        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+        return { success: true, csv: csvContent }
+
+    } catch (e) {
+        console.error('Export Error', e)
+        return { success: false, error: 'Export failed' }
+    }
+}
+
+/**
+ * Bulk confirms selected referrals.
+ * Only processes leads that ALREADY have an admission number (from import).
+ */
+export async function bulkConfirmReferrals(leadIds: number[]) {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
+
+    // Strict Edit Check
+    if (!await canEdit('referralTracking')) return { success: false, error: 'Permission Denied' }
+
+    try {
+        // Fetch leads to verify they have ERP numbers
+        const leads = await prisma.referralLead.findMany({
+            where: {
+                leadId: { in: leadIds },
+                leadStatus: { not: 'Confirmed' },
+                admissionNumber: { not: null } // MUST have ERP number
+            }
+        })
+
+        if (leads.length === 0) {
+            return { success: false, error: 'No eligible leads found (must have ERP Number and not be confirmed)' }
+        }
+
+        let processed = 0
+
+        // Parallel Confirmation (using existing confirmReferral logic logic would be safer but slower)
+        // For bulk, we'll replicate the core logic efficiently
+        for (const lead of leads) {
+            // We can reuse the single confirmReferral function to ensure all side-effects (benefits, notifications) run!
+            // This is slower but safer.
+            await confirmReferral(lead.leadId, lead.admissionNumber!)
+            processed++
+        }
+
+        revalidatePath('/admin')
+        return { success: true, processed, totalRequested: leadIds.length }
+
+    } catch (e: any) {
+        console.error('Bulk Confirm Error', e)
+        return { success: false, error: e.message }
+    }
+}
+
+/**
+ * Bulk converts confirmed leads to students.
+ */
+export async function bulkConvertLeadsToStudents(leadIds: number[]) {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
+
+    // Strict Check
+    if (!await canEdit('studentManagement')) return { success: false, error: 'Permission Denied' }
+
+    try {
+        const leads = await prisma.referralLead.findMany({
+            where: {
+                leadId: { in: leadIds },
+                student: { is: null }, // Not already converted
+                // leadStatus: 'Confirmed' // Ideally should be confirmed, but user might want to force convert. Let's stick to confirmed for safety? 
+                // Let's allow non-confirmed if they have info, but standard flow is confirm first.
+            },
+            include: { user: true }
+        })
+
+        let processed = 0
+        const errors = []
+
+        for (const lead of leads) {
+            try {
+                // Find or Create Parent
+                let parentId = lead.userId
+                // Logic check: The referrer 'user' might be the parent, OR the referrer is an ambassador.
+                // If referrer is Parent, use them. If referrer is Staff/Ambassador, we need the actual parent info.
+                // Current `importReferrals` stores parentName/Mobile. We need to find THAT user.
+
+                let actualParentId = null
+
+                // Try finding parent by mobile
+                const parentUser = await prisma.user.findUnique({ where: { mobileNumber: lead.parentMobile } })
+
+                if (parentUser) {
+                    actualParentId = parentUser.userId
+                } else {
+                    // Create Parent User (Shadow Account)
+                    const newParent = await prisma.user.create({
+                        data: {
+                            fullName: lead.parentName,
+                            mobileNumber: lead.parentMobile,
+                            role: 'Parent',
+                            // Temp logic for other fields
+                            referralCode: 'P' + Math.floor(Math.random() * 10000),
+                            status: 'Active',
+                            password: null,
+                            childInAchariya: true // Default for created parent
+                        }
+                    })
+                    actualParentId = newParent.userId
+                }
+
+                // Resolve Campus ID
+                let finalCampusId = lead.campusId
+                if (!finalCampusId && lead.campus) {
+                    const c = await prisma.campus.findUnique({ where: { campusName: lead.campus } })
+                    // Try exact match first, else findFirst? unique is safer for campusName
+                    if (c) finalCampusId = c.id
+                }
+
+                if (!finalCampusId) {
+                    console.error(`Lead ${lead.leadId} missing campus info`)
+                    errors.push(lead.leadId)
+                    continue
+                }
+
+                // Create Student
+                await prisma.student.create({
+                    data: {
+                        fullName: lead.studentName || lead.parentName + "'s Child",
+                        parentId: actualParentId,
+                        campusId: finalCampusId,
+                        grade: lead.gradeInterested || 'N/A',
+                        section: lead.section,
+                        admissionNumber: lead.admissionNumber,
+                        referralLeadId: lead.leadId,
+                        ambassadorId: lead.userId, // The original referrer
+                        academicYear: lead.admittedYear || '2025-2026',
+                        status: 'Active'
+                    }
+                })
+                processed++
+
+            } catch (err: any) {
+                console.error(`Failed to convert lead ${lead.leadId}`, err)
+                errors.push(lead.leadId)
+            }
+        }
+
+        revalidatePath('/admin')
+        return { success: true, processed, errors }
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+}
+
+/**
+ * Converts a single confirmed referral lead into a Student record.
+ * Creates a shadow Parent account if needed.
+ */
+export async function convertLeadToStudent(leadId: number, details: { studentName: string }) {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
+
+    if (!await canEdit('studentManagement')) return { success: false, error: 'Permission Denied' }
+
+    try {
+        // Reuse bulk logic for single item to ensure consistency
+        const res = await bulkConvertLeadsToStudents([leadId])
+        if (res.success) return { success: true }
+        return { success: false, error: res.error || 'Conversion failed' }
+    } catch (e: any) {
+        return { success: false, error: e.message }
+    }
+}
+
+/**
+ * Rejects a single referral lead.
+ */
+export async function rejectReferral(leadId: number) {
+    const user = await getCurrentUser()
+    if (!user || (!user.role.includes('Admin') && !user.role.includes('Campus'))) return { success: false, error: 'Unauthorized' }
+
+    if (!await canEdit('referralTracking')) return { success: false, error: 'Permission Denied' }
+
+    try {
+        const res = await bulkRejectReferrals([leadId])
+        if (res.success) return { success: true }
+        return { success: false, error: res.error || 'Rejection failed' }
+    } catch (e: any) {
+        return { success: false, error: e.message }
     }
 }

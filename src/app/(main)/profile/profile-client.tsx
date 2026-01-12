@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, Phone, Award, Calendar, Shield, Edit2, Check, X, Upload, Mail, MapPin, Trash2, ArrowRight } from 'lucide-react'
+import { Star, Phone, Award, Calendar, Shield, Edit2, Check, X, Upload, Mail, MapPin, Trash2, ArrowRight, User, Camera, Settings, LogOut, ChevronRight, HelpCircle, CreditCard, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { PrivacyModal } from '@/components/PrivacyModal'
 import { requestAccountDeletion } from '@/app/deletion-actions'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { motion, AnimatePresence } from 'framer-motion'
+import { PageAnimate, PageItem } from '@/components/PageAnimate'
 
 interface ProfileClientProps {
     user: {
@@ -22,6 +25,8 @@ interface ProfileClientProps {
         email?: string
         address?: string
         createdAt: string
+        confirmedReferralCount?: number // Optional if generic user type doesn't strictly enforce it yet
+        studentFee?: number
     }
 }
 
@@ -34,6 +39,11 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+    // Derived or safe default stats
+    const referralCount = (user as any).confirmedReferralCount || 0
+    const totalEarned = ((user as any).studentFee || 60000) * ((user.yearFeeBenefitPercent || 0) / 100)
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -51,6 +61,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                 })
                 if (response.ok) {
                     setProfileImage(base64String)
+                    toast.success('Photo updated successfully')
                 } else {
                     toast.error('Failed to upload photo')
                 }
@@ -73,6 +84,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             })
             if (response.ok) {
                 setIsEditing(false)
+                toast.success('Profile updated successfully')
                 window.location.reload()
             } else {
                 toast.error('Failed to update profile')
@@ -101,364 +113,263 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     }
 
     return (
-        <div className="animate-fade-in max-w-4xl mx-auto space-y-8 pb-12">
-            {/* Elegant Header Section */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                paddingBottom: '20px',
-                borderBottom: '1px solid var(--border-color)',
-                flexWrap: 'wrap',
-                gap: '16px'
-            }}>
-                <div className="flex-1 min-w-[200px]">
-                    <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-0.5px', marginBottom: '4px' }}>My Profile</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '1.4' }}>Essential account information and membership perks</p>
-                </div>
-                {!isEditing ? (
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="btn btn-primary"
-                        style={{ width: 'auto', padding: '10px 24px', borderRadius: '12px' }}
-                    >
-                        <Edit2 size={16} style={{ marginRight: '8px' }} />
-                        Edit Profile
-                    </button>
-                ) : (
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="btn btn-primary"
-                            style={{
-                                width: 'auto',
-                                padding: '10px 24px',
-                                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                                boxShadow: '0 4px 15px rgba(5, 150, 105, 0.3)',
-                                borderRadius: '12px'
-                            }}
-                        >
-                            <Check size={16} style={{ marginRight: '8px' }} />
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                        <button
-                            onClick={handleCancel}
-                            disabled={saving}
-                            className="btn btn-outline"
-                            style={{ width: 'auto', padding: '10px 24px', borderRadius: '12px' }}
-                        >
-                            <X size={16} style={{ marginRight: '8px' }} />
-                            Cancel
-                        </button>
-                    </div>
-                )}
+        <div className="relative min-h-screen text-white font-[family-name:var(--font-outfit)] pb-24 -mt-20 pt-20">
+            {/* Force Dark Background Overlay to override global layout */}
+            <div className="absolute inset-0 bg-[#0f172a] z-0"></div>
+
+            {/* Ambient Background Effects */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
+                <div className="absolute top-[30%] right-[-10%] w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-pink-600/5 rounded-full blur-[120px]" />
             </div>
 
-            {/* Profile Hero Card */}
-            <div className="card" style={{ padding: '40px', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{
-                    position: 'absolute',
-                    top: '-50px',
-                    right: '-50px',
-                    width: '300px',
-                    height: '300px',
-                    background: 'radial-gradient(circle, rgba(204,0,0,0.03) 0%, transparent 70%)',
-                    zIndex: 0
-                }} />
+            <PageAnimate className="relative z-10 max-w-lg mx-auto flex flex-col px-6">
 
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-10 relative z-10">
-                    {/* Avatar Section */}
-                    <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }} className="group">
-                        <div style={{
-                            width: '120px',
-                            height: '120px',
-                            borderRadius: '32px',
-                            overflow: 'hidden',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: '800',
-                            fontSize: '48px',
-                            color: 'white',
-                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-                            border: '4px solid white',
-                            background: 'linear-gradient(135deg, #CC0000 0%, #FF6347 100%)'
-                        }}>
+                {/* Header */}
+                <header className="py-6 flex items-center justify-between">
+                    <h1 className="text-xl font-bold tracking-tight">My Profile</h1>
+                    {!isEditing ? (
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                        >
+                            <Edit2 size={18} className="text-white/80" />
+                        </button>
+                    ) : (
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleCancel}
+                                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                            >
+                                <X size={18} className="text-white/80" />
+                            </button>
+                        </div>
+                    )}
+                </header>
+
+                {/* Hero Section */}
+                <div className="flex flex-col items-center py-6">
+                    {/* Avatar with Gold Ring */}
+                    <div className="relative mb-6 group">
+                        <div className="absolute -inset-1 bg-gradient-to-tr from-amber-300 to-amber-600 rounded-full blur opacity-70 animate-pulse"></div>
+                        <div className="relative w-28 h-28 rounded-full border-4 border-[#0f172a] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden shadow-2xl">
                             {profileImage ? (
-                                <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
-                                fullName ? fullName[0] : 'U'
+                                <span className="text-3xl font-bold text-white">{fullName ? fullName.charAt(0) : <User />}</span>
                             )}
                         </div>
 
-                        <label
-                            style={{
-                                position: 'absolute',
-                                inset: 0,
-                                backgroundColor: 'rgba(0,0,0,0.5)',
-                                backdropFilter: 'blur(4px)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                opacity: 0,
-                                cursor: 'pointer',
-                                borderRadius: '32px',
-                                color: 'white',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                                gap: '6px',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                            }}
-                            className="group-hover:opacity-100"
-                        >
-                            <Upload size={20} />
-                            <span>{uploading ? '...' : 'Update'}</span>
+                        {/* Upload Button */}
+                        <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-amber-500 text-black flex items-center justify-center border-4 border-[#0f172a] shadow-lg cursor-pointer hover:bg-amber-400 transition-colors">
+                            <Camera size={14} />
                             <input
                                 type="file"
-                                style={{ display: 'none' }}
+                                className="hidden"
                                 accept="image/*"
                                 onChange={handlePhotoUpload}
                                 disabled={uploading}
                             />
                         </label>
-
                         {uploading && (
-                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                                <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             </div>
                         )}
                     </div>
 
-                    {/* User Info & Main Body */}
-                    <div className="flex-1 text-center md:text-left">
-                        <div style={{ marginBottom: '28px' }}>
-                            {isEditing ? (
-                                <div style={{ maxWidth: '400px', margin: '0 auto md:0' }}>
-                                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>Full Name</label>
+                    <h2 className="text-2xl font-bold mb-1 text-center">{fullName}</h2>
+
+                    {user.yearFeeBenefitPercent !== undefined && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 mb-6">
+                            <Star size={12} className="text-amber-400 fill-amber-400" />
+                            <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                                {referralCount >= 5 ? 'Prestigious Partner' : 'Ambassador'}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Stats Row */}
+                    <div className="w-full grid grid-cols-2 gap-4 mb-8">
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center text-center backdrop-blur-sm">
+                            <span className="text-2xl font-bold text-white mb-0.5">{referralCount}</span>
+                            <span className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Total Referrals</span>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center text-center backdrop-blur-sm relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent pointer-events-none" />
+                            <span className="text-2xl font-bold text-amber-400 mb-0.5">₹{totalEarned.toLocaleString('en-IN')}</span>
+                            <span className="text-[10px] text-amber-200/50 uppercase tracking-wider font-medium">Est. Value</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Edit Form or Menu List */}
+                <div className="space-y-4">
+                    {isEditing ? (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+                                <h3 className="text-sm font-bold text-white/60 uppercase tracking-wide mb-2">Edit Details</h3>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-white/40 ml-1">Full Name</label>
                                     <input
                                         type="text"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
-                                        className="input"
-                                        style={{ fontSize: '18px', fontWeight: '700', padding: '12px 16px' }}
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-amber-500/50 focus:outline-none transition-colors"
                                     />
                                 </div>
-                            ) : (
-                                <h2 style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>{fullName}</h2>
-                            )}
 
-                            <div className="flex items-center justify-center md:justify-start gap-4 mt-2">
-                                <span style={{
-                                    padding: '6px 14px',
-                                    background: 'rgba(204,0,0,0.08)',
-                                    color: 'var(--primary-red)',
-                                    borderRadius: '10px',
-                                    fontSize: '13px',
-                                    fontWeight: '700',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px'
-                                }}>
-                                    <Shield size={14} />
-                                    {user.role}
-                                </span>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-white/40 ml-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="Add email address"
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-amber-500/50 focus:outline-none transition-colors"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-white/40 ml-1">Address</label>
+                                    <textarea
+                                        value={address}
+                                        onChange={(e) => setAddress(e.target.value)}
+                                        placeholder="Add your address"
+                                        rows={3}
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-amber-500/50 focus:outline-none transition-colors resize-none"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 mt-4"
+                                >
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                    {!saving && <Check size={18} />}
+                                </button>
                             </div>
                         </div>
-
-                        {/* Info Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                            <div className="flex items-center gap-4">
-                                <div style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
-                                    <Phone size={18} className="text-primary-red" />
-                                </div>
-                                <div style={{ textAlign: 'left' }}>
-                                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Mobile</p>
-                                    <p style={{ fontWeight: '700', fontSize: '15px' }}>{user.mobileNumber || user.adminMobile || 'N/A'}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <div style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
-                                    <Mail size={18} className="text-primary-red" />
-                                </div>
-                                <div style={{ textAlign: 'left', flex: 1 }}>
-                                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Email ID</p>
-                                    {isEditing ? (
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="Not set"
-                                            className="input"
-                                            style={{ padding: '8px 12px', fontSize: '14px', marginTop: '4px' }}
-                                        />
-                                    ) : (
-                                        <p style={{ fontWeight: '700', fontSize: '15px' }}>{email || 'Not provided'}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex items-start gap-4">
-                                <div style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
-                                    <MapPin size={18} className="text-primary-red" />
-                                </div>
-                                <div style={{ textAlign: 'left', flex: 1 }}>
-                                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Full Address</p>
-                                    {isEditing ? (
-                                        <textarea
-                                            value={address}
-                                            onChange={(e) => setAddress(e.target.value)}
-                                            placeholder="Street, City, Zip"
-                                            className="input"
-                                            style={{ padding: '8px 12px', fontSize: '14px', marginTop: '4px', minHeight: '60px', resize: 'vertical' }}
-                                        />
-                                    ) : (
-                                        <p style={{ fontWeight: '700', fontSize: '14px', color: address ? 'inherit' : 'var(--text-secondary)', lineHeight: '1.4' }}>{address || 'No address set'}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <div style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
-                                    <Calendar size={18} className="text-primary-red" />
-                                </div>
-                                <div style={{ textAlign: 'left' }}>
-                                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase' }}>Member Since</p>
-                                    <p style={{ fontWeight: '700', fontSize: '15px' }}>{new Date(user.createdAt).getFullYear()}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Benefits Landscape */}
-            {!user.role.includes('Admin') && user.yearFeeBenefitPercent !== undefined && (
-                <div style={{ marginTop: '48px' }}>
-                    <div className="flex items-center gap-3 mb-6">
-                        <div style={{ width: '4px', height: '24px', background: 'var(--primary-red)', borderRadius: '2px' }} />
-                        <h2 style={{ fontSize: '22px', fontWeight: '800' }}>Exclusive Membership Benefits</h2>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="card" style={{
-                            padding: '30px',
-                            borderRadius: '24px',
-                            background: 'linear-gradient(135deg, #FFFFFF 0%, #FFF9F9 100%)',
-                            border: '1px solid rgba(204,0,0,0.1)'
-                        }}>
-                            <div className="flex justify-between items-start mb-4">
-                                <div style={{ padding: '12px', background: 'rgba(204,0,0,0.05)', borderRadius: '16px' }}>
-                                    <Star className="text-primary-red" size={24} />
-                                </div>
-                                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', background: 'white', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border-color)', textTransform: 'uppercase' }}>Active Reward</span>
-                            </div>
-                            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>Annual Fee Benefit</h3>
-                            <div className="flex items-baseline gap-2 mb-2">
-                                <span className="text-4xl font-extrabold text-primary-red">{user.yearFeeBenefitPercent}%</span>
-                                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>Credit</span>
-                            </div>
-                        </div>
-
-                        {user.longTermBenefitPercent !== undefined && (
-                            <div className="card" style={{
-                                padding: '30px',
-                                borderRadius: '24px',
-                                background: 'linear-gradient(135deg, #FFFFFF 0%, #F9FFF9 100%)',
-                                border: '1px solid rgba(0,184,148,0.1)'
-                            }}>
-                                <div className="flex justify-between items-start mb-4">
-                                    <div style={{ padding: '12px', background: 'rgba(0,184,148,0.05)', borderRadius: '16px' }}>
-                                        <Award style={{ color: '#00B894' }} size={24} />
+                    ) : (
+                        <>
+                            {/* Read-Only Menu Links */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
+                                <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors group">
+                                    <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <Phone size={18} />
                                     </div>
-                                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', background: 'white', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border-color)', textTransform: 'uppercase' }}>Lifetime Status</span>
+                                    <div className="flex-1">
+                                        <p className="text-xs text-white/40 font-bold uppercase tracking-wide">Mobile</p>
+                                        <p className="text-sm font-medium text-white">{user.mobileNumber || user.adminMobile || 'N/A'}</p>
+                                    </div>
                                 </div>
-                                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>Legacy Multiplier</h3>
-                                <div className="flex items-baseline gap-2 mb-2">
-                                    <span className="text-4xl font-extrabold" style={{ color: '#00B894' }}>{user.longTermBenefitPercent}%</span>
-                                    <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>Permanent</span>
+
+                                <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors group">
+                                    <div className="w-10 h-10 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <Mail size={18} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs text-white/40 font-bold uppercase tracking-wide">Email</p>
+                                        <p className="text-sm font-medium text-white">{email || 'Not provided'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors group">
+                                    <div className="w-10 h-10 rounded-full bg-pink-500/10 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <MapPin size={18} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs text-white/40 font-bold uppercase tracking-wide">Location</p>
+                                        <p className="text-sm font-medium text-white truncate max-w-[200px]">{address || 'No address set'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors group">
+                                    <div className="w-10 h-10 rounded-full bg-teal-500/10 text-teal-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <Calendar size={18} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs text-white/40 font-bold uppercase tracking-wide">Member Since</p>
+                                        <p className="text-sm font-medium text-white">{new Date(user.createdAt).getFullYear()}</p>
+                                    </div>
                                 </div>
                             </div>
-                        )}
-                    </div>
-                </div>
-            )}
 
-            {/* Integrity / System Data */}
-            <div style={{ marginTop: '48px' }}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div style={{ width: '4px', height: '24px', background: 'var(--primary-red)', borderRadius: '2px' }} />
-                    <h2 style={{ fontSize: '22px', fontWeight: '800' }}>Account Details</h2>
-                </div>
+                            {/* Danger Zone Links */}
+                            <div className="space-y-3 pt-4">
+                                <button
+                                    onClick={() => setShowPrivacyModal(true)}
+                                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all group active:scale-[0.98]"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <Shield size={18} />
+                                        </div>
+                                        <div className="text-left">
+                                            <h3 className="font-bold text-white text-sm">Privacy & Security</h3>
+                                            <p className="text-xs text-white/40">Manage data & policies</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={18} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                                </button>
 
-                <div className="card" style={{ padding: '0', borderRadius: '24px', overflow: 'hidden' }}>
-                    <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700' }}>System Verified Information</h3>
-                    </div>
-                    <div style={{ padding: '8px 32px' }}>
-                        {[
-                            { label: 'Role Type', value: user.role, color: 'var(--primary-red)' },
-                            { label: 'Network Code', value: user.referralCode || 'N/A', mono: true },
-                            { label: 'Campus Association', value: user.assignedCampus || 'Network Wide' },
-                            { label: 'Profile Verified', value: 'Yes', check: true }
-                        ].map((item, idx) => (
-                            <div key={idx} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '20px 0',
-                                borderBottom: idx === 3 ? 'none' : '1px solid var(--border-color)'
-                            }}>
-                                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{item.label}</span>
-                                <span style={{
-                                    fontSize: '15px',
-                                    fontWeight: '700',
-                                    color: item.color || 'var(--text-primary)',
-                                    fontFamily: item.mono ? 'monospace' : 'inherit'
-                                }}>{item.value}</span>
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 hover:border-red-500/20 transition-all group active:scale-[0.98]"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <Trash2 size={18} />
+                                        </div>
+                                        <div className="text-left">
+                                            <h3 className="font-bold text-red-400 text-sm">Delete Account</h3>
+                                            <p className="text-xs text-red-400/50">Permanent action</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={18} className="text-red-400/20 group-hover:text-red-400/50 transition-colors" />
+                                </button>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Account Management (Google Compliance) */}
-            <div style={{ marginTop: '64px', paddingTop: '32px', borderTop: '1px solid var(--border-color)' }}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div style={{ width: '4px', height: '24px', background: '#EF4444', borderRadius: '2px' }} />
-                    <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#EF4444' }}>Danger Zone</h2>
+                        </>
+                    )}
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <button
-                        onClick={() => {
-                            if (confirm('Are you absolutely sure you want to request account deletion?')) {
-                                handleDeleteRequest();
-                            }
-                        }}
-                        className="px-6 py-4 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-bold text-sm shadow-sm hover:bg-red-100 transition-all flex items-center justify-between group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
-                            <span>Request Account Deletion</span>
-                        </div>
-                        <ArrowRight size={16} />
-                    </button>
-
-                    <button
-                        onClick={() => setShowPrivacyModal(true)}
-                        className="px-6 py-4 bg-gray-50 text-gray-600 border border-gray-100 rounded-2xl font-bold text-sm shadow-sm hover:bg-gray-100 transition-all flex items-center justify-between group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Shield size={20} className="text-emerald-600" />
-                            <span>Privacy & Data Policy</span>
-                        </div>
-                        <ArrowRight size={16} />
-                    </button>
+                {/* Sign Out (Visual Only - Logic handled by sidebar usually, but good to have) */}
+                <div className="pt-8 pb-4">
+                    <form action="/auth/signout" method="post">
+                        <button className="w-full h-14 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-xs uppercase tracking-widest">
+                            <LogOut size={16} />
+                            Sign Out
+                        </button>
+                    </form>
+                    <p className="text-center text-[10px] text-white/20 mt-6 uppercase tracking-widest">
+                        Achariya Ambassador • v2.5.0
+                    </p>
                 </div>
-            </div>
+
+            </PageAnimate>
+
             <PrivacyModal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                title="Delete Account?"
+                description={
+                    <div className="space-y-2">
+                        <p className="font-medium text-white/80">Are you absolutely sure?</p>
+                        <p className="text-sm text-white/60">This will permanently remove your account and all associated data. This action cannot be undone.</p>
+                    </div>
+                }
+                confirmText="Delete My Account"
+                variant="danger"
+                onConfirm={() => {
+                    setShowDeleteConfirm(false);
+                    handleDeleteRequest();
+                }}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
         </div>
     )
 }

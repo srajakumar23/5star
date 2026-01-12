@@ -1,17 +1,20 @@
 'use client'
 
-import { CheckCircle, Filter, ChevronDown, Clock, AlertCircle, Phone, MapPin, User, Search } from 'lucide-react'
+
+import { CheckCircle, Filter, ChevronDown, Clock, AlertCircle, Phone, MapPin, User, Search, Square, CheckSquare, Trash, XCircle, Download, X, Pencil } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { PremiumCard } from '@/components/premium/PremiumCard'
 import { toast } from 'sonner'
+import { bulkRejectReferrals, bulkDeleteReferrals } from '@/app/admin-actions'
 
 interface ReferralTableProps {
     referrals: any[]
-    confirmReferral: (leadId: number) => Promise<any>
+    confirmReferral: (leadId: number, admissionNumber?: string) => Promise<any>
     convertLeadToStudent?: (leadId: number, details: any) => Promise<any>
     initialRoleFilter?: string
     initialStatusFilter?: string
     isReadOnly?: boolean
+    onBulkAdd?: () => void
 }
 
 export function ReferralTable({
@@ -20,7 +23,8 @@ export function ReferralTable({
     convertLeadToStudent,
     initialRoleFilter,
     initialStatusFilter,
-    isReadOnly = false
+    isReadOnly = false,
+    onBulkAdd
 }: ReferralTableProps) {
     const [roleFilter, setRoleFilter] = useState<string>(initialRoleFilter || 'All')
     const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || 'All')
@@ -32,6 +36,15 @@ export function ReferralTable({
         const uniqueCampuses = new Set(referrals.map(r => r.campus))
         return Array.from(uniqueCampuses).sort()
     }, [referrals])
+
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+    const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null)
+    const [erpNumber, setErpNumber] = useState('')
+    const [isConfirming, setIsConfirming] = useState(false)
+    const [isEditMode, setIsEditMode] = useState(false) // Track if we are editing an existing ERP #
+
+    // Selection State
+    const [selectedIds, setSelectedIds] = useState<number[]>([])
 
     // Filtered referrals
     const filteredReferrals = useMemo(() => {
@@ -48,6 +61,80 @@ export function ReferralTable({
         })
     }, [referrals, roleFilter, statusFilter, campusFilter, searchQuery])
 
+    // Toggle Selection
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredReferrals.length) {
+            setSelectedIds([])
+        } else {
+            setSelectedIds(filteredReferrals.map(r => r.leadId))
+        }
+    }
+
+    const toggleSelect = (id: number) => {
+        if (selectedIds.includes(id)) {
+            setSelectedIds(selectedIds.filter(sid => sid !== id))
+        } else {
+            setSelectedIds([...selectedIds, id])
+        }
+    }
+
+    const handleConfirmClick = (leadId: number, currentErp?: string) => {
+        setSelectedLeadId(leadId)
+        setErpNumber(currentErp || '')
+        setIsEditMode(!!currentErp)
+        setConfirmModalOpen(true)
+    }
+
+    // Bulk Actions Handlers
+    const handleBulkReject = async () => {
+        if (!confirm(`Are you sure you want to REJECT ${selectedIds.length} referrals?`)) return
+
+        const tid = toast.loading('Rejecting referrals...')
+        const res = await bulkRejectReferrals(selectedIds)
+        if (res.success) {
+            toast.success('Selected referrals rejected', { id: tid })
+            setSelectedIds([])
+        } else {
+            toast.error(res.error || 'Failed to reject', { id: tid })
+        }
+    }
+
+    const handleBulkDelete = async () => {
+        if (!confirm(`Are you sure you want to PERMANENTLY DELETE ${selectedIds.length} referrals? This cannot be undone.`)) return
+
+        const tid = toast.loading('Deleting referrals...')
+        const res = await bulkDeleteReferrals(selectedIds)
+        if (res.success) {
+            toast.success('Selected referrals deleted', { id: tid })
+            setSelectedIds([])
+        } else {
+            toast.error(res.error || 'Failed to delete', { id: tid })
+        }
+    }
+
+    const submitConfirm = async () => {
+        if (!selectedLeadId) return
+        if (!erpNumber.trim()) {
+            toast.error('Student ERP Number is required')
+            return
+        }
+
+        setIsConfirming(true)
+        const tid = toast.loading(isEditMode ? 'Updating Info...' : 'Confirming Admission...')
+        try {
+            const res = await confirmReferral(selectedLeadId, erpNumber)
+            if (res.success) {
+                toast.success(isEditMode ? 'ERP Number Updated' : 'Lead Confirmed Successfully', { id: tid })
+                setConfirmModalOpen(false)
+            } else {
+                toast.error(res.error || 'Operation Failed', { id: tid })
+            }
+        } catch (error) {
+            toast.error('Unexpected error', { id: tid })
+        }
+        setIsConfirming(false)
+    }
+
     return (
         <PremiumCard>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -60,6 +147,15 @@ export function ReferralTable({
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-0.5">{filteredReferrals.length} Leads Found</p>
                     </div>
                 </div>
+
+                {onBulkAdd && !isReadOnly && (
+                    <button
+                        onClick={onBulkAdd}
+                        className="px-4 py-2 bg-gray-900 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-black transition-transform active:scale-95 shadow-lg shadow-gray-200"
+                    >
+                        <Download size={14} /> Bulk Import
+                    </button>
+                )}
             </div>
             <div className="space-y-6">
                 {/* Filters */}
@@ -107,15 +203,19 @@ export function ReferralTable({
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto pb-20"> {/* Extra padding for FAB */}
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-gray-50/50 border-b border-gray-100">
                             <tr>
+                                <th className="px-6 py-4 w-10">
+                                    <button onClick={toggleSelectAll} className="text-gray-400 hover:text-gray-600">
+                                        {selectedIds.length > 0 && selectedIds.length === filteredReferrals.length ? <CheckSquare size={20} className="text-red-600" /> : <Square size={20} />}
+                                    </button>
+                                </th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Referrer</th>
                                 <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Lead Details</th>
                                 <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Campus</th>
-                                <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Est. Multiplier</th>
                                 <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -126,9 +226,15 @@ export function ReferralTable({
                                 const createdDate = new Date(r.createdAt)
                                 const hoursOld = (new Date().getTime() - createdDate.getTime()) / (1000 * 60 * 60)
                                 const isUrgent = isNew && hoursOld > 48
+                                const isSelected = selectedIds.includes(r.leadId)
 
                                 return (
-                                    <tr key={r.leadId} className="hover:bg-gray-50/80 transition-colors group">
+                                    <tr key={r.leadId} className={`transition-colors group ${isSelected ? 'bg-red-50/30' : 'hover:bg-gray-50/80'}`}>
+                                        <td className="px-6 py-4">
+                                            <button onClick={() => toggleSelect(r.leadId)} className="text-gray-400 hover:text-gray-600">
+                                                {isSelected ? <CheckSquare size={20} className="text-red-600" /> : <Square size={20} />}
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${r.user.role === 'Staff' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -155,6 +261,12 @@ export function ReferralTable({
                                                         </span>
                                                     )}
                                                 </div>
+                                                {/* Show Grade/Section for context */}
+                                                {(r.gradeInterested || r.section) && (
+                                                    <p className="text-xs text-gray-500 font-medium ml-0.5">
+                                                        {r.gradeInterested} {r.section ? `- ${r.section}` : ''}
+                                                    </p>
+                                                )}
                                                 <div className="flex items-center gap-3 text-xs text-gray-500">
                                                     <div className="flex items-center gap-1">
                                                         <Phone size={12} />
@@ -176,14 +288,6 @@ export function ReferralTable({
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <div className="inline-flex flex-col items-center justify-center px-3 py-1.5 rounded-lg bg-gray-50 border border-dashed border-gray-200">
-                                                <p className="text-sm font-black text-red-600">
-                                                    ₹{((r.user.studentFee || 60000) * (r.user.yearFeeBenefitPercent || 0) / 100).toLocaleString('en-IN')}
-                                                </p>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Metric</p>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 <div className={`w-2 h-2 rounded-full ${r.leadStatus === 'Confirmed' ? 'bg-green-500' : r.leadStatus === 'Follow-up' ? 'bg-amber-500' : 'bg-gray-400'}`}></div>
                                                 <span className={`text-sm font-bold ${r.leadStatus === 'Confirmed' ? 'text-green-700' : r.leadStatus === 'Follow-up' ? 'text-amber-700' : 'text-gray-600'}`}>
@@ -194,11 +298,12 @@ export function ReferralTable({
                                         <td className="px-6 py-4 text-right">
                                             {r.leadStatus !== 'Confirmed' ? (
                                                 !isReadOnly && (
-                                                    <form action={async () => await confirmReferral(r.leadId)}>
-                                                        <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0">
-                                                            Confirm
-                                                        </button>
-                                                    </form>
+                                                    <button
+                                                        onClick={() => handleConfirmClick(r.leadId)}
+                                                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                                                    >
+                                                        Confirm
+                                                    </button>
                                                 )
                                             ) : (
                                                 <div className="flex flex-col items-end gap-2">
@@ -206,6 +311,25 @@ export function ReferralTable({
                                                         <span className="text-xs font-bold">Verified</span>
                                                         <CheckCircle size={16} />
                                                     </div>
+                                                    {r.admissionNumber && (
+                                                        <div className="group/edit flex items-center gap-1">
+                                                            <span className="text-[10px] font-mono text-gray-500">
+                                                                ERP: {r.admissionNumber}
+                                                            </span>
+                                                            {!isReadOnly && (
+                                                                <button onClick={() => handleConfirmClick(r.leadId, r.admissionNumber)} className="opacity-0 group-hover/edit:opacity-100 p-1 text-gray-400 hover:text-blue-600 transition-opacity">
+                                                                    <Pencil size={10} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {/* Missing ERP Backfill Button */}
+                                                    {!r.admissionNumber && !isReadOnly && (
+                                                        <button onClick={() => handleConfirmClick(r.leadId)} className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 flex items-center gap-1 hover:bg-orange-100">
+                                                            <Pencil size={10} /> Add ERP
+                                                        </button>
+                                                    )}
+
                                                     {r.student ? (
                                                         <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase">
                                                             In Student Mgmt
@@ -227,7 +351,7 @@ export function ReferralTable({
                             })}
                             {filteredReferrals.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="py-12 text-center text-gray-400">
+                                    <td colSpan={8} className="py-12 text-center text-gray-400">
                                         <Filter size={48} className="mx-auto mb-4 opacity-20" />
                                         <p className="text-sm font-bold">No matching referrals found</p>
                                         <p className="text-xs">Try adjusting your filters</p>
@@ -238,6 +362,96 @@ export function ReferralTable({
                     </table>
                 </div>
             </div>
+
+            {/* Floating Action Bar */}
+            {selectedIds.length > 0 && !isReadOnly && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-5 duration-300">
+                    <div className="bg-[#1e293b] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 border border-gray-700">
+                        <div className="flex items-center gap-3 pr-6 border-r border-gray-600">
+                            <div className="w-8 h-8 rounded-full bg-white text-gray-900 font-black flex items-center justify-center text-sm">
+                                {selectedIds.length}
+                            </div>
+                            <span className="font-bold text-sm tracking-wide">Selected</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleBulkReject}
+                                className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors text-sm font-bold text-red-400 hover:text-red-300"
+                            >
+                                <XCircle size={18} />
+                                REJECT
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-lg transition-colors text-sm font-bold text-red-400 hover:text-red-300"
+                            >
+                                <Trash size={18} />
+                                DELETE
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="ml-4 p-2 hover:bg-white/20 rounded-full transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+
+            {/* Confirmation Modal */}
+            {confirmModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600">
+                                <CheckCircle size={24} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">{isEditMode ? 'Update ERP Number' : 'Confirm Admission'}</h3>
+                            <p className="text-sm text-gray-500 mt-2">
+                                {isEditMode ? 'Update the Student ERP Number for this referral.' : 'Please enter the Student ERP/Admission Number to confirm this referral.'}
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                                    Student ERP No <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-mono text-sm"
+                                    placeholder="e.g. ADM2026001"
+                                    value={erpNumber}
+                                    onChange={(e) => setErpNumber(e.target.value)}
+                                />
+                            </div>
+
+                            <button
+                                onClick={submitConfirm}
+                                disabled={isConfirming || !erpNumber.trim()}
+                                className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all ${erpNumber.trim()
+                                    ? 'bg-green-600 hover:bg-green-700 shadow-green-600/30 hover:-translate-y-0.5'
+                                    : 'bg-gray-300 cursor-not-allowed text-gray-500'
+                                    }`}
+                            >
+                                {isConfirming ? 'Processing...' : (isEditMode ? 'Update Details' : 'Confirm Admission')}
+                            </button>
+
+                            <button
+                                onClick={() => setConfirmModalOpen(false)}
+                                disabled={isConfirming}
+                                className="w-full py-2 text-sm font-semibold text-gray-500 hover:text-gray-700"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </PremiumCard>
     )
 }

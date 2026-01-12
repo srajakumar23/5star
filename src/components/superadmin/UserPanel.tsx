@@ -16,6 +16,8 @@ interface UserPanelProps {
     currentUserRole?: string
 }
 
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
 export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) {
     const router = useRouter()
     const [searchQuery, setSearchQuery] = useState('')
@@ -23,6 +25,13 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
     const [showBulkUploadModal, setShowBulkUploadModal] = useState(false)
     const [editingUser, setEditingUser] = useState<any>(null)
     const [modalLoading, setModalLoading] = useState(false)
+
+    // Delete Confirmation State
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, userId: number | null, userName: string }>({
+        isOpen: false,
+        userId: null,
+        userName: ''
+    })
 
     // Reset Password State
     const [resetTarget, setResetTarget] = useState<{ id: number, name: string, type: 'user' | 'admin' } | null>(null)
@@ -90,13 +99,21 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
         }
     }
 
-    const handleDeleteUser = async (id: number, name: string) => {
-        if (!confirm(`Are you sure you want to delete ${name}?`)) return
-        const result = await removeUser(id)
+    const handleDeleteUser = (id: number, name: string) => {
+        setDeleteConfirmation({ isOpen: true, userId: id, userName: name })
+    }
+
+    const confirmDeleteUser = async () => {
+        if (!deleteConfirmation.userId) return
+
+        const result = await removeUser(deleteConfirmation.userId)
         if (result.success) {
+            setDeleteConfirmation({ isOpen: false, userId: null, userName: '' })
             router.refresh()
+            toast.success('User deleted successfully')
         } else {
             toast.error(result.error || 'Failed to delete user')
+            setDeleteConfirmation({ isOpen: false, userId: null, userName: '' })
         }
     }
 
@@ -295,6 +312,23 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
                     userRole={currentUserRole}
                 />
             )}
+
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirmation.isOpen}
+                title="Delete User?"
+                description={
+                    <p>
+                        Are you sure you want to delete <strong>{deleteConfirmation.userName}</strong>?
+                        <br />
+                        This will remove their access and all associated data.
+                    </p>
+                }
+                confirmText="Yes, Delete User"
+                variant="danger"
+                onConfirm={confirmDeleteUser}
+                onCancel={() => setDeleteConfirmation({ isOpen: false, userId: null, userName: '' })}
+            />
         </div>
     )
 }

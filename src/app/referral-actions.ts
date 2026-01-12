@@ -253,6 +253,17 @@ export async function submitReferral(formData: {
     }
 }
 
+export async function createReferralLead(data: {
+    parentName: string
+    parentMobile: string
+    campus: string
+    gradeInterested?: string
+    studentName?: string
+}) {
+    // Wrapper for backward compatibility if needed, or simply use submitReferral
+    return submitReferral(data)
+}
+
 export async function getMyReferrals() {
     const user = await getCurrentUser()
     if (!user) return []
@@ -315,5 +326,48 @@ export async function getAmbassadorName(referralCode: string) {
         return user?.fullName || null
     } catch (error) {
         return null
+    }
+}
+
+/**
+ * Gets the dynamic fee for the user to be used in Rules Page calculations.
+ * For Parents: Uses their child's Campus + Grade specific fee.
+ * For Others: Uses the default or manually set studentFee.
+ */
+export async function getDynamicFeeForUser() {
+    const user = await getCurrentUser()
+    if (!user) return 60000 // Default fallback
+
+    try {
+        // 1. If Parent, try to find their student's Fee Structure
+        if (user.role === 'Parent') {
+            const student = await prisma.student.findFirst({
+                where: { parentId: user.userId },
+                select: { campusId: true, grade: true }
+            })
+
+            if (student) {
+                // Find the fee for this specific campus and grade
+                const feeStructure = await prisma.gradeFee.findFirst({
+                    where: {
+                        campusId: student.campusId,
+                        grade: student.grade
+                        // Optional: Filter by academicYear if needed, but usually latest 
+                    },
+                    orderBy: { id: 'desc' } // Get latest if multiple
+                })
+
+                if (feeStructure) {
+                    return feeStructure.annualFee
+                }
+            }
+        }
+
+        // 2. If Staff/Other or no matching GradeFee found, default to user's stored fee or system default
+        return user.studentFee || 60000
+
+    } catch (error) {
+        console.error("Error fetching dynamic fee:", error)
+        return user.studentFee || 60000
     }
 }

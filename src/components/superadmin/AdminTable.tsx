@@ -21,6 +21,8 @@ interface AdminTableProps {
     onEdit?: (admin: Admin) => void
 }
 
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
 export function AdminTable({
     admins,
     onAddAdmin,
@@ -34,13 +36,20 @@ export function AdminTable({
     const [selectedAdmins, setSelectedAdmins] = useState<Admin[]>([])
     const [isProcessing, setIsProcessing] = useState(false)
 
-    // Bulk Action Handler
-    const handleBulkAction = async (action: 'activate' | 'suspend' | 'delete') => {
-        const confirmMessage = action === 'delete'
-            ? `DANGER: You are about to PERMANENTLY DELETE ${selectedAdmins.length} administrators. This will remove their access immediately. Are you absolutely sure?`
-            : `Are you sure you want to ${action} ${selectedAdmins.length} selected administrators?`
+    // Bulk Confirmation State
+    const [bulkConfirmation, setBulkConfirmation] = useState<{ isOpen: boolean, action: 'activate' | 'suspend' | 'delete' | null }>({
+        isOpen: false,
+        action: null
+    })
 
-        if (!confirm(confirmMessage)) return
+    // Bulk Action Handler
+    const handleBulkAction = (action: 'activate' | 'suspend' | 'delete') => {
+        setBulkConfirmation({ isOpen: true, action })
+    }
+
+    const executeBulkAction = async () => {
+        const action = bulkConfirmation.action
+        if (!action) return
 
         setIsProcessing(true)
         try {
@@ -48,12 +57,15 @@ export function AdminTable({
             if (res.success) {
                 toast.success(`Bulk ${action} successful: ${res.count} admins affected`)
                 setSelectedAdmins([])
+                setBulkConfirmation({ isOpen: false, action: null })
                 router.refresh()
             } else {
                 toast.error(res.error || 'Bulk action failed')
+                setBulkConfirmation({ isOpen: false, action: null })
             }
         } catch (error) {
             toast.error('Connection error during bulk action')
+            setBulkConfirmation({ isOpen: false, action: null })
         } finally {
             setIsProcessing(false)
         }
@@ -277,6 +289,29 @@ export function AdminTable({
                     />
                 </div>
             </div>
+
+            {/* Bulk Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={bulkConfirmation.isOpen}
+                title={`Confirm Bulk ${bulkConfirmation.action === 'delete' ? 'Deletion' : 'Update'}`}
+                description={
+                    bulkConfirmation.action === 'delete' ? (
+                        <p className="text-red-600 font-medium">
+                            DANGER: You are about to PERMANENTLY DELETE <strong>{selectedAdmins.length}</strong> administrators.
+                            <br />This will remove their access immediately. Are you absolutely sure?
+                        </p>
+                    ) : (
+                        <p>
+                            Are you sure you want to <strong>{bulkConfirmation.action}</strong> {selectedAdmins.length} selected administrators?
+                        </p>
+                    )
+                }
+                confirmText={`Yes, ${bulkConfirmation.action} All`}
+                variant={bulkConfirmation.action === 'delete' ? 'danger' : 'warning'}
+                onConfirm={executeBulkAction}
+                onCancel={() => setBulkConfirmation({ isOpen: false, action: null })}
+                isLoading={isProcessing}
+            />
         </div>
     )
 }

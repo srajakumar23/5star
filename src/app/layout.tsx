@@ -26,34 +26,34 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Achariya Ambassador | 25th Year Celebration",
-    template: "%s | Achariya Ambassador"
+    default: "Achariya Partnership Program (APP) | 25th Year Celebration",
+    template: "%s | Achariya Partnership Program (APP)"
   },
-  description: "Join the Achariya 5-Star Ambassador Program. Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
-  keywords: ["Achariya", "Ambassador", "School Admission", "Referral Program", "Education", "Pondicherry", "5 Star"],
+  description: "Join the Achariya Partnership Program (APP). Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
+  keywords: ["Achariya", "APP", "Partnership Program", "School Admission", "Referral Program", "Education", "Pondicherry", "5 Star", "25th Year"],
   authors: [{ name: "ACHARIYA WORLD CLASS EDUCATION" }],
   creator: "ACHARIYA WORLD CLASS EDUCATION",
   publisher: "ACHARIYA WORLD CLASS EDUCATION",
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://ambassador.achariya.in",
-    title: "Achariya Ambassador | 25th Year Celebration",
-    description: "Join the Achariya 5-Star Ambassador Program. Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
-    siteName: "Achariya Ambassador Program",
+    url: "https://app.achariya.in",
+    title: "Achariya Partnership Program (APP) | 25th Year Celebration",
+    description: "Join the Achariya Partnership Program (APP). Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
+    siteName: "Achariya Partnership Program (APP)",
     images: [
       {
         url: "/achariya_25_logo.jpg",
         width: 1200,
         height: 630,
-        alt: "Achariya Ambassador Program",
+        alt: "Achariya Partnership Program (APP)",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Achariya Ambassador | 25th Year Celebration",
-    description: "Join the Achariya 5-Star Ambassador Program. Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
+    title: "Achariya Partnership Program (APP) | 25th Year Celebration",
+    description: "Join the Achariya Partnership Program (APP). Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
     images: ["/achariya_25_logo.jpg"],
   },
   icons: {

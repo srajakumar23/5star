@@ -45,9 +45,11 @@ export function MobileMenu({ navItems, user, logoutAction, onNavigate: propOnNav
     }
 
     return (
-        <div className="flex flex-col h-full bg-transparent">
-            {/* Navigation Items - Premium Compact */}
-            <nav className={`flex-1 overflow-y-auto px-2 pt-2 pb-2 ${isMobile ? 'grid grid-cols-2 gap-2' : 'space-y-1'}`}>
+        <div className="flex flex-col h-full bg-transparent font-[family-name:var(--font-outfit)]">
+
+
+            {/* Navigation Items - Premium Grid for Mobile */}
+            <nav className={`flex-1 overflow-y-auto px-4 pt-4 pb-4 ${isMobile ? 'grid grid-cols-2 gap-3' : 'space-y-1'}`}>
                 {navItems.map((item) => {
                     // Safe active check logic with Query Param support
                     let isActive = false
@@ -80,74 +82,81 @@ export function MobileMenu({ navItems, user, logoutAction, onNavigate: propOnNav
                             href={item.href}
                             onClick={handleNavigate}
                             className={isMobile
-                                // Mobile: Premium horizontal pill style - DARK MODE COMPATIBLE
-                                ? "flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm hover:shadow-md hover:border-red-200 dark:hover:border-red-700 hover:from-red-50 hover:to-white dark:hover:from-red-900/30 dark:hover:to-gray-700 text-gray-700 dark:text-gray-200 hover:text-[#CC0000] dark:hover:text-red-400 transition-all duration-200 group no-underline"
+                                // Mobile: Royal Glass Theme - Compact Grid (2 Cols)
+                                ? `flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 group no-underline relative overflow-hidden ${isActive
+                                    ? 'bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                                    : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
+                                }`
                                 // Desktop List Item Styles (Premium Sidebar)
-                                : `flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all group relative overflow-hidden no-underline ${isActive ? 'text-[#FFD936] bg-white/5 font-bold' : 'text-gray-300 hover:text-white'}`
+                                : `flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all group relative overflow-hidden no-underline ${isActive ? 'text-ui-accent bg-white/5 font-bold' : 'text-gray-300 hover:text-white'}`
                             }
                         >
-                            {!isMobile && (
-                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-amber-400 rounded-r-full transition-transform duration-300 ${isActive ? 'scale-y-100' : 'scale-y-0 group-hover:scale-y-100'}`} style={{ backgroundColor: '#FBBF24' }} />
+                            {/* Mobile Active Shine */}
+                            {isMobile && isActive && (
+                                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-amber-400/10 to-transparent opacity-30 skew-x-12" />
                             )}
-                            {/* Icon */}
+
+                            {!isMobile && (
+                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-ui-accent rounded-r-full transition-transform duration-300 ${isActive ? 'scale-y-100' : 'scale-y-0 group-hover:scale-y-100'}`} />
+                            )}
+
+                            {/* Icon - Slightly smaller for 2-col grid */}
                             {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement<any>, {
-                                size: isMobile ? 14 : 18,
-                                className: `flex-shrink-0 transition-colors ${isMobile
-                                    ? 'text-[#CC0000] group-hover:text-[#CC0000]'
+                                size: isMobile ? 22 : 18,
+                                className: `flex-shrink-0 transition-colors relative z-10 ${isMobile
+                                    ? isActive ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-white/60 group-hover:text-white'
                                     : (isActive
-                                        ? 'text-[#FFD936]'
+                                        ? 'text-ui-accent'
                                         : 'text-gray-400 group-hover:text-white')}`
                             }) : item.icon}
+
                             <span style={{
-                                fontSize: isMobile ? '10px' : '13px',
-                                fontWeight: '700',
-                                letterSpacing: '-0.01em',
-                                marginLeft: '12px'
-                            }}>{item.label}</span>
+                                fontSize: isMobile ? '13px' : '13px',
+                                fontWeight: isActive ? '700' : '500',
+                                letterSpacing: '0.02em',
+                                marginLeft: '0',
+                                color: isMobile ? (isActive ? '#fbbf24' : 'rgba(255,255,255,0.6)') : 'inherit',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                zIndex: 10,
+                                position: 'relative'
+                            }} className={isMobile && !isActive ? 'group-hover:text-white transition-colors' : ''}>{item.label}</span>
                         </Link>
                     )
                 })}
             </nav>
 
             {/* Compact Footer (Profile + Logout) */}
-            <div className={`mt-auto px-4 py-6 border-t border-white/5 ${isMobile ? 'bg-white dark:bg-gray-900' : 'bg-black/20'}`}>
+            <div className={`mt-auto px-4 py-6 border-t border-white/10 ${isMobile ? 'bg-black/20 backdrop-blur-lg' : 'bg-black/20'}`}>
                 <div className={`flex items-center justify-between gap-4 ${isMobile ? '' : 'flex-col items-stretch'}`}>
                     <Link href="/profile" onClick={handleNavigate} className={`flex items-center gap-3 hover:bg-white/5 rounded-2xl p-2 transition-all no-underline text-inherit ${isMobile ? 'flex-1' : ''}`}>
                         <div
+                            className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-base font-black text-white shadow-lg flex-shrink-0 ring-1 ring-white/20"
                             style={{
-                                width: '42px',
-                                height: '42px',
-                                background: 'linear-gradient(135deg, #CC0000 0%, #F59E0B 100%)',
-                                borderRadius: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '16px',
-                                fontWeight: '950',
-                                color: 'white',
-                                boxShadow: '0 8px 16px -4px rgba(204, 0, 0, 0.4)',
-                                flexShrink: 0
+                                background: 'linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)',
                             }}
                         >
                             {user.fullName[0].toUpperCase()}
                         </div>
                         <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
                             <span
-                                className={`font-black truncate ${isMobile ? 'text-xs text-gray-700 dark:text-gray-200' : 'text-sm text-white'}`}
+                                className={`font-bold truncate ${isMobile ? 'text-sm text-white' : 'text-sm text-white'}`}
                                 style={{ maxWidth: '160px' }}
                             >
                                 {user.fullName}
                             </span>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${isMobile ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500'}`}>{user.role}</span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${isMobile ? 'text-blue-200' : 'text-gray-500'}`}>{user.role}</span>
                         </div>
                     </Link>
                     <form action={logoutAction} className={isMobile ? '' : 'mt-4'}>
                         <button
                             type="submit"
                             style={{ cursor: 'pointer' }}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-3 rounded-xl bg-white/5 text-gray-400 hover:text-white hover:bg-red-600/20 border border-white/5 transition-all text-[11px] font-black uppercase tracking-[0.2em] group"
+                            suppressHydrationWarning={true}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 text-blue-200 hover:text-white hover:bg-red-500/20 border border-white/5 transition-all text-[10px] font-bold uppercase tracking-[0.1em] group"
                         >
-                            <LogOut size={18} className="group-hover:translate-x-[-2px] transition-transform" />
+                            <LogOut size={16} className="group-hover:translate-x-[-2px] transition-transform" />
                             <span>Logout</span>
                         </button>
                     </form>

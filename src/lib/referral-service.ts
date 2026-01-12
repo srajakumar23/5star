@@ -20,6 +20,7 @@ export async function generateSmartReferralCode(role: string, academicYear?: str
     if (normalizedRole.includes('PARENT')) rolePrefix = 'P'
     else if (normalizedRole.includes('STAFF')) rolePrefix = 'S'
     else if (normalizedRole.includes('ALUMNI')) rolePrefix = 'A'
+    else if (normalizedRole.includes('OTHERS')) rolePrefix = 'O'
 
     // Count existing users with this role to determine the next number
     // We use a transaction or optimistic locking in a real strict env

@@ -13,7 +13,7 @@ async function main() {
         create: {
             adminName: 'Demo Campus Head',
             adminMobile: '8888888888',
-            role: 'CampusHead',
+            role: 'Campus_Head',
             assignedCampus: 'ASM-VILLIANUR(9-12)'
         }
     })
@@ -25,7 +25,7 @@ async function main() {
         create: {
             adminName: 'Demo Admission Admin',
             adminMobile: '7777777777',
-            role: 'Admission Admin'
+            role: 'Admission_Admin',
         }
     })
 

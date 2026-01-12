@@ -124,3 +124,12 @@ export async function canEdit(module: keyof RolePermissions): Promise<boolean> {
     return scope !== 'none' && scope !== 'view-only' && scope !== 'campus-view'
 }
 
+/**
+ * Quick check if user can delete (scope must allow deletion logic if applicable)
+ * For now, same as Edit but we might want stricter scope later.
+ */
+export async function canDelete(module: keyof RolePermissions): Promise<boolean> {
+    const scope = await getPermissionScope(module)
+    return scope !== 'none' && scope !== 'view-only' && scope !== 'campus-view'
+}
+

@@ -20,6 +20,8 @@ import { backupDatabase, restoreDatabase } from '@/app/backup-actions'
 import { toast } from 'sonner'
 import { SecurityPanel } from './SecurityPanel'
 
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
 export function SettingsPanel() {
     const [activeTab, setActiveTab] = useState<'general' | 'dashboards' | 'security' | 'logic' | 'notifications' | 'data' | 'years'>('general')
     const [loading, setLoading] = useState(true)
@@ -41,6 +43,16 @@ export function SettingsPanel() {
     const [isBackingUp, setIsBackingUp] = useState(false)
     const [isRestoring, setIsRestoring] = useState(false)
     const restoreFileRef = useRef<HTMLInputElement>(null)
+
+    // General Confirmation State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        type: 'reject_deletion' | 'approve_deletion' | 'restore_db' | null
+        data?: any
+    }>({
+        isOpen: false,
+        type: null
+    })
 
     const fetchData = async () => {
         setLoading(true)
@@ -119,6 +131,7 @@ export function SettingsPanel() {
         <div className="flex flex-col items-center justify-center p-20 space-y-4">
             <Loader2 className="animate-spin text-red-600" size={40} />
             <p className="text-gray-500 font-bold animate-pulse">Loading Mission Control...</p>
+
         </div>
     )
 
@@ -595,27 +608,13 @@ export function SettingsPanel() {
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
-                                                        onClick={async () => {
-                                                            if (confirm('Reject deletion request?')) {
-                                                                const res = await rejectDeletion(req.userId)
-                                                                if (res.success) {
-                                                                    toast.success('Rejected'); fetchData()
-                                                                }
-                                                            }
-                                                        }}
+                                                        onClick={() => setConfirmState({ isOpen: true, type: 'reject_deletion', data: req.userId })}
                                                         className="px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
                                                     >
                                                         Reject
                                                     </button>
                                                     <button
-                                                        onClick={async () => {
-                                                            if (confirm('PERMANENTLY DELETE USER? This cannot be undone.')) {
-                                                                const res = await approveDeletion(req.userId)
-                                                                if (res.success) {
-                                                                    toast.success('Deleted'); fetchData()
-                                                                }
-                                                            }
-                                                        }}
+                                                        onClick={() => setConfirmState({ isOpen: true, type: 'approve_deletion', data: req.userId })}
                                                         className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                                                     >
                                                         Approve
@@ -698,31 +697,8 @@ export function SettingsPanel() {
                                                         const file = e.target.files?.[0]
                                                         if (!file) return
 
-                                                        if (!confirm('CRITICAL WARNING: This will WIPE ALL CURRENT DATA and replace it with the backup. This action cannot be undone. Are you sure?')) {
-                                                            if (restoreFileRef.current) restoreFileRef.current.value = ''
-                                                            return
-                                                        }
-
-                                                        setIsRestoring(true)
-                                                        const reader = new FileReader()
-                                                        reader.onload = async (event) => {
-                                                            try {
-                                                                const json = JSON.parse(event.target?.result as string)
-                                                                const res = await restoreDatabase(json)
-                                                                if (res.success) {
-                                                                    toast.success('Database restored successfully')
-                                                                    window.location.reload()
-                                                                } else {
-                                                                    toast.error(res.error || 'Restore failed')
-                                                                }
-                                                            } catch (err) {
-                                                                toast.error('Invalid backup file')
-                                                            } finally {
-                                                                setIsRestoring(false)
-                                                                if (restoreFileRef.current) restoreFileRef.current.value = ''
-                                                            }
-                                                        }
-                                                        reader.readAsText(file)
+                                                        // Start confirmation flow
+                                                        setConfirmState({ isOpen: true, type: 'restore_db', data: file })
                                                     }}
                                                 />
                                                 <button
@@ -828,6 +804,79 @@ export function SettingsPanel() {
                     </div>
                 </div>
             </div >
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title={
+                    confirmState.type === 'restore_db' ? 'CRITICAL: Database Restore' :
+                        confirmState.type === 'approve_deletion' ? 'Permanent User Deletion' :
+                            'Reject Request?'
+                }
+                description={
+                    confirmState.type === 'restore_db' ? (
+                        <p className="text-red-600 font-bold">
+                            WARNING: This will WIPE ALL CURRENT DATA and replace it with the backup.
+                            <br />This action CANNOT be undone. Are you absolutely sure?
+                        </p>
+                    ) : confirmState.type === 'approve_deletion' ? (
+                        <p>
+                            Are you sure you want to <strong>PERMANENTLY DELETE</strong> this user?
+                            <br />This action cannot be undone.
+                        </p>
+                    ) : (
+                        <p>Reject this deletion request?</p>
+                    )
+                }
+                confirmText={
+                    confirmState.type === 'restore_db' ? 'RESTORE DATABASE' :
+                        confirmState.type === 'approve_deletion' ? 'Delete User' :
+                            'Reject'
+                }
+                variant={confirmState.type === 'restore_db' ? 'danger' : confirmState.type === 'approve_deletion' ? 'danger' : 'warning'}
+                onConfirm={async () => {
+                    const { type, data } = confirmState
+                    if (!type) return
+
+                    if (type === 'reject_deletion') {
+                        const res = await rejectDeletion(data)
+                        if (res.success) { toast.success('Rejected'); fetchData() }
+                    } else if (type === 'approve_deletion') {
+                        const res = await approveDeletion(data)
+                        if (res.success) { toast.success('Deleted'); fetchData() }
+                    } else if (type === 'restore_db') {
+                        setIsRestoring(true)
+                        setConfirmState({ isOpen: false, type: null }) // Close dialog
+                        const reader = new FileReader()
+                        reader.onload = async (event) => {
+                            try {
+                                const json = JSON.parse(event.target?.result as string)
+                                const res = await restoreDatabase(json)
+                                if (res.success) {
+                                    toast.success('Database restored successfully')
+                                    window.location.reload()
+                                } else {
+                                    toast.error(res.error || 'Restore failed')
+                                }
+                            } catch (err) {
+                                toast.error('Invalid backup file')
+                            } finally {
+                                setIsRestoring(false)
+                                if (restoreFileRef.current) restoreFileRef.current.value = ''
+                            }
+                        }
+                        reader.readAsText(data)
+                        return // Early return since we handled state closing differently
+                    }
+
+                    setConfirmState({ isOpen: false, type: null })
+                }}
+                onCancel={() => {
+                    setConfirmState({ isOpen: false, type: null })
+                    if (confirmState.type === 'restore_db' && restoreFileRef.current) {
+                        restoreFileRef.current.value = ''
+                    }
+                }}
+            />
         </div >
     )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3, Users, BookOpen, ShieldCheck, Building2, Download, IndianRupee, Database, GanttChartSquare, MessageSquare, Settings, UserPlus, Edit, Trash, List, Wallet, ChevronDown, ChevronRight, CheckCircle2, Eye, Key } from 'lucide-react'
+import { BarChart3, Users, BookOpen, ShieldCheck, Building2, Download, IndianRupee, Database, GanttChartSquare, MessageSquare, Settings, UserPlus, Edit, Trash, List, Wallet, ChevronDown, ChevronRight, CheckCircle2, Eye, Key, RotateCcw } from 'lucide-react'
 
 import { RolePermissions } from '@/types'
 
@@ -8,6 +8,7 @@ interface PermissionsMatrixProps {
     onChange: (newMatrix: Record<string, RolePermissions>) => void
     isLoading: boolean
     onSave: () => void
+    onReset: (role: string) => Promise<void>
 }
 
 const ROLES = ['Super Admin', 'Campus Head', 'Finance Admin', 'Admission Admin', 'Campus Admin', 'Staff', 'Parent', 'Alumni', 'Others']
@@ -60,7 +61,8 @@ export function PermissionsMatrix({
     rolePermissionsMatrix,
     onChange,
     isLoading,
-    onSave
+    onSave,
+    onReset
 }: PermissionsMatrixProps) {
     const [hoveredRole, setHoveredRole] = useState<string | null>(null)
     const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
@@ -171,7 +173,22 @@ export function PermissionsMatrix({
                                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
                                         }}
                                     >
-                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#111827' }}>{role}</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#111827' }}>{role}</div>
+                                            <button
+                                                onClick={() => onReset(role)}
+                                                title={`Reset ${role} to defaults`}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer',
+                                                    color: '#9CA3AF', padding: '4px', borderRadius: '50%',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    visibility: hoveredRole === role ? 'visible' : 'hidden'
+                                                }}
+                                            >
+                                                <RotateCcw size={12} />
+                                            </button>
+                                        </div>
                                     </th>
                                 ))}
                             </tr>

@@ -5,6 +5,7 @@ import { Plus, MessageSquare, Clock, AlertCircle, CheckCircle2, X, Send, Tag, Ca
 import { createTicket, getUserTickets } from '@/app/ticket-actions'
 import { TicketChatModal } from '@/components/support/ticket-chat-modal'
 import { toast } from 'sonner'
+import { PageAnimate, PageItem } from '@/components/PageAnimate'
 
 export default function SupportPage() {
     const [tickets, setTickets] = useState<any[]>([])
@@ -56,11 +57,11 @@ export default function SupportPage() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Open': return { bg: '#DBEAFE', text: '#1E40AF', border: '#93C5FD' }
-            case 'In-Progress': return { bg: '#FEF3C7', text: '#92400E', border: '#FCD34D' }
-            case 'Resolved': return { bg: '#D1FAE5', text: '#065F46', border: '#6EE7B7' }
-            case 'Closed': return { bg: '#F3F4F6', text: '#374151', border: '#D1D5DB' }
-            default: return { bg: '#F3F4F6', text: '#374151', border: '#D1D5DB' }
+            case 'Open': return { bg: 'rgba(59, 130, 246, 0.2)', text: '#60A5FA', border: 'rgba(59, 130, 246, 0.3)' }
+            case 'In-Progress': return { bg: 'rgba(245, 158, 11, 0.2)', text: '#FBBF24', border: 'rgba(245, 158, 11, 0.3)' }
+            case 'Resolved': return { bg: 'rgba(16, 185, 129, 0.2)', text: '#34D399', border: 'rgba(16, 185, 129, 0.3)' }
+            case 'Closed': return { bg: 'rgba(75, 85, 99, 0.4)', text: '#D1D5DB', border: 'rgba(75, 85, 99, 0.5)' }
+            default: return { bg: 'rgba(255, 255, 255, 0.1)', text: '#D1D5DB', border: 'rgba(255, 255, 255, 0.2)' }
         }
     }
 
@@ -70,411 +71,249 @@ export default function SupportPage() {
             case 'Urgent': return { bg: 'linear-gradient(135deg, #DC2626, #991B1B)', text: 'white' }
             case 'Medium': return { bg: 'linear-gradient(135deg, #F59E0B, #D97706)', text: 'white' }
             case 'Low': return { bg: 'linear-gradient(135deg, #10B981, #059669)', text: 'white' }
-            default: return { bg: '#E5E7EB', text: '#374151' }
+            default: return { bg: '#4B5563', text: 'white' }
         }
     }
 
     return (
-        <div className="max-w-4xl mx-auto animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {/* Premium Header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'white',
-                padding: '20px 28px',
-                borderRadius: '20px',
-                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03)',
-                border: '1px solid rgba(229, 231, 235, 0.5)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{
-                        padding: '12px',
-                        background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                        borderRadius: '14px',
-                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
-                    }}>
-                        <MessageSquare size={24} color="white" />
-                    </div>
-                    <div>
-                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#111827', margin: 0, letterSpacing: '-0.02em' }}>
-                            Support Desk
-                        </h1>
-                        <p style={{ fontSize: '14px', color: '#6B7280', marginTop: '4px', fontWeight: '500' }}>
-                            We're here to help you with any questions
-                        </p>
-                    </div>
-                </div>
-                <button
-                    onClick={() => setShowNewTicket(true)}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 24px',
-                        background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        color: 'white',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
-                    }}
-                >
-                    <Plus size={18} /> New Ticket
-                </button>
+        <div className="-mx-2 xl:mx-0 relative font-[family-name:var(--font-outfit)]">
+            {/* Force Dark Background Overlay */}
+            <div className="absolute inset-0 bg-[#0f172a] -z-10" />
+
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px]" />
             </div>
 
-            {/* Premium Stats Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                {/* Open */}
-                <div style={{
-                    background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-                    padding: '24px',
-                    borderRadius: '20px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.4)'
-                }}>
-                    <Clock size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', color: 'rgba(255,255,255,0.15)' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <Clock size={20} color="rgba(255,255,255,0.9)" />
-                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open</span>
-                    </div>
-                    <p style={{ fontSize: '42px', fontWeight: '800', color: 'white', margin: 0 }}>{openCount}</p>
-                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>Awaiting response</p>
-                </div>
-
-                {/* In-Progress */}
-                <div style={{
-                    background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                    padding: '24px',
-                    borderRadius: '20px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: '0 10px 25px -5px rgba(245, 158, 11, 0.4)'
-                }}>
-                    <AlertCircle size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', color: 'rgba(255,255,255,0.15)' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <AlertCircle size={20} color="rgba(255,255,255,0.9)" />
-                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>In-Progress</span>
-                    </div>
-                    <p style={{ fontSize: '42px', fontWeight: '800', color: 'white', margin: 0 }}>{inProgressCount}</p>
-                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>Being worked on</p>
-                </div>
-
-                {/* Resolved */}
-                <div style={{
-                    background: 'linear-gradient(135deg, #10B981, #059669)',
-                    padding: '24px',
-                    borderRadius: '20px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4)'
-                }}>
-                    <CheckCircle2 size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', color: 'rgba(255,255,255,0.15)' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <CheckCircle2 size={20} color="rgba(255,255,255,0.9)" />
-                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resolved</span>
-                    </div>
-                    <p style={{ fontSize: '42px', fontWeight: '800', color: 'white', margin: 0 }}>{resolvedCount}</p>
-                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>Successfully closed</p>
-                </div>
-            </div>
-
-            {/* Tickets List */}
-            <div style={{
-                background: 'white',
-                borderRadius: '20px',
-                padding: '24px',
-                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)',
-                border: '1px solid rgba(229, 231, 235, 0.5)'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #F3F4F6' }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#111827', margin: 0 }}>Your Tickets</h2>
-                    <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: '500' }}>Showing last 30 days</span>
-                </div>
-
-                {tickets.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                        <div style={{
-                            width: '80px',
-                            height: '80px',
-                            background: 'linear-gradient(135deg, #F3F4F6, #E5E7EB)',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            margin: '0 auto 20px'
-                        }}>
-                            <MessageSquare size={36} color="#9CA3AF" />
+            <PageAnimate className="max-w-4xl mx-auto flex flex-col gap-8 pb-12 relative z-10">
+                {/* Premium Header - Glass Theme */}
+                <PageItem className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-[32px] shadow-2xl flex flex-wrap items-center justify-between gap-6 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="flex items-center gap-6">
+                        <div className="p-4 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform">
+                            <MessageSquare size={28} className="text-white" />
                         </div>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 8px' }}>No active tickets</h3>
-                        <p style={{ fontSize: '14px', color: '#6B7280' }}>If you have a question, click 'New Ticket' above.</p>
+                        <div>
+                            <h1 className="text-3xl font-black text-white tracking-tight uppercase leading-none mb-2">Support Desk</h1>
+                            <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest">Concierge assistance for your account</p>
+                        </div>
                     </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {tickets.map((ticket) => {
-                            const statusStyle = getStatusColor(ticket.status)
-                            const priorityStyle = getPriorityStyle(ticket.priority)
+                    <button
+                        onClick={() => setShowNewTicket(true)}
+                        className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all border border-indigo-400/30"
+                    >
+                        <Plus size={18} strokeWidth={3} /> New Ticket
+                    </button>
+                </PageItem>
 
-                            return (
-                                <div
-                                    key={ticket.id}
-                                    onClick={() => setSelectedTicket(ticket)}
-                                    style={{
-                                        background: 'linear-gradient(135deg, #FAFAFA, #FFFFFF)',
-                                        border: '1px solid #E5E7EB',
-                                        borderRadius: '16px',
-                                        padding: '20px',
-                                        transition: 'all 0.2s',
-                                        cursor: 'pointer'
-                                    }}
-                                    onMouseOver={(e) => {
-                                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)';
-                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                    }}
-                                    onMouseOut={(e) => {
-                                        e.currentTarget.style.boxShadow = 'none';
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 6px' }}>{ticket.subject}</h3>
-                                            <p style={{
-                                                fontSize: '14px',
-                                                color: '#6B7280',
-                                                margin: 0,
-                                                lineHeight: 1.5,
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 2,
-                                                WebkitBoxOrient: 'vertical',
-                                                overflow: 'hidden'
-                                            }}>
-                                                {ticket.messages && ticket.messages.length > 0
-                                                    ? ticket.messages[ticket.messages.length - 1].message
-                                                    : ticket.message}
-                                            </p>
+                {/* Premium Stats Cards - Glass Theme */}
+                <PageItem className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    {/* Open */}
+                    <div className="bg-white/5 backdrop-blur-lg p-6 rounded-[28px] border border-white/10 shadow-xl relative overflow-hidden group hover:bg-white/10 transition-colors">
+                        <div className="absolute -right-4 -bottom-4 bg-blue-500/20 w-32 h-32 rounded-full blur-2xl group-hover:bg-blue-500/30 transition-colors" />
+                        <div className="flex items-center gap-2 mb-4 relative z-10">
+                            <Clock size={18} className="text-blue-300" />
+                            <span className="text-[10px] font-black text-blue-200 uppercase tracking-widest">Open Cases</span>
+                        </div>
+                        <p className="text-5xl font-black text-white tracking-tighter relative z-10">{openCount}</p>
+                    </div>
+
+                    {/* In-Progress */}
+                    <div className="bg-white/5 backdrop-blur-lg p-6 rounded-[28px] border border-white/10 shadow-xl relative overflow-hidden group hover:bg-white/10 transition-colors">
+                        <div className="absolute -right-4 -bottom-4 bg-amber-500/20 w-32 h-32 rounded-full blur-2xl group-hover:bg-amber-500/30 transition-colors" />
+                        <div className="flex items-center gap-2 mb-4 relative z-10">
+                            <AlertCircle size={18} className="text-amber-300" />
+                            <span className="text-[10px] font-black text-amber-200 uppercase tracking-widest">In-Progress</span>
+                        </div>
+                        <p className="text-5xl font-black text-white tracking-tighter relative z-10">{inProgressCount}</p>
+                    </div>
+
+                    {/* Resolved */}
+                    <div className="bg-white/5 backdrop-blur-lg p-6 rounded-[28px] border border-white/10 shadow-xl relative overflow-hidden group hover:bg-white/10 transition-colors">
+                        <div className="absolute -right-4 -bottom-4 bg-emerald-500/20 w-32 h-32 rounded-full blur-2xl group-hover:bg-emerald-500/30 transition-colors" />
+                        <div className="flex items-center gap-2 mb-4 relative z-10">
+                            <CheckCircle2 size={18} className="text-emerald-300" />
+                            <span className="text-[10px] font-black text-emerald-200 uppercase tracking-widest">Resolved</span>
+                        </div>
+                        <p className="text-5xl font-black text-white tracking-tighter relative z-10">{resolvedCount}</p>
+                    </div>
+                </PageItem>
+
+                {/* Tickets List - Glass Theme */}
+                <PageItem className="bg-white/5 backdrop-blur-xl p-8 rounded-[32px] border border-white/10 shadow-xl overflow-hidden relative">
+                    <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
+                        <div>
+                            <h2 className="text-xl font-black text-white tracking-tight uppercase">Support Queue</h2>
+                            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1">Active Tickets</p>
+                        </div>
+                    </div>
+
+                    {tickets.length === 0 ? (
+                        <div className="text-center py-16 opacity-50">
+                            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
+                                <MessageSquare size={36} className="text-white/40" />
+                            </div>
+                            <h3 className="text-lg font-black text-white uppercase mb-2">No active tickets</h3>
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Our team is standing by to help</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            {tickets.map((ticket) => {
+                                const statusStyle = getStatusColor(ticket.status)
+                                const priorityStyle = getPriorityStyle(ticket.priority)
+
+                                return (
+                                    <div
+                                        key={ticket.id}
+                                        onClick={() => setSelectedTicket(ticket)}
+                                        className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 hover:shadow-xl transition-all cursor-pointer group"
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <h3 className="text-lg font-bold text-white mb-1.5 group-hover:text-indigo-200 transition-colors">{ticket.subject}</h3>
+                                                <p className="text-sm text-white/60 line-clamp-2">
+                                                    {ticket.messages && ticket.messages.length > 0
+                                                        ? ticket.messages[ticket.messages.length - 1].message
+                                                        : ticket.message}
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-2 ml-4">
+                                                <span
+                                                    className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                                                    style={{ background: priorityStyle.bg, color: priorityStyle.text }}
+                                                >
+                                                    {ticket.priority}
+                                                </span>
+                                                <span
+                                                    className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border"
+                                                    style={{ background: statusStyle.bg, color: statusStyle.text, borderColor: statusStyle.border }}
+                                                >
+                                                    {ticket.status}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
-                                            <span style={{
-                                                fontSize: '11px',
-                                                padding: '5px 12px',
-                                                borderRadius: '50px',
-                                                fontWeight: '700',
-                                                background: priorityStyle.bg,
-                                                color: priorityStyle.text,
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.03em'
-                                            }}>
-                                                {ticket.priority}
+                                        <div className="flex gap-5 text-xs text-white/40 mt-4 pt-4 border-t border-white/5">
+                                            <span className="flex items-center gap-1.5">
+                                                <Tag size={14} />
+                                                {ticket.category}
                                             </span>
-                                            <span style={{
-                                                fontSize: '11px',
-                                                padding: '5px 12px',
-                                                borderRadius: '50px',
-                                                fontWeight: '700',
-                                                background: statusStyle.bg,
-                                                color: statusStyle.text,
-                                                border: `1px solid ${statusStyle.border}`,
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.03em'
-                                            }}>
-                                                {ticket.status}
+                                            <span className="flex items-center gap-1.5">
+                                                <Calendar size={14} />
+                                                {new Date(ticket.createdAt).toLocaleDateString()}
                                             </span>
+                                            {ticket.messages && ticket.messages.length > 0 && (
+                                                <span className="ml-auto flex items-center gap-1.5 text-indigo-400 font-bold">
+                                                    <MessageSquare size={14} />
+                                                    {ticket.messages.length} replies
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '20px', fontSize: '12px', color: '#6B7280', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F3F4F6' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Tag size={14} />
-                                            {ticket.category}
-                                        </span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Calendar size={14} />
-                                            {new Date(ticket.createdAt).toLocaleDateString()}
-                                        </span>
-                                        {ticket.messages && ticket.messages.length > 0 && (
-                                            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', color: '#3B82F6', fontWeight: '600' }}>
-                                                <MessageSquare size={14} />
-                                                {ticket.messages.length} replies
-                                            </span>
-                                        )}
-                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </PageItem>
+
+                {/* New Ticket Modal - Dark Theme */}
+                {showNewTicket && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="bg-[#0f172a] w-full max-w-lg rounded-[32px] border border-white/20 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 p-8 flex justify-between items-start">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white uppercase tracking-tight">Raise Support Ticket</h2>
+                                    <p className="text-xs font-bold text-white/70 uppercase tracking-widest mt-2">Personal concierge assistance</p>
                                 </div>
-                            )
-                        })}
-                    </div>
-                )}
-            </div>
-
-            {/* New Ticket Modal */}
-            {showNewTicket && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 9999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '16px',
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    backdropFilter: 'blur(4px)'
-                }}>
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '24px',
-                        width: '100%',
-                        maxWidth: '500px',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{
-                            background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                            padding: '24px 28px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start'
-                        }}>
-                            <div>
-                                <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'white', margin: 0 }}>Raise Support Ticket</h2>
-                                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', marginTop: '6px' }}>Tell us what's on your mind</p>
-                            </div>
-                            <button
-                                onClick={() => setShowNewTicket(false)}
-                                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
-                            >
-                                <X size={20} color="white" />
-                            </button>
-                        </div>
-                        <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</label>
-                                <select
-                                    style={{
-                                        width: '100%',
-                                        padding: '14px 16px',
-                                        borderRadius: '12px',
-                                        border: '2px solid #E5E7EB',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        background: 'white',
-                                        transition: 'border-color 0.2s'
-                                    }}
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
-                                >
-                                    <option>Technical Issue</option>
-                                    <option>Benefit Discrepancy</option>
-                                    <option>Referral Not Showing</option>
-                                    <option>Profile Update Request</option>
-                                    <option>Fee / Payment Query</option>
-                                    <option>Ambassador Program Help</option>
-                                    <option>Login / Account Issue</option>
-                                    <option>General Inquiry</option>
-                                    <option>Feedback & Suggestions</option>
-                                    <option>Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</label>
-                                <input
-                                    type="text"
-                                    placeholder="Quick summary of your issue"
-                                    style={{
-                                        width: '100%',
-                                        padding: '14px 16px',
-                                        borderRadius: '12px',
-                                        border: '2px solid #E5E7EB',
-                                        fontSize: '14px',
-                                        fontWeight: '500'
-                                    }}
-                                    value={subject}
-                                    onChange={(e) => setSubject(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Message</label>
-                                <textarea
-                                    placeholder="Provide details here..."
-                                    style={{
-                                        width: '100%',
-                                        padding: '14px 16px',
-                                        borderRadius: '12px',
-                                        border: '2px solid #E5E7EB',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        minHeight: '120px',
-                                        resize: 'vertical'
-                                    }}
-                                    value={message}
-                                    onChange={(e) => setMessage(e.target.value)}
-                                ></textarea>
-                            </div>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                                 <button
                                     onClick={() => setShowNewTicket(false)}
-                                    disabled={isSubmitting}
-                                    style={{
-                                        flex: 1,
-                                        padding: '14px',
-                                        borderRadius: '12px',
-                                        border: '2px solid #E5E7EB',
-                                        background: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: '700',
-                                        color: '#374151',
-                                        cursor: 'pointer'
-                                    }}
+                                    className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
                                 >
-                                    Cancel
+                                    <X size={20} className="text-white" />
                                 </button>
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={isSubmitting}
-                                    style={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        padding: '14px',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-                                        fontSize: '14px',
-                                        fontWeight: '700',
-                                        color: 'white',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
-                                    }}
-                                >
-                                    {isSubmitting ? (
-                                        <><Loader2 size={18} className="animate-spin" /> Submitting...</>
-                                    ) : (
-                                        <><Send size={18} /> Submit Ticket</>
-                                    )}
-                                </button>
+                            </div>
+                            <div className="p-8 flex flex-col gap-6">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Category</label>
+                                    <select
+                                        className="w-full px-5 py-4 rounded-xl border border-white/10 bg-white/5 focus:border-indigo-500 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20 transition-all text-sm font-bold text-white outline-none"
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                    >
+                                        <option className="bg-slate-900 text-white">Technical Issue</option>
+                                        <option className="bg-slate-900 text-white">Benefit Discrepancy</option>
+                                        <option className="bg-slate-900 text-white">Referral Not Showing</option>
+                                        <option className="bg-slate-900 text-white">Profile Update Request</option>
+                                        <option className="bg-slate-900 text-white">Fee / Payment Query</option>
+                                        <option className="bg-slate-900 text-white">Ambassador Program Help</option>
+                                        <option className="bg-slate-900 text-white">Login / Account Issue</option>
+                                        <option className="bg-slate-900 text-white">General Inquiry</option>
+                                        <option className="bg-slate-900 text-white">Feedback & Suggestions</option>
+                                        <option className="bg-slate-900 text-white">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Subject</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Executive summary of the issue"
+                                        className="w-full px-5 py-4 rounded-xl border border-white/10 bg-white/5 focus:border-indigo-500 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20 transition-all text-sm font-bold text-white outline-none placeholder:text-white/20"
+                                        value={subject}
+                                        onChange={(e) => setSubject(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Message</label>
+                                    <textarea
+                                        placeholder="Detail your request here..."
+                                        className="w-full px-5 py-4 rounded-xl border border-white/10 bg-white/5 focus:border-indigo-500 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20 transition-all text-sm font-bold text-white outline-none placeholder:text-white/20 min-h-[120px] resize-none"
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
+                                    ></textarea>
+                                </div>
+                                <div className="flex gap-4 mt-2">
+                                    <button
+                                        onClick={() => setShowNewTicket(false)}
+                                        disabled={isSubmitting}
+                                        className="flex-1 py-4 px-6 rounded-2xl border border-white/10 font-black text-xs uppercase tracking-widest text-gray-400 hover:bg-white/5 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSubmit}
+                                        disabled={isSubmitting}
+                                        className="flex-1 py-4 px-6 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:bg-indigo-500 hover:shadow-indigo-600/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 border border-indigo-400/30"
+                                    >
+                                        {isSubmitting ? (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Loader2 size={16} className="animate-spin" />
+                                                <span>Sending...</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Send size={16} />
+                                                <span>Submit Ticket</span>
+                                            </div>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Chat Modal */}
-            {selectedTicket && (
-                <TicketChatModal
-                    ticket={selectedTicket}
-                    currentUserType="User"
-                    currentUserId={0} // Passed as 0, backend uses auth context if needed, or this is just for display logic in modal
-                    onClose={() => {
-                        setSelectedTicket(null)
-                        loadTickets()
-                    }}
-                />
-            )}
+                {/* Chat Modal */}
+                {selectedTicket && (
+                    <TicketChatModal
+                        ticket={selectedTicket}
+                        currentUserType="User"
+                        currentUserId={0} // Passed as 0, backend uses auth context if needed, or this is just for display logic in modal
+                        onClose={() => {
+                            setSelectedTicket(null)
+                            loadTickets()
+                        }}
+                    />
+                )}
+            </PageAnimate>
         </div>
     )
 }

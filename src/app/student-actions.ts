@@ -24,7 +24,7 @@ export async function getStudents(filters?: { campusId?: number, parentId?: numb
                     select: { fullName: true, mobileNumber: true }
                 },
                 campus: {
-                    select: { campusName: true }
+                    select: { campusName: true, isActive: true }
                 }
             },
             orderBy: { createdAt: 'desc' }
@@ -56,6 +56,17 @@ export async function addStudent(data: {
     const user = await getCurrentUser()
     if (!user || (!user.role.includes('Admin') && !user.role.includes('CampusHead'))) {
         return { success: false, error: 'Unauthorized' }
+    }
+
+    // Verify Campus is Active
+    const campus = await prisma.campus.findUnique({
+        where: { id: data.campusId },
+        select: { isActive: true }
+    })
+
+    if (!campus) return { success: false, error: 'Campus not found' }
+    if (!campus.isActive && user.role !== 'Super Admin') {
+        return { success: false, error: 'Cannot admit students to an Inactive Campus' }
     }
 
     try {
@@ -214,6 +225,17 @@ export async function convertLeadToStudent(leadId: number, studentDetails: {
 
         if (!campusId) {
             return { success: false, error: `Could not resolve Campus ID for "${lead.campus}"` }
+        }
+
+        // Verify Campus is Active
+        const targetCampus = await prisma.campus.findUnique({
+            where: { id: campusId },
+            select: { isActive: true }
+        })
+
+        if (!targetCampus) return { success: false, error: 'Campus not found' }
+        if (!targetCampus.isActive && user.role !== 'Super Admin') {
+            return { success: false, error: 'Cannot admit students to an Inactive Campus' }
         }
 
         // Execute as a Transaction to ensure atomic conversion
@@ -377,10 +399,16 @@ export async function bulkAddStudents(students: Array<{
             }
 
             // 2. Find Campus
+            // 2. Find Campus
             const campus = await prisma.campus.findUnique({ where: { campusName: s.campusName } })
             if (!campus) {
                 failed++
                 errors.push(`${s.fullName}: Campus not found (${s.campusName})`)
+                continue
+            }
+            if (!campus.isActive && user.role !== 'Super Admin') {
+                failed++
+                errors.push(`${s.fullName}: Campus is INACTIVE (${s.campusName})`)
                 continue
             }
 
@@ -401,7 +429,7 @@ export async function bulkAddStudents(students: Array<{
                 const matches = await prisma.user.findMany({
                     where: {
                         fullName: { equals: s.ambassadorName, mode: 'insensitive' },
-                        role: { not: 'Student' } // Exclude students? Actually checking all non-students is safer
+                        role: { not: 'Student' as any } // Exclude students? Actually checking all non-students is safer
                     }
                 })
 

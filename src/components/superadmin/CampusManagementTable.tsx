@@ -16,6 +16,7 @@ interface Campus {
     totalLeads?: number
     confirmed?: number
     conversionRate?: number
+    isActive?: boolean
 }
 
 interface CampusManagementTableProps {
@@ -24,10 +25,11 @@ interface CampusManagementTableProps {
     onDelete: (id: number, name: string) => void
     onAdd: () => void
     onBulkDelete?: (ids: number[]) => void
+    onToggleStatus?: (id: number, currentStatus: boolean) => void
     mode?: 'management' | 'performance'
 }
 
-export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBulkDelete, mode = 'management' }: CampusManagementTableProps) {
+export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBulkDelete, onToggleStatus, mode = 'management' }: CampusManagementTableProps) {
     const [selectedCampuses, setSelectedCampuses] = useState<Campus[]>([])
     const [showUpload, setShowUpload] = useState(false)
 
@@ -61,6 +63,25 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
                 </div>
             )
         },
+        ...(mode === 'management' ? [{
+            header: 'Status',
+            accessorKey: 'isActive',
+            sortable: true,
+            cell: (campus: Campus) => (
+                <div onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => onToggleStatus && onToggleStatus(campus.id, campus.isActive ?? true)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${campus.isActive
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-pointer'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 cursor-pointer'
+                            }`}
+                        title={campus.isActive ? 'Click to Deactivate' : 'Click to Activate'}
+                    >
+                        {campus.isActive ? 'Active' : 'Inactive'}
+                    </button>
+                </div>
+            )
+        }] : []),
         ...(mode === 'management' ? [
             {
                 header: 'Grades',
@@ -141,7 +162,7 @@ export function CampusManagementTable({ campuses, onEdit, onDelete, onAdd, onBul
                 icon={School}
             >
                 {mode === 'management' && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         {selectedCampuses.length > 0 && onBulkDelete && (
                             <button
                                 onClick={() => onBulkDelete(selectedCampuses.map(c => c.id))}

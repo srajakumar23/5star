@@ -2,9 +2,12 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Share2, UserPlus, BarChart3, ChevronRight, Clock, Star, TrendingUp, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react'
+import { Share2, UserPlus, BarChart3, ChevronRight, Clock, Star, TrendingUp, Wallet, Copy, Check } from 'lucide-react'
+import { motion, AnimatePresence, Variants } from 'framer-motion'
+import { toast } from 'sonner'
+import { useState } from 'react'
 
-// StatusBadge is defined locally in this file
+import { PageAnimate, PageItem } from '@/components/PageAnimate'
 import { StatCard } from '@/components/ui/StatCard'
 
 interface ActionHomeProps {
@@ -33,9 +36,21 @@ interface ActionHomeProps {
     } | null
 }
 
+const buttonVariants: Variants = {
+    rest: { scale: 1, y: 0 },
+    hover: {
+        scale: 1.05,
+        y: -4,
+        boxShadow: "0 10px 20px -5px rgba(0,0,0,0.2)",
+        transition: { type: "spring", stiffness: 400, damping: 15 } as const
+    },
+    tap: { scale: 0.95 }
+}
+
 export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: ActionHomeProps) {
     const firstName = user.fullName.split(' ')[0]
     const greeting = getGreeting()
+    const [copied, setCopied] = useState(false)
 
     const calculateChange = (current: number, previous: number) => {
         if (previous === 0) return null
@@ -43,238 +58,211 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
     }
 
     const referralTrend = monthStats ? calculateChange(monthStats.currentConfirmed, monthStats.prevConfirmed) : null
-
     const displayCount = (user as any).currentYearCount !== undefined ? (user as any).currentYearCount : user.confirmedReferralCount
-    const isFiveStar = user.benefitStatus === 'Active' && user.yearFeeBenefitPercent >= 50 // Or explicit 5-star flag
+
+    // Extract referral link from whatsappUrl if possible, or construct it
+    const referralLink = `https://ambassador.achariya.in/join/${user.referralCode}`
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(referralLink)
+        setCopied(true)
+        toast.success("Referral link copied")
+        setTimeout(() => setCopied(false), 2000)
+    }
 
     return (
-        <div className="space-y-6 md:space-y-8 pb-10 font-[family-name:var(--font-outfit)]">
-            {/* Import Premium Font Locally - Standard HTML */}
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                :root { --font-outfit: 'Outfit', sans-serif; }
-                @keyframes shimmer {
-                    100% { transform: translateX(100%); }
-                }
-                .animate-shimmer {
-                    animation: shimmer 2s infinite;
-                }
-                @keyframes float-slow {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-5px); }
-                }
-                .animate-float-slow {
-                    animation: float-slow 4s ease-in-out infinite;
-                }
-            `}} />
+        <PageAnimate className="space-y-6 md:space-y-8 pb-10 font-[family-name:var(--font-outfit)]">
+            {/* Optimized Fonts */}
 
-            {/* Hero Section - Optimized Mobile Padding */}
-            <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-[24px] md:rounded-[32px] p-6 md:p-10 text-white relative overflow-hidden shadow-[0_20px_50px_-12px_rgba(220,38,38,0.3)] animate-in fade-in slide-in-from-bottom-6 duration-700 fill-mode-both">
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
 
-                {/* 5-Star Achievement Badge - Ultra Premium Shield Trophy Style */}
-                {/* 5-Star Achievement Badge - Using Reference Image Asset */}
+            {/* Hero Section - Crimson Gradient (Original) */}
+            <PageItem
+                className="bg-grad-crimson rounded-[32px] md:rounded-[40px] p-6 md:p-10 text-white relative overflow-hidden shadow-[0_30px_60px_-15px_rgba(225,29,72,0.3)] min-h-[480px] md:min-h-[420px] flex flex-col justify-between"
+            >
+                {/* Dynamic Background */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-[100px] animate-pulse-slow" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4 blur-[80px]" />
+
+                {/* 5-Star Badge */}
                 {displayCount >= 5 && (
-                    <div className="absolute top-4 right-4 md:top-6 md:right-6 z-30 animate-in fade-in zoom-in duration-1000 delay-500">
-                        <div className="relative group flex flex-col items-center">
-                            {/* Enhanced Multi-Layer Premium Glow */}
-                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-32 bg-amber-500/30 blur-[50px] rounded-full animate-pulse" />
-                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 bg-yellow-400/25 blur-[35px] rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
-                            <div className="absolute inset-0 bg-gradient-radial from-amber-400/20 to-transparent blur-xl" />
-
-
-                            {/* Badge Image with Premium Styling - Transparent Background via CSS */}
-                            <div className="relative animate-float-slow drop-shadow-[0_15px_30px_rgba(245,158,11,0.5)]">
-                                <Image
-                                    src="/images/ambassador-badge.png"
-                                    alt="5-Star Ambassador Badge"
-                                    width={110}
-                                    height={110}
-                                    priority
-                                    className="w-[90px] md:w-[110px] h-auto transition-transform duration-500 group-hover:scale-110 select-none"
-                                    style={{
-                                        filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.6))',
-                                        mixBlendMode: 'multiply'
-                                    }}
-                                />
-
-                                {/* Overlay Shine Effect */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
-                            </div>
-
-                            {/* Stronger light below */}
-                            <div className="absolute -bottom-2 w-3/4 h-2 bg-amber-500/30 blur-lg animate-pulse" />
+                    <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.5 }}
+                        className="absolute top-4 right-4 md:top-8 md:right-8 z-30"
+                    >
+                        <div className="relative group cursor-pointer">
+                            <div className="absolute inset-0 bg-amber-500/30 blur-[40px] rounded-full animate-pulse z-0" />
+                            <Image
+                                src="/images/ambassador-badge.png"
+                                alt="5-Star Ambassador"
+                                width={120}
+                                height={120}
+                                className="w-[100px] md:w-[130px] h-auto drop-shadow-2xl relative z-10 transition-transform duration-300 group-hover:scale-110"
+                            />
                         </div>
-                    </div>
+                    </motion.div>
                 )}
 
-                <div className="relative z-10">
-                    {/* Greeting */}
-                    <p className="text-red-100/90 font-medium mb-1 tracking-wide text-xs md:text-sm uppercase opacity-80">{greeting}</p>
-                    <h1 className="text-3xl md:text-4xl font-extrabold mb-2 tracking-tight leading-tight">{firstName}! 👋</h1>
-                    <p className="text-red-100 text-sm opacity-90 mb-8 font-medium">
-                        {user.role === 'Alumni'
-                            ? 'Welcome back to your Alumni Ambassador Dashboard'
-                            : 'Welcome back to your Ambassador Dashboard'}
-                    </p>
+                <div className="relative z-10 w-full">
+                    {/* Header */}
+                    <div className="mb-8">
+                        <motion.p
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 0.9, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-red-100 font-medium tracking-widest text-xs md:text-sm uppercase mb-1"
+                        >
+                            {greeting}
+                        </motion.p>
+                        <motion.h1
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="text-4xl md:text-5xl font-extrabold tracking-tight"
+                        >
+                            {firstName}! <motion.span
+                                animate={{ rotate: [0, 15, -10, 15, 0] }}
+                                transition={{ repeat: Infinity, repeatDelay: 5, duration: 2 }}
+                                className="inline-block origin-bottom-right"
+                            >👋</motion.span>
+                        </motion.h1>
+                        <p className="text-red-100/90 text-sm md:text-base mt-2 font-medium max-w-md">
+                            {user.role === 'Alumni' ? 'Welcome to your Alumni APP Dashboard' : 'Your Achariya Partnership Program (APP) Dashboard'}
+                        </p>
 
-                    {/* Staff Details Badge */}
-                    {user.role === 'Staff' && (
-                        <div className="flex flex-wrap gap-3 mb-6 animate-in fade-in slide-in-from-left-4 duration-500">
-                            {user.empId && (
-                                <div className="px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-red-100/60 uppercase tracking-widest">EMP.ID</span>
-                                    <span className="text-sm font-bold text-white tracking-wide">{user.empId}</span>
-                                </div>
-                            )}
-                            {user.assignedCampus && (
-                                <div className="px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-red-100/60 uppercase tracking-widest">CAMPUS</span>
-                                    <span className="text-sm font-bold text-white tracking-wide">{user.assignedCampus}</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Quick Stats Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Confirmed / Progress Card */}
-                        <div className="bg-white/10 backdrop-blur-md rounded-[20px] p-5 relative overflow-hidden group border border-white/10 shadow-lg hover:bg-white/15 transition-colors">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2.5 bg-yellow-400/20 rounded-xl">
-                                    <TrendingUp size={22} className="text-yellow-300" />
-                                </div>
-                                {referralTrend !== null && (
-                                    <div className={`px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${referralTrend >= 0 ? 'bg-emerald-500/20 text-emerald-100' : 'bg-amber-500/20 text-amber-100'}`}>
-                                        {referralTrend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                        {Math.abs(referralTrend).toFixed(0)}%
-                                    </div>
-                                )}
+                        {/* Staff/Campus Tags */}
+                        {user.role === 'Staff' && (
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                {user.empId && <Badge label="EMP.ID" value={user.empId} />}
+                                {user.assignedCampus && <Badge label="CAMPUS" value={user.assignedCampus} />}
                             </div>
+                        )}
+                    </div>
 
-                            <div>
-                                <p className="text-[10px] uppercase tracking-widest font-bold text-red-100/70 mb-1">Active Referrals (This Year)</p>
-                                <div className="flex items-baseline gap-2 mb-3">
-                                    <h2 className="text-4xl font-black tracking-tight">{displayCount}</h2>
-                                    <span className="text-sm font-bold text-red-100/50">/ 5 Goal</span>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="relative h-2 w-full bg-black/20 rounded-full overflow-hidden mb-2.5">
-                                    <div
-                                        className="absolute top-0 left-0 h-full bg-gradient-to-r from-yellow-300 to-yellow-500 transition-all duration-1000 ease-out rounded-full shadow-[0_0_10px_rgba(253,224,71,0.5)]"
-                                        style={{ width: `${Math.min((displayCount / 5) * 100, 100)}%` }}
-                                    />
-                                </div>
-                                <p className="text-[11px] font-semibold text-red-100/90 flex items-center gap-1.5">
-                                    {displayCount >= 5
-                                        ? <span><Star size={10} className="inline fill-yellow-300 text-yellow-300" /> You're a 5-Star Ambassador!</span>
-                                        : `${5 - displayCount} more to reach 5-Star Status`}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Benefit Card */}
+                    {/* Stats Grid - Original Pink/Yellow Layout */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        {/* Original Progress Card (Pink) */}
                         <StatCard
-                            title={user.role === 'Alumni' ? 'Referral Benefit' : 'Fee Benefit'}
+                            title="Referrals"
+                            value={displayCount.toString()}
+                            icon={TrendingUp}
+                            theme="red"
+                            subValue={displayCount >= 5 ? '5-Star Reached!' : '5 more to 5-Star'}
+                            className="!bg-white/10 !backdrop-blur-md !border-white/20 h-full !p-4 !rounded-[24px]"
+                        />
+
+                        {/* Original Benefit Card (Yellow) */}
+                        <StatCard
+                            title={user.role === 'Alumni' ? 'Benefit' : 'Fee Benefit'}
                             value={`${user.yearFeeBenefitPercent}%`}
                             icon={Wallet}
                             theme="amber"
-                            subValue="Applied to Annual Fee"
+                            subValue="Applied to Fee"
+                            className="!bg-gradient-to-br !from-amber-400 !to-yellow-300 !text-white !border-white/20 h-full !p-4 !rounded-[24px] shadow-lg shadow-amber-900/10"
                         />
                     </div>
-
-                    {/* WhatsApp Share Button */}
-                    <div className="mt-6 md:mt-8">
-                        <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full relative overflow-hidden group flex items-center justify-center gap-3 bg-white text-[#075e54] px-6 py-4 md:py-5 rounded-[20px] font-black text-sm md:text-base uppercase tracking-widest shadow-[0_20px_40px_-12px_rgba(255,255,255,0.4)] hover:shadow-[0_25px_50px_-12px_rgba(255,255,255,0.6)] hover:-translate-y-0.5 active:scale-[0.98] transition-all no-underline"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-50 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                            <svg className="w-6 h-6 fill-[#25D366]" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                            </svg>
-                            <span>Share Program Link</span>
-                        </a>
-                        <p className="text-center text-[10px] text-red-100/70 font-bold uppercase tracking-[0.2em] mt-3 animate-pulse">
-                            Official Channel
-                        </p>
-                    </div>
                 </div>
-            </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
-                <Link
-                    href="/refer"
-                    className="group bg-gradient-to-br from-red-500 to-red-600 text-white rounded-[24px] p-5 md:p-6 flex flex-col items-center justify-center gap-3 shadow-[0_15px_30px_-10px_rgba(239,68,68,0.4)] hover:shadow-[0_20px_40px_-10px_rgba(239,68,68,0.5)] transition-all hover:-translate-y-1 active:scale-[0.98] no-underline relative overflow-hidden"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:bg-white/30 transition-colors" />
+                {/* Share Actions - Original */}
+                <div className="flex items-center gap-3 mt-4">
+                    <motion.a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variants={buttonVariants}
+                        initial="rest"
+                        whileHover="hover"
+                        whileTap="tap"
+                        className="flex-1 group relative flex items-center justify-center gap-3 bg-white text-rose-600 h-14 rounded-[20px] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:shadow-2xl transition-all overflow-hidden border border-white"
+                    >
+                        <div className="absolute inset-0 bg-rose-50/50 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                        <Share2 size={16} className="relative z-10" />
+                        <span className="relative z-10">Share on WhatsApp</span>
+                    </motion.a>
 
-                    <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-white/30 transition-all duration-300 relative z-10 backdrop-blur-sm border border-white/10">
-                        <UserPlus size={24} className="text-white drop-shadow-sm" />
+                    <button
+                        onClick={handleCopy}
+                        className="h-14 w-14 bg-white/20 hover:bg-white/30 backdrop-blur-xl text-white border border-white/20 rounded-[20px] flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-lg"
+                    >
+                        {copied ? <Check size={20} className="text-emerald-300" /> : <Copy size={20} />}
+                    </button>
+                </div>
+                <div className="text-center mt-3">
+                    <p className="text-[10px] text-white/50 font-bold uppercase tracking-[0.3em]">Official Channel</p>
+                </div>
+            </PageItem>
+
+            {/* Dashboard Bento Sections - Original */}
+            <PageItem className="grid grid-cols-2 gap-4">
+                <Link href="/refer" className="block h-full">
+                    <div className="group bg-grad-crimson text-white rounded-[24px] p-6 flex flex-col items-center justify-center gap-3 shadow-[0_15px_30px_-10px_rgba(225,29,72,0.2)] transition-all relative overflow-hidden h-full min-h-[140px]">
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:bg-white/30 transition-colors" />
+                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/10 group-hover:scale-110 transition-transform duration-500 relative z-10">
+                            <UserPlus size={24} className="text-white" />
+                        </div>
+                        <div className="text-center relative z-10">
+                            <span className="font-bold text-sm block leading-tight">Refer Lead</span>
+                            <span className="text-[8px] font-bold uppercase tracking-[0.1em] opacity-60">Instant Reward</span>
+                        </div>
                     </div>
-                    <span className="font-bold text-sm md:text-base tracking-tight relative z-10">Refer Now</span>
                 </Link>
 
-                <Link
-                    href="/analytics"
-                    className="group bg-white border border-gray-100 text-gray-800 rounded-[24px] p-5 md:p-6 flex flex-col items-center justify-center gap-3 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 active:scale-[0.98] no-underline relative overflow-hidden"
-                >
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-gray-50 rounded-full blur-2xl group-hover:bg-red-50 transition-colors" />
-
-                    <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:bg-primary-maroon/10 relative z-10 border border-gray-100">
-                        <BarChart3 size={24} className="text-gray-400 group-hover:text-primary-maroon transition-colors" />
+                <Link href="/analytics" className="block h-full">
+                    <div className="group glass-panel text-slate-800 dark:text-white rounded-[24px] p-6 flex flex-col items-center justify-center gap-3 transition-all relative overflow-hidden h-full border border-slate-200/50 dark:border-white/10 min-h-[140px]">
+                        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-slate-100/50 dark:bg-white/5 rounded-full blur-2xl group-hover:bg-rose-50/50 dark:group-hover:bg-white/10 transition-colors" />
+                        <div className="w-12 h-12 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center border border-slate-100 dark:border-white/5 group-hover:scale-110 transition-transform duration-500 relative z-10">
+                            <BarChart3 size={24} className="text-slate-400 group-hover:text-rose-600 transition-colors" />
+                        </div>
+                        <div className="text-center relative z-10">
+                            <span className="font-bold text-sm block leading-tight tracking-tight">Analytics</span>
+                            <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-white/40">Performance</span>
+                        </div>
                     </div>
-                    <span className="font-bold text-sm md:text-base tracking-tight relative z-10 group-hover:text-primary-maroon transition-colors">My Status</span>
                 </Link>
-            </div>
 
-            {/* Recent Activity */}
-            <div className="bg-white rounded-[28px] border border-gray-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.04)] overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300 fill-mode-both">
-                <div className="flex items-center justify-between p-5 md:p-6 border-b border-gray-50">
-                    <h3 className="font-bold text-lg text-gray-900 tracking-tight">Recent Referrals</h3>
+            </PageItem>
+
+            {/* Recent Activity List - Original */}
+            <PageItem className="glass-panel rounded-[32px] md:rounded-[40px] border border-slate-200/50 dark:border-white/10 overflow-hidden">
+                <div className="flex items-center justify-between p-6 border-b border-slate-100/50 dark:border-white/5">
+                    <h3 className="font-bold text-lg text-ui-text-main tracking-tight">Recent Referrals</h3>
                     <div className="flex gap-2">
-                        <Link href="/referrals" className="text-xs font-bold text-primary-maroon uppercase tracking-wider flex items-center gap-1 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors">
+                        <Link href="/referrals" className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors">
                             View All <ChevronRight size={14} />
                         </Link>
                     </div>
                 </div>
 
                 {recentReferrals.length === 0 ? (
-                    <div className="p-10 text-center">
-                        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100 rotate-3">
-                            <UserPlus size={28} className="text-gray-400" />
+                    <div className="p-12 text-center">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 animate-pulse-slow">
+                            <UserPlus size={24} className="text-gray-400" />
                         </div>
                         <p className="text-gray-900 font-bold mb-1">No referrals yet</p>
                         <p className="text-gray-500 text-sm mb-6">Start sharing your code to earn benefits!</p>
                         <Link
                             href="/refer"
-                            className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold no-underline hover:bg-black transition-colors shadow-lg hover:shadow-xl hover:translate-y-[-1px]"
+                            className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-black transition-all shadow-lg hover:shadow-slate-900/20 active:scale-95"
                         >
-                            <UserPlus size={16} /> Make Your First Referral
+                            <Share2 size={16} /> Share Program
                         </Link>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-50">
-                        {recentReferrals.slice(0, 5).map((ref) => (
-                            <div key={ref.id} className="flex items-center justify-between p-4 md:p-5 hover:bg-gray-50/50 transition-colors group cursor-default">
+                    <div className="divide-y divide-gray-50/50">
+                        {recentReferrals.slice(0, 3).map((ref, index) => (
+                            <div
+                                key={ref.id}
+                                className="flex items-center justify-between p-5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-b border-slate-50/50 dark:border-white/5 last:border-0"
+                            >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-xl md:rounded-2xl flex items-center justify-center text-red-600 font-black text-sm md:text-lg shadow-sm group-hover:scale-105 transition-transform">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 font-black text-lg shadow-inner border border-white/20">
                                         {ref.parentName[0]}
                                     </div>
                                     <div>
-                                        <p className="font-bold text-gray-900 text-sm mb-0.5">{ref.parentName}</p>
+                                        <p className="font-bold text-ui-text-main text-sm mb-0.5">{ref.parentName}</p>
                                         <p className="text-[11px] text-gray-500 flex items-center gap-1 font-semibold uppercase tracking-wide">
-                                            <Clock size={10} /> {formatDate(ref.createdAt)}
+                                            <Clock size={10} /> {new Date(ref.createdAt).toLocaleDateString('en-IN')}
                                         </p>
                                     </div>
                                 </div>
@@ -283,41 +271,31 @@ export function ActionHome({ user, recentReferrals, whatsappUrl, monthStats }: A
                         ))}
                     </div>
                 )}
-            </div>
+            </PageItem>
+        </PageAnimate>
+    )
+}
 
-            {/* View Analytics Link */}
-            <Link
-                href="/analytics"
-                className="group flex items-center justify-between bg-white hover:bg-gray-50 border border-gray-100 rounded-[20px] p-4 md:p-5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.03)] transition-all hover:translate-y-[-2px] no-underline"
-            >
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-50 rounded-xl md:rounded-2xl flex items-center justify-center shadow-inner group-hover:bg-white transition-colors">
-                        <BarChart3 size={20} className="text-gray-400 group-hover:text-primary-maroon transition-colors" />
-                    </div>
-                    <div>
-                        <p className="font-bold text-gray-900 text-sm md:text-base tracking-tight mb-0.5">View Full Analytics</p>
-                        <p className="text-xs text-gray-500 font-medium">Detailed stats & benefit structure</p>
-                    </div>
-                </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary-maroon group-hover:text-white transition-all">
-                    <ChevronRight size={16} />
-                </div>
-            </Link>
+function Badge({ label, value }: { label: string, value: string }) {
+    return (
+        <div className="px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 flex items-center gap-2">
+            <span className="text-[10px] font-bold text-red-100/60 uppercase tracking-widest">{label}</span>
+            <span className="text-sm font-bold text-white tracking-wide">{value}</span>
         </div>
     )
 }
 
 function StatusBadge({ status }: { status: string }) {
-    const colors: Record<string, { bg: string, text: string }> = {
-        'Confirmed': { bg: 'bg-green-100', text: 'text-green-700' },
-        'Follow-up': { bg: 'bg-yellow-100', text: 'text-yellow-700' },
-        'New': { bg: 'bg-blue-100', text: 'text-blue-700' },
-        'Rejected': { bg: 'bg-red-100', text: 'text-red-700' }
+    const colors: Record<string, string> = {
+        'Confirmed': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+        'Follow-up': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+        'New': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+        'Rejected': 'bg-red-500/10 text-red-600 border-red-500/20'
     }
-    const style = colors[status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
+    const style = colors[status] || 'bg-gray-100 text-gray-600 border-gray-200'
 
     return (
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
+        <span className={`px-3 py-1 rounded-full text-[11px] font-bold border ${style} backdrop-blur-sm`}>
             {status}
         </span>
     )
@@ -327,17 +305,6 @@ function getGreeting() {
     const hour = new Date().getHours()
     if (hour < 12) return 'Happy Morning'
     if (hour < 17) return 'Happy Afternoon'
-    return 'Happy Evening'
-}
-
-function formatDate(dateStr: string) {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Yesterday'
-    if (days < 7) return `${days} days ago`
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    if (hour < 21) return 'Happy Evening'
+    return 'Happy Night'
 }

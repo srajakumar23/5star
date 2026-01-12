@@ -5,6 +5,7 @@ import { Save, Share2, Smartphone, Loader2, CheckCircle2, AlertTriangle, LayoutD
 import { updateSystemSettings, getAcademicYears, addAcademicYear, setCurrentAcademicYear } from '@/app/settings-actions'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface DashboardSettingsProps {
     type: 'staff' | 'parent'
@@ -21,6 +22,14 @@ export default function DashboardSettings({ type, initialSettings }: DashboardSe
     const [referralText, setReferralText] = useState(initialSettings.referralText || '')
     const [isSaving, setIsSaving] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
+
+    // Confirmation State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        data?: string
+    }>({
+        isOpen: false
+    })
 
     // Academic Year State
     const [years, setYears] = useState<any[]>([])
@@ -59,9 +68,15 @@ export default function DashboardSettings({ type, initialSettings }: DashboardSe
         }
     }
 
-    const handleSetCurrent = async (year: string) => {
-        const confirm = window.confirm(`Set ${year} as current? This affects all registrations.`)
-        if (!confirm) return
+    const handleSetCurrent = (year: string) => {
+        setConfirmState({ isOpen: true, data: year })
+    }
+
+    const executeSetCurrent = async () => {
+        const year = confirmState.data
+        if (!year) return
+
+        setConfirmState({ isOpen: false })
         try {
             const res = await setCurrentAcademicYear(year)
             if (res.success) {
@@ -69,9 +84,9 @@ export default function DashboardSettings({ type, initialSettings }: DashboardSe
                 router.refresh()
                 loadYears()
             } else {
-                toast.error('Failed')
+                toast.error('Failed to update year')
             }
-        } catch (e) { toast.error('Error') }
+        } catch (e) { toast.error('Error updating year') }
     }
 
     const handleSave = async () => {
@@ -87,19 +102,20 @@ export default function DashboardSettings({ type, initialSettings }: DashboardSe
                 setShowSuccess(true)
                 setTimeout(() => setShowSuccess(false), 3000)
                 router.refresh()
+                toast.success('Settings saved successfully')
             } else {
-                alert('Failed to save settings')
+                toast.error('Failed to save settings')
             }
         } catch (error) {
             console.error('Error saving settings:', error)
-            alert('An error occurred while saving')
+            toast.error('An error occurred while saving')
         } finally {
             setIsSaving(false)
         }
     }
 
     const sectionTitle = type === 'staff' ? 'Staff Experience Control' : 'Parent Experience Control'
-    const sectionDesc = type === 'staff' ? 'Customize what staff members see on their 5-Star Ambassador dashboard.' : 'Customize what parents see on their 5-Star Ambassador dashboard.'
+    const sectionDesc = type === 'staff' ? 'Customize what staff members see on their APP dashboard.' : 'Customize what parents see on their APP dashboard.'
 
     // Preview values
     const demoReferrals = 42
@@ -436,6 +452,22 @@ export default function DashboardSettings({ type, initialSettings }: DashboardSe
                     </div>
                 </div>
             </div>
+
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title="Change Academic Year?"
+                description={
+                    <p>
+                        Are you sure you want to set <strong>{confirmState.data}</strong> as the current academic year?
+                        <br />This will affect all new student registrations and fee calculations.
+                    </p>
+                }
+                confirmText="Update Year"
+                variant="warning"
+                onConfirm={executeSetCurrent}
+                onCancel={() => setConfirmState({ isOpen: false })}
+            />
         </div>
     )
 }

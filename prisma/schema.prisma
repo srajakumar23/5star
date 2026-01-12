@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://neondb_owner:npg_yA8r7RhbwpMH@ep-calm-surf-a1lz48ro-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -47,6 +47,11 @@ model User {
   referredStudents       Student[]       @relation("StudentAmbassador")
   students               Student[]       @relation("StudentParent")
   supportTickets         SupportTicket[]
+
+  @@index([role])
+  @@index([assignedCampus])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Student {
@@ -89,6 +94,8 @@ model ReferralLead {
   confirmedDate   DateTime?
   createdAt       DateTime   @default(now())
   studentName     String?
+  admissionNumber String?
+  section         String?
   leadStatus      LeadStatus @default(New)
   user            User       @relation(fields: [userId], references: [userId])
   student         Student?
@@ -409,6 +416,8 @@ enum AccountStatus {
   Inactive
   Pending
   Suspended
+  Deletion_Requested @map("Deletion Requested")
+  Deleted
 }
 
 enum AdminRole {
@@ -461,5 +470,12 @@ model CampaignLog {
   sentCount      Int      @default(0)
   failedCount    Int      @default(0)
   errorLog       Json?
+
   campaign       Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
 }

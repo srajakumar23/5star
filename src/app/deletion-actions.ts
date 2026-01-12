@@ -16,7 +16,7 @@ export async function requestAccountDeletion() {
         await prisma.user.update({
             where: { userId: Number(user.userId) },
             data: {
-                status: 'Deletion Requested',
+                status: 'Deletion_Requested',
                 deletionRequestedAt: new Date()
             }
         })
@@ -41,7 +41,7 @@ export async function getDeletionRequests() {
 
     try {
         const requests = await prisma.user.findMany({
-            where: { status: 'Deletion Requested' },
+            where: { status: 'Deletion_Requested' },
             select: {
                 userId: true,
                 fullName: true,

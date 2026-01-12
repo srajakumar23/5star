@@ -42,14 +42,14 @@ async function main() {
             where: { adminMobile: admin.mobile },
             update: {
                 adminName: admin.name,
-                role: admin.role
+                role: admin.role as any
                 // Don't update password if exists
             },
             create: {
                 adminName: admin.name,
                 adminMobile: admin.mobile,
                 password: '123456', // Default PIN
-                role: admin.role
+                role: admin.role as any
             }
         })
     }

@@ -5,11 +5,23 @@ import { Shield, Plus, Trash2, Globe, AlertTriangle, CheckCircle, Server, Lock }
 import { toast } from 'sonner'
 import { getSecuritySettings, updateSecuritySettings } from '@/app/security-actions'
 
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
 export function SecurityPanel() {
     const [settings, setSettings] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [ipInput, setIpInput] = useState('')
     const [isAddingIP, setIsAddingIP] = useState(false)
+
+    // Confirmation States
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean
+        type: 'remove_ip' | 'maintenance' | null
+        data?: any
+    }>({
+        isOpen: false,
+        type: null
+    })
 
     useEffect(() => {
         loadSettings()
@@ -17,7 +29,7 @@ export function SecurityPanel() {
 
     const loadSettings = async () => {
         setLoading(true)
-        const res = await getSecuritySettings()
+        const res = await getSecuritySettings() as any
         if (res.success && res.settings) {
             setSettings(res.settings)
         }
@@ -47,7 +59,7 @@ export function SecurityPanel() {
         }
 
         const newWhitelist = [...currentIPs, ipInput.trim()].join(', ')
-        const res = await updateSecuritySettings({ ipWhitelist: newWhitelist })
+        const res = await updateSecuritySettings({ ipWhitelist: newWhitelist }) as any
 
         if (res.success) {
             toast.success('IP address added to whitelist')
@@ -59,18 +71,25 @@ export function SecurityPanel() {
         setIsAddingIP(false)
     }
 
-    const handleRemoveIP = async (ipToRemove: string) => {
-        if (!confirm(`Remove ${ipToRemove} from whitelist?`)) return
+    const handleRemoveIP = (ipToRemove: string) => {
+        setConfirmState({ isOpen: true, type: 'remove_ip', data: ipToRemove })
+    }
+
+    const executeRemoveIP = async () => {
+        const ipToRemove = confirmState.data
+        if (!ipToRemove) return
 
         const currentIPs = settings.ipWhitelist ? settings.ipWhitelist.split(',').map((ip: string) => ip.trim()).filter((ip: string) => ip) : []
         const newWhitelist = currentIPs.filter((ip: string) => ip !== ipToRemove).join(', ')
 
-        const res = await updateSecuritySettings({ ipWhitelist: newWhitelist })
+        const res = await updateSecuritySettings({ ipWhitelist: newWhitelist }) as any
         if (res.success) {
             toast.success('IP address removed')
             setSettings(res.settings)
+            setConfirmState({ isOpen: false, type: null })
         } else {
             toast.error(res.error || 'Failed to remove IP')
+            setConfirmState({ isOpen: false, type: null })
         }
     }
 
@@ -78,17 +97,25 @@ export function SecurityPanel() {
         const newMode = !settings.maintenanceMode
 
         if (newMode) {
-            if (!confirm('⚠️ WARNING: Enabling Maintenance Mode will block ALL non-Super Admin users from accessing the system. Continue?')) {
-                return
-            }
+            // Confirmation needed only when enabling
+            setConfirmState({ isOpen: true, type: 'maintenance', data: newMode })
+        } else {
+            // Disable immediately without confirmation
+            executeToggleMaintenance(false)
         }
+    }
 
-        const res = await updateSecuritySettings({ maintenanceMode: newMode })
+    const executeToggleMaintenance = async (mode?: boolean) => {
+        const newMode = mode !== undefined ? mode : confirmState.data
+
+        const res = await updateSecuritySettings({ maintenanceMode: newMode } as any) as any
         if (res.success) {
             toast.success(newMode ? 'Maintenance Mode ENABLED' : 'Maintenance Mode DISABLED')
             setSettings(res.settings)
+            setConfirmState({ isOpen: false, type: null })
         } else {
             toast.error(res.error || 'Failed to update maintenance mode')
+            setConfirmState({ isOpen: false, type: null })
         }
     }
 
@@ -217,6 +244,31 @@ export function SecurityPanel() {
                     )}
                 </div>
             </div>
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmState.isOpen}
+                title={confirmState.type === 'maintenance' ? 'Enable Maintenance Mode?' : 'Remove IP Address?'}
+                description={
+                    confirmState.type === 'maintenance' ? (
+                        <p className="text-amber-600 font-medium">
+                            WARNING: Enabling Maintenance Mode will block ALL non-Super Admin users from accessing the system.
+                            <br />Are you sure you want to continue?
+                        </p>
+                    ) : (
+                        <p>
+                            Are you sure you want to remove <strong>{confirmState.data}</strong> from the whitelist?
+                            <br />They may lose access if not covered by another rule.
+                        </p>
+                    )
+                }
+                confirmText={confirmState.type === 'maintenance' ? 'Yes, Enable Mode' : 'Yes, Remove IP'}
+                variant={confirmState.type === 'maintenance' ? 'warning' : 'danger'}
+                onConfirm={() => {
+                    if (confirmState.type === 'maintenance') executeToggleMaintenance()
+                    else executeRemoveIP()
+                }}
+                onCancel={() => setConfirmState({ isOpen: false, type: null })}
+            />
         </div>
     )
 }

@@ -2,6 +2,7 @@
 
 import { FileDown } from 'lucide-react'
 import { exportReferralsToPDF, exportUsersToPDF, generatePDFReport } from '@/lib/pdf-export'
+import { toast } from 'sonner'
 
 interface ExportButtonProps {
     type: 'referrals' | 'users' | 'custom'
@@ -23,7 +24,7 @@ export function ExportButton({
 
     const handleExport = () => {
         if (data.length === 0) {
-            alert('No data to export')
+            toast.error('No data to export')
             return
         }
 

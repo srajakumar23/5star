@@ -61,11 +61,11 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
     },
     'Campus Head': {
         analytics: { access: true, scope: 'campus' },
-        userManagement: { access: false, scope: 'none' },
-        studentManagement: { access: false, scope: 'none' },
+        userManagement: { access: true, scope: 'campus', canCreate: true, canEdit: true, canDelete: false },
+        studentManagement: { access: true, scope: 'campus', canCreate: true, canEdit: true, canDelete: false },
         adminManagement: { access: false, scope: 'none' },
         campusPerformance: { access: false, scope: 'none' },
-        reports: { access: true, scope: 'campus', allowedReports: ['users', 'campus', 'performance', 'new-registrations'] },
+        reports: { access: true, scope: 'campus', allowedReports: ['users', 'campus', 'performance', 'new-registrations', 'financial-roi'] },
         settlements: { access: true, scope: 'campus' },
         marketingKit: { access: true, scope: 'campus' },
         auditLog: { access: false, scope: 'none' },
@@ -77,7 +77,7 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralTracking: { access: true, scope: 'campus' },
         savingsCalculator: { access: true, scope: 'campus' },
         rulesAccess: { access: true, scope: 'campus' },
-        feeManagement: { access: false, scope: 'none' },
+        feeManagement: { access: true, scope: 'campus', canCreate: true, canEdit: true },
         engagementCentre: { access: false, scope: 'none' }
     },
     'Finance Admin': {
@@ -139,8 +139,8 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissions> = {
         referralSubmission: { access: false, scope: 'none' },
         referralTracking: { access: true, scope: 'campus' },
         savingsCalculator: { access: false, scope: 'none' },
-        rulesAccess: { access: false, scope: 'none' },
-        feeManagement: { access: false, scope: 'none' },
+        rulesAccess: { access: true, scope: 'campus' },
+        feeManagement: { access: true, scope: 'campus', canCreate: true, canEdit: true },
         engagementCentre: { access: false, scope: 'none' }
     },
     'Staff': {

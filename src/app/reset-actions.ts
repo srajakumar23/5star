@@ -53,7 +53,7 @@ export async function resetDatabase(confirmation: string) {
         await logAction(
             'DELETE',
             'system',
-            `DATABASE RESET performed by ${user.adminName}`,
+            `DATABASE RESET performed by ${'adminName' in user ? user.adminName : user.fullName}`,
             'ALL',
             null,
             { deleted: { users: users.count, students: students.count, leads: leads.count } }

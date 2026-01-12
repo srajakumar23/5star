@@ -13,6 +13,9 @@ const config: Config = {
             colors: {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
+                'ui-primary': "var(--ui-primary)",
+                'ui-accent': "var(--ui-accent)",
+                'primary-maroon': '#800000',
             },
         },
     },

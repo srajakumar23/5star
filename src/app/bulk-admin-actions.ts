@@ -15,13 +15,13 @@ export async function bulkAdminAction(adminIds: number[], action: 'activate' | '
         if (action === 'delete') {
             // Safety check: Prevent deletion if it would remove all Super Admins
             const superAdminCount = await prisma.admin.count({
-                where: { role: 'Super Admin' }
+                where: { role: 'Super_Admin' }
             })
 
             const deletingSuperAdmins = await prisma.admin.count({
                 where: {
                     adminId: { in: adminIds },
-                    role: 'Super Admin'
+                    role: 'Super_Admin'
                 }
             })
 

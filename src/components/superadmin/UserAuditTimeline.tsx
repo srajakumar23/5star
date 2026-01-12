@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Clock, Shield, User, Filter, Calendar, AlertCircle, CheckCircle, Trash2, Edit, Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { getUserAuditLogs } from '@/app/audit-actions'
 
 interface UserAuditTimelineProps {
     userId: number
@@ -23,11 +24,12 @@ export function UserAuditTimeline({ userId, userName, onClose }: UserAuditTimeli
     const loadAuditLogs = async () => {
         setLoading(true)
         try {
-            // TODO: Implement getUserAuditLogs server action
-            const res = await fetch(`/api/audit/user/${userId}`)
-            if (res.ok) {
-                const data = await res.json()
-                setLogs(data.logs || [])
+            // Fetched via Server Action
+            const res = await getUserAuditLogs(userId)
+            if (res.success) {
+                setLogs(res.logs || [])
+            } else {
+                toast.error('Failed to load audit logs')
             }
         } catch (error) {
             toast.error('Failed to load audit logs')
@@ -133,8 +135,8 @@ export function UserAuditTimeline({ userId, userName, onClose }: UserAuditTimeli
                                     <div key={log.id} className="relative pl-16">
                                         {/* Timeline Dot */}
                                         <div className={`absolute left-4 w-5 h-5 rounded-full border-4 border-white ${log.action === 'CREATE' ? 'bg-green-500' :
-                                                log.action === 'UPDATE' ? 'bg-blue-500' :
-                                                    log.action === 'DELETE' ? 'bg-red-500' : 'bg-gray-500'
+                                            log.action === 'UPDATE' ? 'bg-blue-500' :
+                                                log.action === 'DELETE' ? 'bg-red-500' : 'bg-gray-500'
                                             }`}></div>
 
                                         {/* Log Card */}

@@ -5,7 +5,9 @@ import { toast } from 'sonner'
 import { X, Plus, Trash } from 'lucide-react'
 import { Campus } from '@/types'
 import { CampusManagementTable } from '@/components/superadmin/CampusManagementTable'
-import { getCampuses, addCampus, updateCampus, deleteCampus, deleteCampuses } from '@/app/campus-actions'
+import { getCampuses, addCampus, updateCampus, deleteCampus, deleteCampuses, toggleCampusStatus } from '@/app/campus-actions'
+
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export function CampusPanel({ campusComparison = [], mode = 'management' }: { campusComparison?: any[], mode?: 'management' | 'performance' }) {
     const [campuses, setCampuses] = useState<Campus[]>([])
@@ -32,6 +34,21 @@ export function CampusPanel({ campusComparison = [], mode = 'management' }: { ca
         gradeFees: [] as Array<{ grade: string; annualFee: number }>
     })
     const [customGradeInput, setCustomGradeInput] = useState('')
+
+    // Delete State
+    const [deleteState, setDeleteState] = useState<{
+        isOpen: boolean
+        type: 'single' | 'bulk'
+        ids: number[]
+        force: boolean
+        errorMessage?: string
+    }>({
+        isOpen: false,
+        type: 'single',
+        ids: [],
+        force: false
+    })
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const loadCampuses = async () => {
         setLoading(true)
@@ -76,48 +93,71 @@ export function CampusPanel({ campusComparison = [], mode = 'management' }: { ca
         }
     }
 
-    const handleDeleteCampus = async (id: number) => {
-        const result = await deleteCampus(id, false)
-        if (result.success) {
-            toast.success('Campus deleted successfully')
-            loadCampuses()
-        } else {
-            if (result.requiresForce) {
-                if (confirm(`${result.error}\n\nDo you want to FORCE DELETE? This will permanently delete all associated students and data.`)) {
-                    const forceResult = await deleteCampus(id, true)
-                    if (forceResult.success) {
-                        toast.success('Campus force deleted successfully')
-                        loadCampuses()
-                    } else {
-                        toast.error(forceResult.error || 'Failed to force delete campus')
-                    }
-                }
-            } else {
-                toast.error(result.error || 'Failed to delete campus')
+    const handleDeleteCampus = (id: number) => {
+        setDeleteState({ isOpen: true, type: 'single', ids: [id], force: false })
+    }
+
+    const handleBulkDelete = (ids: number[]) => {
+        setDeleteState({ isOpen: true, type: 'bulk', ids, force: false })
+    }
+
+    const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+        // Confirmation for deactivation
+        if (currentStatus === true) {
+            const c = campuses.find(campus => campus.id === id)
+            if (!confirm(`Are you sure you want to DEACTIVATE ${c?.campusName}? \nThis will prevent logins and new admissions.`)) {
+                return
             }
+        }
+
+        const newStatus = !currentStatus
+        // Optimistic update
+        setCampuses(prev => prev.map(c => c.id === id ? { ...c, isActive: newStatus } : c))
+
+        const res = await toggleCampusStatus(id, newStatus)
+        if (res.success) {
+            toast.success(`Campus ${newStatus ? 'activated' : 'deactivated'}`)
+        } else {
+            toast.error(res.error || 'Failed to update status')
+            // Revert on failure
+            setCampuses(prev => prev.map(c => c.id === id ? { ...c, isActive: currentStatus } : c))
         }
     }
 
-    const handleBulkDelete = async (ids: number[]) => {
-        if (!confirm(`Are you sure you want to delete ${ids.length} campuses? This action cannot be undone.`)) return
-        const result = await deleteCampuses(ids)
-        if (result.success) {
-            toast.success('Campuses deleted successfully')
-            loadCampuses()
-        } else {
-            if (result.requiresForce) {
-                if (confirm(`${result.error}\n\nDo you want to FORCE DELETE these campuses? This will permanently delete ALL students associated with them.`)) {
-                    const forceResult = await deleteCampuses(ids, true)
-                    if (forceResult.success) {
-                        toast.success('Campuses force deleted successfully')
-                        loadCampuses()
-                    } else {
-                        toast.error(forceResult.error || 'Failed to force delete campuses')
-                    }
-                }
+    const executeDelete = async () => {
+        setIsDeleting(true)
+        const { type, ids, force } = deleteState
+
+        try {
+            let result
+            if (type === 'single') {
+                result = await deleteCampus(ids[0], force)
             } else {
-                toast.error(result.error || 'Failed to delete campuses')
+                result = await deleteCampuses(ids, force)
             }
+
+            if (result.success) {
+                toast.success(force ? 'Campus(es) FORCE DELETED successfully' : 'Campus(es) deleted successfully')
+                setDeleteState({ isOpen: false, type: 'single', ids: [], force: false })
+                loadCampuses()
+            } else {
+                if (result.requiresForce && !force) {
+                    // Switch to force delete mode
+                    setDeleteState(prev => ({
+                        ...prev,
+                        force: true,
+                        errorMessage: result.error
+                    }))
+                } else {
+                    toast.error(result.error || 'Failed to delete campus')
+                    setDeleteState({ isOpen: false, type: 'single', ids: [], force: false })
+                }
+            }
+        } catch (error) {
+            toast.error('An error occurred during deletion')
+            setDeleteState({ isOpen: false, type: 'single', ids: [], force: false })
+        } finally {
+            setIsDeleting(false)
         }
     }
 
@@ -152,6 +192,7 @@ export function CampusPanel({ campusComparison = [], mode = 'management' }: { ca
                 }}
                 onDelete={handleDeleteCampus}
                 onBulkDelete={handleBulkDelete}
+                onToggleStatus={handleToggleStatus}
             />
 
             {/* Campus Modal */}
@@ -362,6 +403,38 @@ export function CampusPanel({ campusComparison = [], mode = 'management' }: { ca
                     </div>
                 )
             }
+            {/* Premium Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={deleteState.isOpen}
+                title={deleteState.force ? 'FORCE DELETE WARNING' : 'Delete Campus(es)?'}
+                description={
+                    deleteState.force ? (
+                        <div className="space-y-2">
+                            <p className="text-red-600 font-bold bg-red-50 p-3 rounded-lg border border-red-100">
+                                {deleteState.errorMessage}
+                            </p>
+                            <p className="font-semibold">
+                                Do you want to FORCE DELETE?
+                                <br />
+                                This will permanently delete ALL associated students and data.
+                                <br />
+                                <span className="text-red-600 uppercase">This action cannot be undone.</span>
+                            </p>
+                        </div>
+                    ) : (
+                        <p>
+                            Are you sure you want to delete <strong>{deleteState.ids.length}</strong> campus(es)?
+                            <br />
+                            This action cannot be undone.
+                        </p>
+                    )
+                }
+                confirmText={deleteState.force ? 'YES, FORCE DELETE' : 'Yes, Delete'}
+                variant="danger"
+                onConfirm={executeDelete}
+                onCancel={() => setDeleteState({ isOpen: false, type: 'single', ids: [], force: false })}
+                isLoading={isDeleting}
+            />
         </div>
     )
 }

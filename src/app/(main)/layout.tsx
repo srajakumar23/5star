@@ -81,13 +81,13 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         if (isAmbassadorRole) {
             if (permissions.referralSubmission.access) navItems.push({ label: 'Refer Now', href: '/refer', icon: <UserPlus /> })
             if (permissions.referralTracking.access) navItems.push({ label: 'My Referrals', href: '/referrals', icon: <List /> })
-            if (permissions.analytics.access) navItems.push({ label: 'Analytics', href: '/analytics', icon: <BarChart3 /> })
+            // Analytics merged into Dashboard:  if (permissions.analytics.access) navItems.push({ label: 'Analytics', href: '/analytics', icon: <BarChart3 /> })
             if (permissions.rulesAccess.access) navItems.push({ label: 'Rules', href: '/rules', icon: <BookOpen /> })
         }
 
         // Shared Tooling (Available to all who have permission, but hidden for Super Admin who has dedicated management views)
-        if (permissions.marketingKit.access) navItems.push({ label: 'Promo Kit', href: '/marketing', icon: <Share2 className="text-[#CC0000]" /> })
-        if (permissions.supportDesk.access && !isSuperAdmin) navItems.push({ label: 'Support Desk', href: '/support', icon: <MessageSquare className="text-[#CC0000]" /> })
+        if (permissions.marketingKit.access) navItems.push({ label: 'Promo Kit', href: '/marketing', icon: <Share2 className="text-amber-400" /> })
+        if (permissions.supportDesk.access && !isSuperAdmin) navItems.push({ label: 'Support Desk', href: '/support', icon: <MessageSquare className="text-amber-400" /> })
 
         // Admin-specific shared modules (Hide from Ambassadors)
         if (!isAmbassadorRole) {
@@ -106,30 +106,32 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     }
 
     // Always accessible
-    navItems.push({ label: 'Profile', href: '/profile', icon: <User className="text-[#CC0000]" /> })
+    navItems.push({ label: 'Profile', href: '/profile', icon: <User className="text-amber-400" /> })
 
     return (
         <div className="flex min-h-screen text-text-primary relative bg-[url('/bg-pattern.png')] bg-cover bg-fixed bg-center">
             <div className="absolute inset-0 bg-white/85 z-0 backdrop-blur-[2px]"></div>
 
             {/* Desktop Sidebar (Permanent) */}
-            <aside className="desktop-sidebar hidden xl:flex flex-col w-[280px] shrink-0 border-r border-white/5 p-4 fixed top-0 left-0 bottom-0 z-20 bg-gradient-to-br from-[#1A0000] to-[#3D0000] shadow-2xl shadow-black/50">
+            <aside className="desktop-sidebar hidden xl:flex flex-col w-[280px] shrink-0 border-r border-white/5 p-4 fixed top-0 left-0 bottom-0 z-20 bg-gradient-to-br from-[#0f172a] to-[#1e1b4b] shadow-2xl shadow-black/50">
                 {/* Decorative Elements */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
 
                 <div className="flex flex-col items-center border-b border-white/5 pb-8 pt-4 mb-8">
                     <div className="relative group cursor-pointer hover:scale-105 transition-transform duration-300">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-amber-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-amber-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                         <img
                             src="/achariya_25_logo.jpg"
                             alt="Achariya 25th Year"
-                            className="relative object-contain rounded-2xl shadow-2xl bg-white p-1 border border-white/10 h-[100px] w-auto max-w-[220px]"
+                            className="relative object-contain shadow-2xl h-[100px] w-auto max-w-[220px]"
                         />
                     </div>
-                    <div className="mt-6 text-center">
-                        <p className="text-[10px] uppercase tracking-[0.3em] font-black text-red-500/80 mb-1">ACHARIYA WORLD CLASS EDUCATION</p>
-                        <h2 className="text-white text-lg font-black tracking-tight drop-shadow-lg">5-Star Ambassador</h2>
-                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-500/80 mb-1">
+                        25<sup className="text-[0.6em]">th</sup> Year Celebration
+                    </p>
+                    <h2 className="text-white text-sm font-black tracking-tight drop-shadow-lg uppercase leading-tight px-4">
+                        Achariya Partnership Program (APP)
+                    </h2>
                 </div>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar -mr-2 pr-2">
                     <MobileMenu navItems={navItems} user={{ fullName: user.fullName, role: user.role }} logoutAction={logout} />
@@ -140,7 +142,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             <div className="flex-1 flex flex-col min-h-screen xl:ml-[280px]">
 
                 {/* Mobile Topbar */}
-                <div className="mobile-topbar xl:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/20 z-50 flex items-center justify-between px-4 bg-white/85 backdrop-blur-xl shadow-sm">
+                <div className="mobile-topbar xl:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/10 z-50 flex items-center justify-between px-4 bg-[#0f172a]/80 backdrop-blur-xl shadow-lg">
                     <div className="flex items-center gap-3">
                         {/* Hamburger Menu Trigger */}
                         <MobileSidebarWrapper>
@@ -156,7 +158,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
                         <img
                             src="/achariya_25_logo.jpg"
                             alt="Achariya 25th Year"
-                            className="rounded-lg shadow-sm bg-white p-1 h-10 w-auto"
+                            className="shadow-sm h-9 w-auto"
                         />
                     </div>
 

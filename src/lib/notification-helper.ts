@@ -105,8 +105,8 @@ export async function notifyReferralRejected(userId: number, referralDetails: Re
 export async function notifyFiveStarAchievement(userId: number, userName: string) {
     return createNotification({
         userId,
-        title: '🌟⭐ 5-STAR AMBASSADOR ACHIEVED!',
-        message: `Congratulations ${userName}! You've unlocked 5-Star Ambassador status! Your exclusive badge is now displayed on your dashboard. Thank you for your amazing contribution!`,
+        title: '🌟⭐ PRESTIGIOUS PARTNER STATUS ACHIEVED!',
+        message: `Congratulations ${userName}! You've unlocked Prestigious Partner status! Your exclusive badge is now displayed on your dashboard. Thank you for your amazing contribution!`,
         type: 'success',
         link: '/dashboard'
     })
