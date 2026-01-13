@@ -555,6 +555,7 @@ export function AdminClient({ referrals, referralMeta, referralStats, analytics,
                         referrals={referrals}
                         meta={referralMeta || { page: 1, limit: 50, total: referrals.length, totalPages: 1 }}
                         isReadOnly={permissions?.referralTracking?.scope === 'view-only'}
+                        campuses={campuses}
                     />
                 </div>
             )}

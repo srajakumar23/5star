@@ -51,19 +51,23 @@ export async function getAllReferrals(
     const where: any = { ...scopeFilter }
 
     if (filters?.status && filters.status !== 'All') {
-        where.leadStatus = filters.status
+        const statuses = filters.status.split(',')
+        where.leadStatus = { in: statuses }
     }
 
     if (filters?.role && filters.role !== 'All') {
-        where.user = { role: filters.role } // Filter by relation
+        const roles = filters.role.split(',')
+        where.user = { role: { in: roles } }
     }
 
     if (filters?.campus && filters.campus !== 'All') {
-        where.campus = filters.campus
+        const campuses = filters.campus.split(',')
+        where.campus = { in: campuses }
     }
 
     if (filters?.feeType && filters.feeType !== 'All') {
-        where.selectedFeeType = filters.feeType
+        const types = filters.feeType.split(',')
+        where.selectedFeeType = { in: types }
     }
 
     if (filters?.search) {
@@ -221,7 +225,14 @@ export async function getAdminAnalytics(): Promise<{ success: boolean; error?: s
     const userReferralCounts: Record<number, { user: { fullName: string; role: string; referralCode: string }, count: number, totalValue: number }> = {}
     referrals.forEach(r => {
         if (!userReferralCounts[r.userId]) {
-            userReferralCounts[r.userId] = { user: r.user, count: 0, totalValue: 0 }
+            userReferralCounts[r.userId] = {
+                user: {
+                    ...r.user,
+                    referralCode: r.user.referralCode || ''
+                },
+                count: 0,
+                totalValue: 0
+            }
         }
         userReferralCounts[r.userId].count++
 
@@ -714,9 +725,9 @@ export async function getReferralStats(filters?: {
     // Reconstruct Where Clause (Same logic as getAllReferrals)
     const where: any = { ...scopeFilter }
 
-    if (filters?.status && filters.status !== 'All') where.leadStatus = filters.status
-    if (filters?.role && filters.role !== 'All') where.user = { role: filters.role }
-    if (filters?.campus && filters.campus !== 'All') where.campus = filters.campus
+    if (filters?.status && filters.status !== 'All') where.leadStatus = { in: filters.status.split(',') }
+    if (filters?.role && filters.role !== 'All') where.user = { role: { in: filters.role.split(',') } }
+    if (filters?.campus && filters.campus !== 'All') where.campus = { in: filters.campus.split(',') }
     if (filters?.feeType && filters.feeType !== 'All') where.selectedFeeType = filters.feeType
     if (filters?.search) {
         where.OR = [
@@ -783,10 +794,10 @@ export async function exportReferrals(filters?: {
     if (scopeFilter === null) return { success: false, error: 'No access' }
 
     const where: any = { ...scopeFilter }
-    if (filters?.status && filters.status !== 'All') where.leadStatus = filters.status
-    if (filters?.role && filters.role !== 'All') where.user = { role: filters.role }
-    if (filters?.campus && filters.campus !== 'All') where.campus = filters.campus
-    if (filters?.feeType && filters.feeType !== 'All') where.selectedFeeType = filters.feeType
+    if (filters?.status && filters.status !== 'All') where.leadStatus = { in: filters.status.split(',') }
+    if (filters?.role && filters.role !== 'All') where.user = { role: { in: filters.role.split(',') } }
+    if (filters?.campus && filters.campus !== 'All') where.campus = { in: filters.campus.split(',') }
+    if (filters?.feeType && filters.feeType !== 'All') where.selectedFeeType = { in: filters.feeType.split(',') }
     if (filters?.search) {
         where.OR = [
             { parentName: { contains: filters.search, mode: 'insensitive' } },
@@ -885,17 +896,30 @@ export async function bulkConfirmReferrals(leadIds: number[], forcedFeeType?: 'O
         }
 
         let processed = 0
+        const chunkSize = 5 // Process 5 transactions in parallel to speed up without hitting connection limits
 
-        // Parallel Confirmation (using existing confirmReferral logic logic would be safer but slower)
-        // For bulk, we'll replicate the core logic efficiently
-        for (const lead of leads) {
-            // We can reuse the single confirmReferral function to ensure all side-effects (benefits, notifications) run!
-            // This is slower but safer.
-            const targetFeeType = forcedFeeType || (lead as any).selectedFeeType
-            if (!targetFeeType) continue // Skip if somehow still no fee type
+        // Helper to process a chunk
+        const processChunk = async (chunk: typeof leads) => {
+            const promises = chunk.map(async (lead) => {
+                const targetFeeType = forcedFeeType || (lead as any).selectedFeeType
+                if (!targetFeeType) return null
+                try {
+                    await confirmReferral(lead.leadId, lead.admissionNumber!, targetFeeType)
+                    return true
+                } catch (err) {
+                    console.error(`Failed to confirm lead ${lead.leadId}`, err)
+                    return false
+                }
+            })
+            const results = await Promise.all(promises)
+            return results.filter(Boolean).length
+        }
 
-            await confirmReferral(lead.leadId, lead.admissionNumber!, targetFeeType)
-            processed++
+        // Execute in chunks
+        for (let i = 0; i < leads.length; i += chunkSize) {
+            const chunk = leads.slice(i, i + chunkSize)
+            const count = await processChunk(chunk)
+            processed += count
         }
 
         revalidatePath('/admin')

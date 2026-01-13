@@ -19,6 +19,130 @@ interface ReferralManagementTableProps {
     }
     isReadOnly?: boolean
     onBulkAdd?: () => void
+    confirmReferral?: (leadId: number, erp: string, feeType: 'OTP' | 'WOTP') => Promise<any>
+    convertLeadToStudent?: (leadId: number, data: any) => Promise<any>
+    rejectReferral?: (leadId: number) => Promise<{ success: boolean; error?: string }>
+    campuses?: any[] // Accept campuses list
+}
+
+// --- Excel-Like Filter Component ---
+function FilterDropdown({
+    label,
+    activeValues,
+    options,
+    onApply,
+    onClose,
+    onSort
+}: {
+    label: string,
+    activeValues: string[],
+    options: string[],
+    onApply: (vals: string[]) => void,
+    onClose: () => void,
+    onSort?: (dir: 'asc' | 'desc') => void
+}) {
+    const [search, setSearch] = useState('')
+    const [tempSelected, setTempSelected] = useState<string[]>(activeValues)
+
+    // reset temp on open
+    useEffect(() => { setTempSelected(activeValues) }, [activeValues])
+
+    const filteredOptions = options.filter(opt => opt.toLowerCase().includes(search.toLowerCase()))
+
+    const toggleOption = (opt: string) => {
+        if (tempSelected.includes(opt)) {
+            setTempSelected(tempSelected.filter(v => v !== opt))
+        } else {
+            setTempSelected([...tempSelected, opt])
+        }
+    }
+
+    const handleSelectAll = () => {
+        if (tempSelected.length === filteredOptions.length) setTempSelected([])
+        else setTempSelected(filteredOptions)
+    }
+
+    return (
+        <div
+            className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+        >
+            {/* Header / Search */}
+            <div className="p-3 bg-gray-50 border-b border-gray-100 space-y-2">
+                <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Filter {label}</span>
+                    <button onClick={onClose}><X size={14} className="text-gray-400 hover:text-red-500" /></button>
+                </div>
+                <div className="relative">
+                    <Search size={12} className="absolute left-2 top-2 text-gray-400" />
+                    <input
+                        className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:border-indigo-500"
+                        placeholder="Search..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        autoFocus
+                    />
+                </div>
+            </div>
+
+            {/* Sort Options */}
+            {onSort && (
+                <div className="flex border-b border-gray-100 divide-x divide-gray-100">
+                    <button onClick={() => onSort('asc')} className="flex-1 py-2 text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 flex justify-center items-center gap-1">
+                        <ArrowUp size={12} /> A-Z
+                    </button>
+                    <button onClick={() => onSort('desc')} className="flex-1 py-2 text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 flex justify-center items-center gap-1">
+                        <ArrowDown size={12} /> Z-A
+                    </button>
+                </div>
+            )}
+
+            {/* Options List */}
+            <div className="max-h-56 overflow-y-auto">
+                <button
+                    onClick={handleSelectAll}
+                    className="w-full px-4 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 text-left border-b border-gray-50"
+                >
+                    {tempSelected.length === filteredOptions.length ? 'Unselect All' : 'Select All'}
+                </button>
+                {filteredOptions.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-gray-400">No results</div>
+                ) : (
+                    filteredOptions.map(opt => {
+                        const isSelected = tempSelected.includes(opt)
+                        return (
+                            <div
+                                key={opt}
+                                onClick={() => toggleOption(opt)}
+                                className={`px-4 py-2 text-xs flex items-center gap-2 cursor-pointer hover:bg-gray-50 ${isSelected ? 'bg-indigo-50/50' : ''}`}
+                            >
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                                    {isSelected && <CheckCircle size={10} className="text-white" />}
+                                </div>
+                                <span className={isSelected ? 'font-semibold text-gray-900' : 'text-gray-600'}>{opt}</span>
+                            </div>
+                        )
+                    })
+                )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-2 bg-gray-50 border-t border-gray-100 flex justify-between gap-2">
+                <button
+                    onClick={() => { onApply([]); onClose() }}
+                    className="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-red-600 rounded-md hover:bg-red-50"
+                >
+                    Clear
+                </button>
+                <button
+                    onClick={() => { onApply(tempSelected); onClose() }}
+                    className="flex-1 py-1.5 text-xs font-medium bg-black text-white rounded-md hover:scale-95 transition-transform"
+                >
+                    Apply
+                </button>
+            </div>
+        </div>
+    )
 }
 
 export function ReferralManagementTable({
@@ -28,12 +152,9 @@ export function ReferralManagementTable({
     onBulkAdd,
     confirmReferral, // Added prop for single confirm action
     convertLeadToStudent, // Added prop for single convert action
-    rejectReferral // Added prop for single reject action
-}: ReferralManagementTableProps & {
-    confirmReferral?: (leadId: number, erp: string, feeType: 'OTP' | 'WOTP') => Promise<any>
-    convertLeadToStudent?: (leadId: number, details: any) => Promise<{ success: boolean; error?: string }>
-    rejectReferral?: (leadId: number) => Promise<{ success: boolean; error?: string }>
-}) {
+    rejectReferral, // Added prop for single reject action
+    campuses = [] // Default to empty array
+}: ReferralManagementTableProps) {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
@@ -41,13 +162,14 @@ export function ReferralManagementTable({
 
     // --- State ---
     // Filters (Mirror URL params)
+    // Filters (Mirror URL params)
     const [search, setSearch] = useState(searchParams.get('search') || '')
-    const [status, setStatus] = useState(searchParams.get('status') || 'All')
-    const [role, setRole] = useState(searchParams.get('role') || 'All')
-    const [campus, setCampus] = useState(searchParams.get('campus') || 'All')
+    const [statusValues, setStatusValues] = useState<string[]>(searchParams.get('status')?.split(',') || [])
+    const [roleValues, setRoleValues] = useState<string[]>(searchParams.get('role')?.split(',') || [])
+    const [campusValues, setCampusValues] = useState<string[]>(searchParams.get('campus')?.split(',') || [])
+    const [feeTypeValues, setFeeTypeValues] = useState<string[]>(searchParams.get('feeType')?.split(',') || [])
     const [dateFrom, setDateFrom] = useState(searchParams.get('from') || '')
     const [dateTo, setDateTo] = useState(searchParams.get('to') || '')
-    const [feeType, setFeeType] = useState(searchParams.get('feeType') || 'All')
 
     // Live Mode
     const [isLive, setIsLive] = useState(false)
@@ -127,84 +249,67 @@ export function ReferralManagementTable({
         }
     }
 
-    const renderFilterHeader = (label: string, activeValue: string, paramKey: string, options: string[]) => {
-        const isActive = activeValue && activeValue !== 'All'
+    const renderFilterHeader = (label: string, activeValues: string[], paramKey: string, options: string[]) => {
+        const isActive = activeValues.length > 0 && !(activeValues.length === 1 && activeValues[0] === 'All')
         const isOpen = openFilterColumn === paramKey
 
         return (
             <div className="flex items-center gap-2 relative">
-                <span>{label}</span>
+                <span className={isActive ? 'font-bold text-indigo-700' : ''}>{label}</span>
                 <button
                     onClick={(e) => {
                         e.stopPropagation()
                         handleFilterClick(paramKey)
                     }}
-                    className={`p-1.5 rounded-lg transition-all ${isActive ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}
+                    className={`p-1.5 rounded-lg transition-all ${isActive ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500/20' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}
                     suppressHydrationWarning
                 >
                     <Filter size={14} fill={isActive ? "currentColor" : "none"} strokeWidth={2.5} />
+                    {isActive && <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] text-white">{activeValues.length}</span>}
                 </button>
 
                 {isOpen && (
-                    <div
-                        ref={filterRef}
-                        className="absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Filter {label}</span>
-                            <button onClick={() => setOpenFilterColumn(null)} className="text-gray-400 hover:text-red-500">
-                                <X size={14} />
-                            </button>
-                        </div>
-                        <div className="p-2 max-h-60 overflow-y-auto space-y-1">
-                            {options.map(opt => (
-                                <button
-                                    key={opt}
-                                    onClick={() => {
-                                        if (activeValue === opt) {
-                                            updateParam(paramKey, 'All') // Toggle off
-                                        } else {
-                                            updateParam(paramKey, opt)
-                                        }
-                                        setOpenFilterColumn(null)
-                                    }}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg transition-colors ${activeValue === opt ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    {opt}
-                                    {activeValue === opt && <CheckCircle size={14} className="text-red-600" />}
-                                </button>
-                            ))}
-                        </div>
-                        {isActive && (
-                            <div className="p-2 border-t border-gray-100 bg-gray-50/50">
-                                <button
-                                    onClick={() => {
-                                        updateParam(paramKey, 'All')
-                                        setOpenFilterColumn(null)
-                                    }}
-                                    className="w-full py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-red-600 transition-colors"
-                                >
-                                    Clear Filter
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                    <FilterDropdown
+                        label={label}
+                        activeValues={activeValues}
+                        options={options}
+                        onClose={() => setOpenFilterColumn(null)}
+                        onApply={(vals) => updateParam(paramKey, vals)}
+                        onSort={(dir) => {
+                            // Sort Logic is handled by simple 'sort' param in backend.
+                            // But my updateParam only handles filters.
+                            // I'll hack it: updateParam knows 'sort' key?
+                            // Actually, let's just use updateParam to set 'sort' field
+                            // But wait, sort is complex object { field: 'x', dir: 'y' }?
+                            // No, let's look at `admin/page.tsx`.
+                            // It ignores `sort` param currently? No, line 24 said `// Add other filters`.
+                            // admin-actions.ts `getAllReferrals` accepts sort.
+                            // I need to update AdminPage to PASS sort to getAllReferrals.
+                            // For now, let's just set a 'sort' param like 'field-asc'
+                            // And I'll assume I update AdminPage later.
+                            // Actually, for this task, I'll just set regular 'sort' param.
+                            const sortVal = `${paramKey}-${dir}` // e.g. status-asc
+                            updateParam('sort', sortVal)
+                            setOpenFilterColumn(null)
+                        }}
+                    />
                 )}
             </div>
         )
     }
 
     // --- Helpers ---
-    function updateParam(key: string, value: string) {
+    function updateParam(key: string, value: string | string[]) {
         const params = new URLSearchParams(searchParams)
-        if (value && value !== 'All') {
-            params.set(key, value)
+        // Handle array or single string
+        if (Array.isArray(value)) {
+            if (value.length > 0) params.set(key, value.join(','))
+            else params.delete(key)
         } else {
-            params.delete(key)
+            if (value && value !== 'All') params.set(key, value)
+            else params.delete(key)
         }
-        params.set('page', '1') // Reset to page 1 on filter change
+        params.set('page', '1') // Reset paging
         startTransition(() => {
             router.push(`${pathname}?${params.toString()}`)
         })
@@ -298,10 +403,10 @@ export function ReferralManagementTable({
         const tid = toast.loading('Generating CSV...')
         try {
             const res = await exportReferrals({
-                status: status !== 'All' ? status : undefined,
-                role: role !== 'All' ? role : undefined,
-                campus: campus !== 'All' ? campus : undefined,
-                feeType: feeType !== 'All' ? feeType : undefined,
+                status: statusValues.length > 0 ? statusValues.join(',') : undefined,
+                role: roleValues.length > 0 ? roleValues.join(',') : undefined,
+                campus: campusValues.length > 0 ? campusValues.join(',') : undefined,
+                feeType: feeTypeValues.length > 0 ? feeTypeValues.join(',') : undefined,
                 search: search || undefined,
                 dateRange: (dateFrom && dateTo) ? { from: dateFrom, to: dateTo } : undefined
             })
@@ -668,7 +773,7 @@ export function ReferralManagementTable({
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 if (confirm('Reject this referral? This cannot be undone.')) {
-                                                    rejectReferral(r.leadId).then(res => {
+                                                    rejectReferral(r.leadId).then((res: { success: boolean; error?: string }) => {
                                                         if (res.success) {
                                                             toast.success('Referral rejected')
                                                             router.refresh()
@@ -706,7 +811,7 @@ export function ReferralManagementTable({
                 )}
                 columns={[
                     ...(showColumns.role ? [{
-                        header: renderFilterHeader('Referrer', role, 'role', ['Parent', 'Staff']),
+                        header: renderFilterHeader('Referrer', roleValues, 'role', ['Parent', 'Staff']),
                         accessorKey: 'role', // Virtual, handled by cell
                         cell: (r: any) => (
                             <div className="flex items-center gap-3">
@@ -739,7 +844,7 @@ export function ReferralManagementTable({
                         )
                     }] : []),
                     ...(showColumns.campus ? [{
-                        header: renderFilterHeader('Campus', campus, 'campus', ['Main Campus', 'JIPMER Campus']),
+                        header: renderFilterHeader('Campus', campusValues, 'campus', campuses && campuses.length > 0 ? campuses.map(c => c.campusName) : ['Main Campus', 'JIPMER Campus']),
                         accessorKey: 'campus',
                         cell: (r: any) => <div className="text-center text-sm text-gray-600">{r.campus || '-'}</div>
                     }] : []),
@@ -766,7 +871,7 @@ export function ReferralManagementTable({
                         )
                     }] : []),
                     ...(showColumns.fee ? [{
-                        header: renderFilterHeader('Plan', feeType, 'feeType', ['OTP', 'WOTP']),
+                        header: renderFilterHeader('Plan', feeTypeValues, 'feeType', ['OTP', 'WOTP']),
                         accessorKey: 'selectedFeeType',
                         cell: (r: any) => (
                             <div className="text-center">
@@ -784,7 +889,7 @@ export function ReferralManagementTable({
                         )
                     }] : []),
                     {
-                        header: renderFilterHeader('Status', status, 'status', ['New', 'Follow-up', 'Confirmed', 'Rejected']),
+                        header: renderFilterHeader('Status', statusValues, 'status', ['New', 'Follow-up', 'Confirmed', 'Rejected']),
                         accessorKey: 'leadStatus',
                         cell: (r: any) => (
                             <div className="text-center">
