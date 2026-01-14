@@ -25,7 +25,7 @@ const MSG91_CONFIG = {
 
 class SMSService {
     async sendOTP(mobile: string, otp: string, flow: OTPFlow = 'registration'): Promise<SMSResponse> {
-        const message = `Your Achariya OTP is ${otp}. Valid for 10 minutes. Do not share this with anyone.`
+        const message = `Your Achariya OTP is ${otp}. Valid for 3 minutes. Do not share this with anyone.`
         return this.send(mobile, message, otp, flow)
     }
 
@@ -70,33 +70,63 @@ class SMSService {
 
         const templateId = MSG91_CONFIG.templates[flow]
 
+        if (!templateId) {
+            console.error(`❌ No template ID configured for flow: ${flow}`)
+            return { success: false, error: `Template not configured for ${flow}` }
+        }
+
         try {
-            const url = "https://control.msg91.com/api/v5/otp?" + new URLSearchParams({
+            // Sanitize mobile
+            let sanitizedMobile = mobile.replace(/\D/g, '')
+            if (sanitizedMobile.length > 10 && sanitizedMobile.startsWith('91')) {
+                sanitizedMobile = sanitizedMobile.substring(2)
+            }
+
+            const finalMobile = '91' + sanitizedMobile
+
+            // MSG91 v5 OTP API - Send OTP using template
+            const url = 'https://control.msg91.com/api/v5/otp'
+
+            const payload = {
                 template_id: templateId,
-                mobile: '91' + mobile,
+                mobile: finalMobile,
                 authkey: MSG91_CONFIG.authKey,
-                otp: otp
-                // Note: MSG91 V5 might require additional payload for variables if template uses them
-                // For basic OTP templates, usually 'otp' param is enough if template has ##OTP##
+                otp: otp  // Variable for ##OTP## placeholder
+            }
+
+            console.log('📤 [MSG91] Sending OTP:', {
+                flow,
+                templateId,
+                mobile: finalMobile,
+                otp: otp,  // Log actual OTP for debugging
+                timestamp: new Date().toISOString()
             })
 
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify(payload)
             })
 
             const data = await response.json()
 
+            console.log('📥 [MSG91] Response:', {
+                status: response.status,
+                data: JSON.stringify(data),
+                success: data.type === 'success'
+            })
+
             if (data.type === 'success') {
-                return { success: true, messageId: data.message }
+                console.log('✅ [MSG91] OTP sent successfully')
+                return { success: true, messageId: data.message || data.request_id }
             } else {
-                console.error('MSG91 Error:', data)
-                return { success: false, error: data.message || 'MSG91 Failed' }
+                console.error('❌ [MSG91] Error:', data)
+                return { success: false, error: data.message || 'MSG91 API Error' }
             }
         } catch (error: any) {
-            console.error('MSG91 Fetch Error:', error)
+            console.error('❌ [MSG91] Fetch Error:', error)
             return { success: false, error: error.message }
         }
     }

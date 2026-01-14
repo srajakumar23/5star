@@ -53,6 +53,14 @@ export interface User {
     childEprNo?: string | null
     isFiveStarMember?: boolean
     currentYearCount?: number
+    // Expanded fields for UserDetailsModal
+    childName?: string | null
+    grade?: string | null
+    paymentStatus?: string | null
+    transactionId?: string | null
+    paymentAmount?: number | null
+    aadharNo?: string | null
+    bankAccountDetails?: string | null
 }
 
 export interface Student {

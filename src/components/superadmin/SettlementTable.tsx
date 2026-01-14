@@ -178,7 +178,7 @@ export function SettlementTable({ settlements, onProcess, onDelete }: Settlement
                     data={settlements}
                     columns={columns as any}
                     pageSize={10}
-                    searchKey={['user.fullName', 'user.mobileNumber', 'bankReference']}
+                    searchKey={['user.fullName', 'user.mobileNumber', 'bankReference'] as any}
                     searchPlaceholder="Search ambassador, mobile, or reference..."
                 />
             </div>

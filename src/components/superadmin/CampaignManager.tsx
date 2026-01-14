@@ -441,7 +441,7 @@ export function CampaignManager() {
                     )
                 }
                 confirmText={confirmState.type === 'run' ? 'Yes, Run Campaign' : 'Delete Campaign'}
-                variant={confirmState.type === 'run' ? 'default' : 'danger'}
+                variant={confirmState.type === 'run' ? 'info' : 'danger'}
                 onConfirm={() => {
                     if (confirmState.type === 'run') executeRun()
                     else executeDelete()

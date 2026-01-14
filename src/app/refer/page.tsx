@@ -365,7 +365,7 @@ function ReferralFormContent() {
                                         ) : (
                                             <>
                                                 {/* DIRECT FLOW MESSAGE */}
-                                                <p className="text-sm text-white/60">Enter the 6-digit code sent to</p>
+                                                <p className="text-sm text-white/60">Enter the 4-digit code sent to</p>
                                                 <p className="text-lg font-bold text-white mt-1">+91 {formData.parentMobile}</p>
                                             </>
                                         )}
@@ -378,11 +378,11 @@ function ReferralFormContent() {
                                                 type="text"
                                                 value={otp}
                                                 onChange={(e) => {
-                                                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                                                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 4));
                                                     if (error) setError(null);
                                                 }}
-                                                placeholder="••••••"
-                                                maxLength={6}
+                                                placeholder="••••"
+                                                maxLength={4}
                                                 className="relative w-full h-16 bg-black/20 border border-white/10 rounded-2xl text-center text-3xl font-bold tracking-[0.5em] text-white outline-none focus:border-pink-500/50 focus:bg-black/40 transition-all placeholder-white/10"
                                             />
                                         </div>

@@ -6,7 +6,7 @@ export default async function MarketingPage() {
     const result = await getMarketingAssets()
     const categories = await getMarketingCategories()
     const user = await getCurrentUser()
-    const referralCode = user && 'referralCode' in user ? user.referralCode : undefined
+    const referralCode = user && 'referralCode' in user ? (user.referralCode || undefined) : undefined
 
     return (
         <MarketingClient

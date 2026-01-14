@@ -2,9 +2,9 @@ const MSG91_CONFIG = {
     authKey: "485538AfzLQYaH69672145P1",
     senderId: "ACHAPP",
     templates: {
-        registration: "69671ce2f0f84f0363446ec4",
-        "forgot-password": "69671d580b181d4b4d18d092",
-        referral: "69671da09556fa4ffa1aaf28"
+        registration: "696747dca54c0d654f2f9603",
+        "forgot-password": "6967490068421d422c6068f6",
+        referral: "6967493f59dbf12b3457cd26"
     }
 }
 
@@ -17,7 +17,7 @@ async function testMsg91() {
         process.exit(1)
     }
 
-    const otp = '123456'
+    const otp = '1234'
     // @ts-ignore
     const templateId = MSG91_CONFIG.templates[flow]
 
@@ -34,8 +34,8 @@ async function testMsg91() {
     const url = "https://control.msg91.com/api/v5/otp?" + new URLSearchParams({
         template_id: templateId,
         mobile: '91' + mobile,
-        authkey: MSG91_CONFIG.authKey,
-        otp: otp
+        authkey: process.env.MSG91_AUTH_KEY || MSG91_CONFIG.authKey,
+        OTP: otp // UPDATED to uppercase to match DLT
     })
 
     console.log(`\n[DEBUG] URL: ${url}`)

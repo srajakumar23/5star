@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma'
 import { logAction } from '@/lib/audit-logger'
 
 /**
- * Verifies the 6-digit OTP for 2FA and upgrades the session.
+ * Verifies the 4-digit OTP for 2FA and upgrades the session.
  */
 export async function verifyTwoFactorAction(otp: string) {
     try {
@@ -20,7 +20,7 @@ export async function verifyTwoFactorAction(otp: string) {
         // For this implementation, we check the otpVerification table or a mock logic.
 
         // Mock logic for demo/development
-        if (otp === '123456') {
+        if (otp === '1234') {
             // Upgrade session: re-create session with is2faVerified = true
             await createSession(
                 session.userId,

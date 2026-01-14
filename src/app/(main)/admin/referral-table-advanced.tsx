@@ -417,6 +417,14 @@ export function ReferralManagementTable({
     const handleExport = async () => {
         const tid = toast.loading('Generating CSV...')
         try {
+            // Get values from searchParams
+            const statusValues = searchParams.get('status') ? searchParams.get('status')!.split(',') : []
+            const roleValues = searchParams.get('role') ? searchParams.get('role')!.split(',') : []
+            const campusValues = searchParams.get('campus') ? searchParams.get('campus')!.split(',') : []
+            const feeTypeValues = searchParams.get('feeType') ? searchParams.get('feeType')!.split(',') : []
+            const dateFrom = searchParams.get('from') || undefined
+            const dateTo = searchParams.get('to') || undefined
+
             const res = await exportReferrals({
                 status: statusValues.length > 0 ? statusValues.join(',') : undefined,
                 role: roleValues.length > 0 ? roleValues.join(',') : undefined,

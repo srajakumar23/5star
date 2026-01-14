@@ -12,15 +12,19 @@ import { notifyReferralSubmitted, notifyAdminNewReferral } from '@/lib/notificat
 import { referralSchema } from '@/lib/validators'
 import { LeadStatus } from '@prisma/client'
 
-// --- New OTP Actions ---
+// Helper for consistent sanitization (match main actions.ts)
+function sanitizeMobile(input: string): string {
+    let mobile = input.replace(/\D/g, '')
+    if (mobile.length > 10 && mobile.startsWith('91')) {
+        mobile = mobile.slice(2)
+    }
+    return mobile
+}
 
-/**
- * Sends a mock OTP to the provided mobile number.
- * SECURITY: In production, integrate with MSG91 or Twilio.
- * @param mobile - The mobile number to send the OTP to.
- * @returns An object indicating success.
- */
-export async function sendReferralOtp(mobile: string, referralCode?: string) {
+export async function sendReferralOtp(mobileInput: string, referralCode?: string) {
+    const mobile = sanitizeMobile(mobileInput)
+    console.log('[DEBUG] sendReferralOtp input:', mobileInput, 'Sanitized:', mobile)
+
     // Check 1: Is this mobile number already a registered user?
     const existingUser = await prisma.user.findUnique({
         where: { mobileNumber: mobile }
@@ -55,40 +59,49 @@ export async function sendReferralOtp(mobile: string, referralCode?: string) {
         }
     }
 
-    if (referralCode) {
-        const ambassador = await prisma.user.findUnique({
-            where: { referralCode }
-        })
-        if (ambassador) {
-            destinationMobile = ambassador.mobileNumber
-            isAmbassadorVerified = true
-            ambassadorName = ambassador.fullName
-        }
-    }
+    // IDEMPOTENT OTP GENERATION (same as main actions.ts)
+    let finalOtp: string
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+    // Try to find existing valid OTP first
+    const existingRecord = await prisma.otpVerification.findUnique({ where: { mobile } })
 
-    try {
-        // Upsert OTP
+    // Smart Sticky: Reuse if valid for at least 60 more seconds
+    if (existingRecord && existingRecord.expiresAt > new Date(Date.now() + 60000)) {
+        console.log('[DEBUG] Smart Sticky (Referral): Reusing existing OTP', existingRecord.otp)
+        finalOtp = existingRecord.otp
+    } else {
+        // Generate New - 4 digits, 3 minutes (consistent with main flow)
+        finalOtp = Math.floor(1000 + Math.random() * 9000).toString()
+        const expiresAt = new Date(Date.now() + 3 * 60 * 1000) // 3 Minutes
+
+        // Upsert (Atomic Update)
         await prisma.otpVerification.upsert({
             where: { mobile },
-            update: { otp, expiresAt },
-            create: { mobile, otp, expiresAt }
+            update: { otp: finalOtp, expiresAt },
+            create: { mobile, otp: finalOtp, expiresAt }
         })
+        console.log('[DEBUG] Generated New OTP (Referral):', finalOtp)
+    }
 
+    try {
         if (process.env.NODE_ENV === 'development') {
-            // Logs
-            logger.info(`[OTP] Sending OTP ${otp} to ${destinationMobile} (Ambassador: ${isAmbassadorVerified})`)
+            logger.info(`[OTP] Sending OTP ${finalOtp} to ${destinationMobile} (Ambassador: ${isAmbassadorVerified})`)
         }
 
-        // Send SMS via MSG91
-        await smsService.sendOTP(destinationMobile, otp, 'referral')
+        // Send SMS
+        const smsResult = await smsService.sendOTP(destinationMobile, finalOtp, 'referral')
+
+        if (!smsResult.success) {
+            console.error('[Referral] SMS Failed:', smsResult.error)
+            // CRITICAL FIX: DO NOT DELETE RECORD ON FAILURE (same as main flow)
+            return { success: false, error: 'SMS delivery failed. Please click Resend.' }
+        }
 
         return {
             success: true,
             isAmbassadorVerified,
-            ambassadorName
+            ambassadorName,
+            otp: process.env.NODE_ENV === 'development' ? finalOtp : undefined
         }
     } catch (error) {
         logger.error('Failed to generate OTP:', error)
@@ -96,29 +109,36 @@ export async function sendReferralOtp(mobile: string, referralCode?: string) {
     }
 }
 
-export async function verifyReferralOtp(mobile: string, otp: string) {
-    // START: Mock OTP for testing
-    if (otp === '123456') {
-        return { success: true }
-    }
-    // END: Mock OTP for testing
+export async function verifyReferralOtp(mobileInput: string, otp: string) {
+    const mobile = sanitizeMobile(mobileInput)
+    console.log('[DEBUG] verifyReferralOtp:', { otp, mobileInput, sanitized: mobile })
+
+    // Mock OTP for testing
+    if (otp === '1234') return { success: true }
 
     try {
-        const record = await prisma.otpVerification.findUnique({
-            where: { mobile }
-        })
+        const record = await prisma.otpVerification.findUnique({ where: { mobile } })
 
         if (!record) {
-            return { success: false, error: 'No OTP found for this number' }
+            console.log('[DEBUG] No OTP record found for:', mobile)
+            return { success: false, error: 'OTP request expired. Try again.' }
         }
 
-        if (record.otp !== otp) {
-            return { success: false, error: 'Invalid OTP' }
-        }
+        const now = new Date()
+        const isExpired = now > record.expiresAt
+        const isMatch = record.otp === otp
 
-        if (new Date() > record.expiresAt) {
-            return { success: false, error: 'OTP has expired' }
-        }
+        console.log('[DEBUG] Referral OTP Check:', {
+            serverTime: now,
+            expiresAt: record.expiresAt,
+            isExpired,
+            isMatch,
+            recordOtp: record.otp,
+            receivedOtp: otp
+        })
+
+        if (isExpired) return { success: false, error: 'OTP has expired. Please request a new one.' }
+        if (!isMatch) return { success: false, error: 'Incorrect OTP. Please check and try again.' }
 
         // OTP verified - clean up
         await prisma.otpVerification.delete({ where: { mobile } })

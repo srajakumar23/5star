@@ -1,6 +1,5 @@
-'use client'
-
-import { ChevronLeft, Star } from 'lucide-react'
+import { ChevronLeft, Star, Timer, RefreshCw } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface OtpVerificationProps {
     mobile: string
@@ -8,12 +7,53 @@ interface OtpVerificationProps {
     setOtp: (value: string) => void
     onVerify: () => void
     onBack: () => void
+    onResend?: () => void
     loading: boolean
     isNewUser: boolean
     isForgotMode?: boolean
 }
 
-export const OtpVerification = ({ mobile, otp, setOtp, onVerify, onBack, loading, isNewUser, isForgotMode }: OtpVerificationProps) => {
+export const OtpVerification = ({ mobile, otp, setOtp, onVerify, onBack, onResend, loading, isNewUser, isForgotMode }: OtpVerificationProps) => {
+    const [timeLeft, setTimeLeft] = useState(180) // 3 minutes
+    const [canResend, setCanResend] = useState(false)
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer)
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+
+        // Enable resend after 30 seconds
+        const resendTimer = setTimeout(() => {
+            setCanResend(true)
+        }, 30000)
+
+        return () => {
+            clearInterval(timer)
+            clearTimeout(resendTimer)
+        }
+    }, [])
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60)
+        const s = seconds % 60
+        return `${m}:${s.toString().padStart(2, '0')}`
+    }
+
+    const handleResendClick = () => {
+        if (!canResend || !onResend) return
+        setCanResend(false)
+        setTimeLeft(180) // Reset expiration timer on new OTP
+        onResend()
+        // Re-enable resend after 30s
+        setTimeout(() => setCanResend(true), 30000)
+    }
+
     return (
         <div className="space-y-6">
             <div className="text-center space-y-2 relative">
@@ -50,7 +90,13 @@ export const OtpVerification = ({ mobile, otp, setOtp, onVerify, onBack, loading
 
             <div className="space-y-6">
                 <div className="group relative">
-                    <label className="text-blue-200/70 text-[10px] font-bold uppercase tracking-[0.2em] mb-2 block text-center">Enter 6-Digit Code</label>
+                    <div className="flex justify-between items-center mb-2 px-1">
+                        <label className="text-blue-200/70 text-[10px] font-bold uppercase tracking-[0.2em]">Enter 4-Digit Code</label>
+                        <div className="flex items-center gap-1.5 text-amber-400/80">
+                            <Timer className="w-3 h-3" />
+                            <span className="text-[10px] font-mono font-bold">{formatTime(timeLeft)}</span>
+                        </div>
+                    </div>
                     <input
                         type="text"
                         autoFocus
@@ -59,19 +105,28 @@ export const OtpVerification = ({ mobile, otp, setOtp, onVerify, onBack, loading
                         pattern="[0-9]*"
                         disabled={loading}
                         className="block w-full bg-white/5 border border-white/10 rounded-2xl px-4 h-14 text-white placeholder-white/10 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent shadow-lg transition-all text-3xl font-black tracking-[0.5em] text-center"
-                        placeholder="••••••"
-                        maxLength={6}
+                        placeholder="••••"
+                        maxLength={4}
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                        onKeyDown={(e) => e.key === 'Enter' && otp.length === 6 && onVerify()}
+                        onKeyDown={(e) => e.key === 'Enter' && otp.length === 4 && onVerify()}
                     />
-                    <p className="text-blue-200/40 text-[10px] mt-4 tracking-widest uppercase text-center">Code sent via SMS</p>
+                    <div className="flex justify-center mt-4">
+                        <button
+                            onClick={handleResendClick}
+                            disabled={!canResend || loading}
+                            className={`text-[10px] font-bold uppercase tracking-[0.1em] flex items-center gap-1.5 transition-colors ${canResend ? 'text-blue-300 hover:text-blue-200 cursor-pointer' : 'text-white/20 cursor-not-allowed'}`}
+                        >
+                            <RefreshCw className={`w-3 h-3 ${!canResend ? 'animate-spin-slow' : ''}`} />
+                            {canResend ? 'Resend OTP' : 'Resend in 30s'}
+                        </button>
+                    </div>
                 </div>
 
                 <button
-                    className={`w-full h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 text-white font-bold tracking-[0.05em] text-sm shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 relative overflow-hidden group border border-white/10 ${otp.length !== 6 || loading ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                    className={`w-full h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 text-white font-bold tracking-[0.05em] text-sm shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 relative overflow-hidden group border border-white/10 ${otp.length !== 4 || loading ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     onClick={onVerify}
-                    disabled={loading || otp.length !== 6}
+                    disabled={loading || otp.length !== 4}
                 >
                     <span className="relative z-10 flex items-center gap-2 transition-colors">
                         {loading ? 'Verifying...' : 'Verify & Proceed'}

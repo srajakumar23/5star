@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { verifyTwoFactorAction } from './actions'
 
 export default function Verify2FAPage() {
-    const [code, setCode] = useState(['', '', '', '', '', ''])
+    const [code, setCode] = useState(['', '', '', ''])
     const [loading, setLoading] = useState(false)
     const router = useRouter()
 
@@ -18,7 +18,7 @@ export default function Verify2FAPage() {
         setCode(newCode)
 
         // Auto-focus next input
-        if (value && index < 5) {
+        if (value && index < 3) {
             const nextInput = document.getElementById(`otp-${index + 1}`)
             nextInput?.focus()
         }
@@ -34,8 +34,8 @@ export default function Verify2FAPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         const otpCode = code.join('')
-        if (otpCode.length < 6) {
-            toast.error('Please enter the full 6-digit code')
+        if (otpCode.length < 4) {
+            toast.error('Please enter the full 4-digit code')
             return
         }
 
@@ -64,22 +64,22 @@ export default function Verify2FAPage() {
                     </div>
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">Two-Step Verification</h1>
                     <p className="text-gray-400 font-medium text-sm leading-relaxed">
-                        Enter the 6-digit code sent to your registered device to access the Super Admin portal.
+                        Enter the 4-digit code sent to your registered device to access the Super Admin portal.
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="flex justify-between gap-2">
-                        {code.map((digit, i) => (
+                    <div className="flex justify-between gap-2 mb-8">
+                        {code.map((digit, index) => (
                             <input
-                                key={i}
-                                id={`otp-${digit}-${i}`}
+                                key={index}
+                                id={`otp-${index}`}
                                 type="text"
                                 maxLength={1}
                                 value={digit}
-                                onChange={(e) => handleChange(i, e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(i, e)}
-                                className="w-12 h-16 text-center text-2xl font-black text-gray-900 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-red-500 transition-all outline-none"
+                                onChange={(e) => handleChange(index, e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(index, e)}
+                                className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 text-center text-2xl font-bold text-white focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
                             />
                         ))}
                     </div>

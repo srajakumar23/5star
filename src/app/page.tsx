@@ -85,13 +85,14 @@ export default function LoginPage() {
           if (res.otp) {
             toast.success(`Your Verification Code is: ${res.otp}`, { duration: 6000 })
             if (process.env.NODE_ENV === 'development') {
-              logger.info('MOCK OTP:', res.otp)
+              console.log('MOCK OTP:', res.otp)
             }
           } else {
             toast.success(`OTP Sent to ${mobile}`)
           }
-          setIsNewUser(true)
+          setIsNewUser(!res.exists)
           setStep(2)
+          setOtp('') // CLEAR STALE OTP to prevent confusion
         }
       } else {
         toast.error(res?.error || 'Failed to verify mobile. Please try again.')
@@ -101,6 +102,7 @@ export default function LoginPage() {
       toast.error('Connection error: ' + (error.message || 'Please try again'))
     }
   }
+
 
   const handleLoginPassword = async (pwd: string) => {
     if (!pwd) return toast.error('Enter Password')
@@ -116,10 +118,10 @@ export default function LoginPage() {
   }
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) return toast.error('Enter valid 6-digit OTP')
+    if (!otp || otp.length < 4) return toast.error('Enter valid 4-digit OTP')
     setLoading(true)
-    const valid = await verifyOtpOnly(otp, mobile)
-    if (valid) {
+    const res = await verifyOtpOnly(otp, mobile)
+    if (res.success) {
       if (isForgotMode) {
         setStep(5)
         setLoading(false)
@@ -134,7 +136,7 @@ export default function LoginPage() {
       }
     } else {
       setLoading(false)
-      toast.error('Invalid OTP')
+      toast.error(res.error || 'Invalid OTP')
     }
   }
 
@@ -233,6 +235,7 @@ export default function LoginPage() {
           setOtp={setOtp}
           onVerify={handleVerifyOtp}
           onBack={() => setStep(1)}
+          onResend={handleSendOtp}
           loading={loading}
           isNewUser={isNewUser}
           isForgotMode={isForgotMode}

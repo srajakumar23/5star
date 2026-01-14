@@ -116,7 +116,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
 
                 const [slb, cmp] = await Promise.all(promises)
 
-                if (slb?.success && slb.slabs) setSlabs(slb.slabs)
+                if (slb?.success && slb.data) setSlabs(slb.data)
                 if (cmp?.success && cmp.campuses) setCampuses(cmp.campuses)
 
                 await loadSettlements()
@@ -224,7 +224,7 @@ export default function SuperadminClient({ analytics, campusComparison = [], use
             setShowBenefitModal(false)
             // Refresh slabs
             const slb = await getBenefitSlabs()
-            if (slb.success && slb.slabs) setSlabs(slb.slabs)
+            if (slb.success && slb.data) setSlabs(slb.data)
         } else {
             toast.error(res.error || 'Failed to save')
         }
