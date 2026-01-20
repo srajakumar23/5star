@@ -295,7 +295,8 @@ export function DashboardClient({
                     benefitStatus: user.benefitStatus || 'Active',
                     empId: user.empId,
                     assignedCampus: user.assignedCampus,
-                    studentFee: dynamicStudentFee || 60000
+                    studentFee: dynamicStudentFee || 60000,
+                    isFiveStarMember: user.isFiveStarMember
                 }}
                 recentReferrals={recentReferralsDisplay}
                 whatsappUrl={`https://wa.me/?text=${encodeURIComponent(`Hi! I'm part of the Achariya Partnership Program.\nAdmissions link: ${process.env.NEXT_PUBLIC_BASE_URL || 'https://5starambassador.com'}/r/${user.encryptedCode}`)}`}

@@ -25,10 +25,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: {
-    default: "Achariya Partnership Program (APP) | 25th Year Celebration",
-    template: "%s | Achariya Partnership Program (APP)"
-  },
+  title: "Achariya Partnership Program (APP) | 25th Year Celebration",
   description: "Join the Achariya Partnership Program (APP). Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
   keywords: ["Achariya", "APP", "Partnership Program", "School Admission", "Referral Program", "Education", "Pondicherry", "5 Star", "25th Year"],
   authors: [{ name: "ACHARIYA WORLD CLASS EDUCATION" }],
@@ -40,13 +37,13 @@ export const metadata: Metadata = {
     url: "https://app.achariya.in",
     title: "Achariya Partnership Program (APP) | 25th Year Celebration",
     description: "Join the Achariya Partnership Program (APP). Refer students, earn rewards, and be part of our 25th Year Celebration journey.",
-    siteName: "Achariya Partnership Program (APP)",
+    siteName: "Achariya Partnership Program (APP) | 25th Year Celebration",
     images: [
       {
         url: "/achariya_25_logo.jpg",
         width: 1200,
         height: 630,
-        alt: "Achariya Partnership Program (APP)",
+        alt: "Achariya Partnership Program (APP) | 25th Year Celebration",
       },
     ],
   },

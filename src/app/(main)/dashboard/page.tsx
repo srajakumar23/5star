@@ -7,6 +7,12 @@ import { calculateTotalBenefit } from '@/lib/benefit-calculator'
 import { getStaffBaseFee } from '@/app/fee-actions'
 import { getBenefitSlabs } from '@/app/benefit-actions'
 import prisma from '@/lib/prisma'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+    title: "Achariya Partnership Program (APP) | 25th Year Celebration",
+    description: "Join the Achariya Partnership Program (APP). Refer students, earn rewards, and be part of our 25th Year Celebration journey."
+}
 
 export default async function DashboardPage() {
     const user = await getCurrentUser()

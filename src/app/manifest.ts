@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
     return {
         name: 'Achariya Partnership Program',
         short_name: 'APP',
-        description: 'Achariya Partnership Program (APP) Portal',
+        description: 'Join the Achariya Partnership Program (APP). Refer students, earn rewards, and be part of our 25th Year Celebration journey.',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',

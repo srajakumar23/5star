@@ -25,6 +25,7 @@ interface ActionHomeBlueUnifiedProps {
         assignedCampus?: string | null
         referralCode: string
         studentFee?: number
+        isFiveStarMember?: boolean
     }
     recentReferrals: any[]
     whatsappUrl: string
@@ -102,14 +103,16 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, refe
         setGreeting(timeGreeting)
 
         // Set Contextual Subtitle
-        if (displayCount >= 5) {
+        if (user.isFiveStarMember) {
+            setSubtitle(<span className="!text-amber-400">Maintained 5-Star Elite Status.</span>)
+        } else if (displayCount >= 5) {
             setSubtitle(<span className="!text-amber-400">You've reached the Executive Elite.</span>)
         } else if (unitsToNext > 0) {
-            setSubtitle(<>You’re only <span className="!text-amber-400">{unitsToNext} {unitsToNext === 1 ? 'unit' : 'units'}</span> away from achieving <span className="!text-amber-400">5-Star Member status</span>.</>)
+            setSubtitle(<>You’re only <span className="!text-amber-400">{unitsToNext} {unitsToNext === 1 ? 'unit' : 'units'}</span> away from achieving <span className="!text-amber-400">5-Star Member Status</span>.</>)
         } else {
             setSubtitle("Your Royal Impact Overview") // Default fallback
         }
-    }, [displayCount, unitsToNext])
+    }, [displayCount, unitsToNext, user.isFiveStarMember])
 
     const [longTermExpanded, setLongTermExpanded] = useState(false)
     const [copied, setCopied] = useState(false)
@@ -195,17 +198,17 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, refe
                                             25<sup className="text-[0.6em] ml-0.5">th</sup> <span className="ml-1.5">Year Celebration</span>
                                         </div>
                                     </div>
-                                    <h1 className="text-5xl md:text-6xl font-black text-white mb-4 tracking-[-0.05em] leading-[0.9] drop-shadow-2xl">
-                                        {greeting}, <br className="hidden md:block" /> <span className="text-white/80">{firstName}</span>
+                                    <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-4 tracking-[-0.03em] leading-[0.9] drop-shadow-2xl">
+                                        {greeting}, <br className="hidden md:block" /> <span className="text-white">{firstName}</span>
                                     </h1>
-                                    <p className="text-blue-100/60 font-black uppercase tracking-[0.3em] text-[10px] mt-6">
+                                    <p className="text-blue-100/80 font-bold uppercase tracking-[0.2em] text-[11px] mt-6 leading-relaxed">
                                         {subtitle}
                                     </p>
                                 </div>
 
-                                <div className="mt-10 flex items-center gap-10 opacity-90">
+                                <div className="mt-10 flex items-center gap-10 opacity-100">
                                     <div className="text-left">
-                                        <p className="text-[10px] uppercase tracking-[0.3em] text-blue-200/40 font-black mb-2">Account Status</p>
+                                        <p className="text-[10px] uppercase tracking-[0.25em] text-blue-200/70 font-bold mb-2">Account Status</p>
                                         <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 text-[11px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.15)]">
                                             <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)] animate-pulse" />
                                             Verified
@@ -213,7 +216,7 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, refe
                                     </div>
                                     <div className="w-px h-12 bg-white/10" />
                                     <div className="text-left">
-                                        <p className="text-[10px] uppercase tracking-[0.3em] text-blue-200/40 font-black mb-2">Campus</p>
+                                        <p className="text-[10px] uppercase tracking-[0.25em] text-blue-200/70 font-bold mb-2">Campus</p>
                                         <p className="text-white font-black text-2xl tracking-tighter uppercase leading-none">{user.assignedCampus || 'Corporate'}</p>
                                     </div>
                                 </div>
@@ -248,7 +251,7 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, refe
                                         </CircularProgress>
                                     </div>
                                     <div className="mt-6">
-                                        {displayCount >= 5 ? (
+                                        {(displayCount >= 5 || user.isFiveStarMember) ? (
                                             <motion.div
                                                 initial={{ scale: 0.8, opacity: 0 }}
                                                 animate={{ scale: 1, opacity: 1 }}
@@ -256,7 +259,7 @@ export function ActionHomeBlueUnified({ user, recentReferrals, whatsappUrl, refe
                                                 className="space-y-2"
                                             >
                                                 <div className="text-amber-400/60 font-medium text-[10px] uppercase tracking-widest animate-pulse">
-                                                    Peak Achievement
+                                                    {user.isFiveStarMember ? 'Status Maintained' : 'Peak Achievement'}
                                                 </div>
                                                 <div className="bg-gradient-to-br from-amber-300 via-amber-500 to-amber-600 text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-[0_8px_20px_rgba(245,158,11,0.2)] inline-flex items-center gap-2 border border-amber-300/30">
                                                     <Star size={12} fill="black" />
