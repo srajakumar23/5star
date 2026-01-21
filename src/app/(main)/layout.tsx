@@ -24,9 +24,16 @@ export const dynamic = 'force-dynamic'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
     const user = await getCurrentUser()
+
     if (!user) {
         redirect('/')
     }
+
+    // Check Payment Status (Skip for Super Admin)
+    if (user.role !== 'Super Admin' && (user as any).paymentStatus === 'Pending') {
+        redirect('/complete-payment')
+    }
+
 
     // IMPORTANT: Check roles in specific order to avoid confusion
     // "Super Admin" contains "Admin", so check it FIRST

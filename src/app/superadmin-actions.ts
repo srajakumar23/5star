@@ -682,15 +682,13 @@ export async function deleteUser(userId: number) {
         throw new Error('Unauthorized')
     }
 
-    // Delete all referrals first due to foreign key constraint
-    return await prisma.$transaction(async (tx) => {
-        await tx.referralLead.deleteMany({
-            where: { userId }
-        })
-
-        return await tx.user.delete({
-            where: { userId }
-        })
+    // Soft Delete: Mark as Deleted to preserve financial records
+    return await prisma.user.update({
+        where: { userId },
+        data: {
+            status: 'Deleted',
+            // Optional: Scramble PII if needed, but keeping for financial audit
+        }
     })
 }
 
@@ -754,6 +752,11 @@ export async function addUser(data: {
         // Send Welcome Email
         await EmailService.sendWelcomeEmail(data.mobileNumber, data.fullName, data.role)
 
+        // Send In-App Welcome Notification
+        import('@/lib/notification-helper').then(({ notifyWelcome }) => {
+            notifyWelcome(newUser.userId, data.fullName)
+        })
+
         return { success: true, user: newUser }
     } catch (error) {
         console.error('Add user error:', error)
@@ -814,15 +817,82 @@ export async function removeUser(userId: number) {
     }
 
     try {
-        await prisma.referralLead.deleteMany({ where: { userId } })
-        await prisma.user.delete({ where: { userId } })
+        const targetUser = await prisma.user.findUnique({ where: { userId } })
+        if (!targetUser) return { success: false, error: 'User not found' }
 
-        await logAction('DELETE', 'user', `Deleted user: ${userId}`, userId.toString())
+        // Suffix mobile and referral to free them up for recycling
+        const timestamp = Date.now()
+        const suffixedMobile = `${targetUser.mobileNumber}_del_${timestamp}`
+        const suffixedReferral = targetUser.referralCode ? `${targetUser.referralCode}_del_${timestamp}` : null
+
+        await prisma.user.update({
+            where: { userId },
+            data: {
+                status: 'Deleted',
+                mobileNumber: suffixedMobile,
+                referralCode: suffixedReferral,
+                deletionRequestedAt: new Date()
+            }
+        })
+
+        await logAction('DELETE', 'user', `Archived user: ${userId} (Number recycled)`, userId.toString())
 
         return { success: true }
     } catch (error) {
-        console.error('Delete user error:', error)
-        return { success: false, error: 'Failed to delete user' }
+        console.error('Archive user error:', error)
+        return { success: false, error: 'Failed to archive user' }
+    }
+}
+
+/**
+ * Stage 2: Purge Permanently
+ * Atomically removes user and ALL associated data.
+ */
+export async function purgeUserPermanently(userId: number) {
+    const admin = await getCurrentUser()
+    if (!admin || admin.role !== 'Super Admin') {
+        return { success: false, error: 'Only Super Admin can purge users' }
+    }
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Delete Notifications
+            await tx.notification.deleteMany({ where: { userId } })
+
+            // 2. Cleanup Support Tickets
+            const userTickets = await tx.supportTicket.findMany({ where: { userId }, select: { id: true } })
+            const ticketIds = userTickets.map(t => t.id)
+            await tx.ticketMessage.deleteMany({ where: { ticketId: { in: ticketIds } } })
+            await tx.supportTicket.deleteMany({ where: { userId } })
+
+            // 3. Cleanup Payments & Settlements
+            // @ts-ignore: Payment property exists but IDE cache is stale
+            await tx.payment.deleteMany({ where: { userId } })
+            await tx.settlement.deleteMany({ where: { userId } })
+
+            // 4. Cleanup Referrals & Students
+            await tx.referralLead.deleteMany({ where: { userId } })
+            // Disconnect students where this user was the ambassador
+            await tx.student.updateMany({
+                where: { ambassadorId: userId },
+                data: { ambassadorId: null }
+            })
+            // Delete students where this user was the parent (Cascading delete in business logic if needed, but here we do it explicitly)
+            await tx.student.deleteMany({ where: { parentId: userId } })
+
+            // 5. Cleanup Activity Logs
+            await tx.activityLog.deleteMany({ where: { userId } })
+
+            // 6. Finally, delete the User
+            await tx.user.delete({ where: { userId } })
+        })
+
+        await logAction('PURGE', 'user', `Permanently purged user: ${userId}`, userId.toString())
+
+        return { success: true }
+    } catch (error) {
+        console.error('Purge user error:', error)
+        return { success: false, error: 'Failed to purge user permanently' }
     }
 }
 

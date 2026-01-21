@@ -21,7 +21,12 @@ export async function exportRegistrations(startDate: Date, endDate: Date, select
                 }
             },
             include: {
-                students: true
+                students: true,
+                payments: {
+                    where: { paymentStatus: 'SUCCESS' },
+                    take: 1,
+                    orderBy: { createdAt: 'desc' }
+                }
             },
             orderBy: {
                 createdAt: 'desc'
@@ -59,8 +64,12 @@ export async function exportRegistrations(startDate: Date, endDate: Date, select
             'childEpr': { header: 'Child EPR No', accessor: (u) => u.childEprNo },
             'empId': { header: 'Employee ID', accessor: (u) => u.empId },
             'paymentStatus': { header: 'Payment Status', accessor: (u) => u.paymentStatus },
-            'txnId': { header: 'Transaction ID', accessor: (u) => u.transactionId },
+            'txnId': { header: 'Transaction ID', accessor: (u) => u.transactionId || u.payments?.[0]?.transactionId || 'N/A' },
             'amount': { header: 'Payment Amount', accessor: (u) => u.paymentAmount },
+            'paymentMethod': { header: 'Payment Method', accessor: (u) => u.payments?.[0]?.paymentMethod || 'N/A' },
+            'bankRef': { header: 'Bank Reference (UTR)', accessor: (u) => u.payments?.[0]?.bankReference || 'N/A' },
+            'paidAt': { header: 'Payment Date', accessor: (u) => u.payments?.[0]?.paidAt ? format(new Date(u.payments[0].paidAt), 'yyyy-MM-dd HH:mm') : 'N/A' },
+            'settlementDate': { header: 'Settlement Date', accessor: (u) => u.payments?.[0]?.settlementDate ? format(new Date(u.payments[0].settlementDate), 'yyyy-MM-dd') : 'Pending' },
             'status': { header: 'Account Status', accessor: (u) => u.status },
             'benefitStatus': { header: 'Benefit Status', accessor: (u) => u.benefitStatus }
         }

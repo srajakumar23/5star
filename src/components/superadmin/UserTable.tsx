@@ -23,6 +23,7 @@ interface UserTableProps {
     onViewReferrals?: (referralCode: string) => void
     onResetPassword?: (id: number, name: string, type: 'user' | 'admin') => void
     onEdit?: (user: User) => void
+    onPurge?: (userId: number, name: string) => void
 }
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -37,7 +38,8 @@ export function UserTable({
     onSearchChange,
     onViewReferrals,
     onResetPassword,
-    onEdit
+    onEdit,
+    onPurge
 }: UserTableProps) {
     const [selectedUsers, setSelectedUsers] = useState<User[]>([])
     const [isProcessing, setIsProcessing] = useState(false)
@@ -205,11 +207,17 @@ export function UserTable({
             accessorKey: 'status',
             sortable: true,
             filterable: true,
-            cell: (user: User) => (
-                <Badge variant={user.status === 'Active' ? 'success' : 'error'} className="font-black text-[10px] tracking-wider uppercase">
-                    {user.status}
-                </Badge>
-            ),
+            cell: (user: User) => {
+                const isDeleted = user.status === 'Deleted'
+                return (
+                    <Badge
+                        variant={isDeleted ? 'error' : (user.status === 'Active' ? 'success' : 'outline')}
+                        className="font-black text-[10px] tracking-wider uppercase"
+                    >
+                        {user.status}
+                    </Badge>
+                )
+            },
 
         },
         {
@@ -226,20 +234,35 @@ export function UserTable({
             accessorKey: (user: User) => user.userId,
             cell: (user: User) => (
                 <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        onClick={() => onToggleStatus(user.userId, user.status)}
-                        className={`p-2 rounded-xl transition-all shadow-sm bg-white border border-gray-100 flex items-center justify-center hover:scale-110 active:scale-95 ${user.status === 'Active' ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-50' : 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'}`}
-                        suppressHydrationWarning
-                    >
-                        {user.status === 'Active' ? <XCircle size={16} strokeWidth={2.5} /> : <CheckCircle size={16} strokeWidth={2.5} />}
-                    </button>
-                    <button
-                        onClick={() => onDelete(user.userId, user.fullName)}
-                        className="p-2 rounded-xl text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-50 shadow-sm bg-white hover:scale-110 active:scale-95 group"
-                        suppressHydrationWarning
-                    >
-                        <Trash2 size={16} strokeWidth={2.5} className="group-hover:animate-pulse" />
-                    </button>
+                    {user.status !== 'Deleted' ? (
+                        <>
+                            <button
+                                onClick={() => onToggleStatus(user.userId, user.status)}
+                                className={`p-2 rounded-xl transition-all shadow-sm bg-white border border-gray-100 flex items-center justify-center hover:scale-110 active:scale-95 ${user.status === 'Active' ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-50' : 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                                suppressHydrationWarning
+                            >
+                                {user.status === 'Active' ? <XCircle size={16} strokeWidth={2.5} /> : <CheckCircle size={16} strokeWidth={2.5} />}
+                            </button>
+                            <button
+                                onClick={() => onDelete(user.userId, user.fullName)}
+                                className="p-2 rounded-xl text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-50 shadow-sm bg-white hover:scale-110 active:scale-95 group"
+                                suppressHydrationWarning
+                                title="Move to Archive"
+                            >
+                                <Trash2 size={16} strokeWidth={2.5} className="group-hover:animate-pulse" />
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => onPurge?.(user.userId, user.fullName)}
+                            className="p-2 rounded-xl text-white bg-red-600 hover:bg-red-700 transition-all border border-red-700 shadow-lg hover:scale-110 active:scale-95 group flex items-center gap-1.5 px-3"
+                            suppressHydrationWarning
+                            title="Purge Permanently"
+                        >
+                            <Trash2 size={14} strokeWidth={2.5} />
+                            <span className="text-[9px] font-black uppercase tracking-tighter">Purge</span>
+                        </button>
+                    )}
                 </div>
             )
         }

@@ -235,6 +235,9 @@ export async function loginWithPassword(mobile: string, password: string) {
     })
 
     if (user) {
+        if (user.status === 'Deleted') {
+            return { success: false, error: 'This account has been deleted.' }
+        }
         if (user.password) {
             const isValid = await bcrypt.compare(password, user.password)
             if (isValid) {
@@ -430,6 +433,11 @@ export async function registerUser(formData: any) {
             revalidatePath('/superadmin/users')
             revalidatePath('/dashboard') // Ensure their own dashboard is fresh
 
+            // In-App Welcome Notification
+            import('@/lib/notification-helper').then(({ notifyWelcome }) => {
+                notifyWelcome(user.userId, fullName)
+            })
+
             return { success: true }
 
         } catch (e: any) {
@@ -477,4 +485,143 @@ export async function registerUser(formData: any) {
     }
 
     return { success: false, error: 'System busy (Ref Code collision). Please try again.' }
+}
+
+export async function createPendingUser(formData: any) {
+    const { fullName, mobileNumber, password, role, childInAchariya, childName, bankAccountDetails, campusId, grade, childEprNo, empId, aadharNo, email } = formData
+
+    // Secure Password Policy Check
+    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.*[A-Z])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+    if (!password || !passwordRegex.test(password)) {
+        return { success: false, error: 'Password must be at least 8 chars with 1 uppercase, 1 special char, and 1 number.' }
+    }
+
+    // Fetch current academic year
+    const currentYearRecord = await prisma.academicYear.findFirst({
+        where: { isCurrent: true }
+    })
+    const currentYear = currentYearRecord?.year || "2025-2026"
+
+    let studentFee = 60000
+    let assignedCampusName = null
+
+    if (campusId) {
+        const campus = await prisma.campus.findUnique({
+            where: { id: parseInt(campusId) }
+        })
+        if (campus) {
+            assignedCampusName = campus.campusName
+            if (childInAchariya === 'Yes' && grade) {
+                const gradeFee = await prisma.gradeFee.findFirst({
+                    where: {
+                        campusId: parseInt(campusId),
+                        grade: grade,
+                        academicYear: currentYear
+                    }
+                })
+                if (gradeFee) {
+                    studentFee = gradeFee.annualFee_otp || 0
+                }
+            }
+        }
+    }
+
+    let attempts = 0
+    const MAX_RETRIES = 3
+
+    while (attempts < MAX_RETRIES) {
+        try {
+            const referralCode = await generateSmartReferralCode(role, undefined, attempts)
+            const userRole = (role === 'Parent' ? UserRole.Parent :
+                role === 'Staff' ? UserRole.Staff :
+                    role === 'Alumni' ? UserRole.Alumni : UserRole.Others)
+
+            const user = await prisma.user.create({
+                data: {
+                    fullName,
+                    mobileNumber,
+                    password: await bcrypt.hash(password || '123456', 10),
+                    role: userRole,
+                    childInAchariya: childInAchariya === 'Yes',
+                    childName: childName || null,
+                    grade: grade || null,
+                    campusId: campusId ? parseInt(campusId) : null,
+                    assignedCampus: assignedCampusName,
+                    bankAccountDetails: bankAccountDetails ? encrypt(bankAccountDetails) : null,
+                    referralCode,
+                    benefitStatus: AccountStatus.Pending, // Pending until payment
+                    studentFee,
+                    academicYear: currentYear,
+                    email: email || null,
+                    childEprNo: childEprNo || null,
+                    empId: empId || null,
+                    aadharNo: aadharNo ? encrypt(aadharNo) : null,
+                    paymentStatus: 'Pending',
+                    paymentAmount: 0 // Will be updated after payment
+                }
+            })
+
+            const securitySettings = await prisma.securitySettings.findFirst() as any
+            const isSuperAdmin = role === 'Super Admin'
+            const is2faRequired = isSuperAdmin && securitySettings?.twoFactorAuthEnabled
+
+            await createSession(user.userId, 'user', mapUserRole(user.role), !is2faRequired)
+
+            return { success: true }
+
+        } catch (e: any) {
+            if (e.code === 'P2002') {
+                if (e.meta?.target?.includes('referralCode')) {
+                    attempts++
+                    continue
+                }
+                if (e.meta?.target?.includes('mobileNumber')) {
+                    // Upgrade logic could go here, but for simplicity returning error
+                    return { success: false, error: 'Mobile number already registered.' }
+                }
+            }
+            return { success: false, error: e.message || 'Registration failed.' }
+        }
+    }
+    return { success: false, error: 'System busy. Please try again.' }
+}
+
+// --- DEV ONLY: Simulate Payment ---
+export async function simulatePayment(userId: number) {
+    if (process.env.NODE_ENV !== 'development') {
+        throw new Error("Simulation only available in development mode");
+    }
+
+    try {
+        await prisma.user.update({
+            where: { userId: userId },
+            data: {
+                paymentStatus: 'Success',
+                status: 'Active' // Activate the user too
+            }
+        });
+
+        // Also create a fake payment record for consistency
+        // @ts-ignore: Payment property exists but IDE cache is stale
+        await prisma.payment.create({
+            data: {
+                orderId: `SIM_${Date.now()}`,
+                paymentSessionId: `SIM_SESSION_${Date.now()}`,
+                orderAmount: 25,
+                userId: userId,
+                orderStatus: "SUCCESS",
+                paymentStatus: "SUCCESS",
+                paymentMethod: "SIMULATION",
+                transactionId: `SIM_TXN_${Date.now()}`,
+                bankReference: `SIM_REF_${Date.now()}`,
+                paidAt: new Date(),
+                settlementDate: new Date() // Simulate immediate settlement
+            }
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Simulation failed:", error);
+        return { success: false, error: "Simulation failed" };
+    }
 }

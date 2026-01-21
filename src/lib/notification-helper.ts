@@ -176,3 +176,16 @@ export async function notifyTicketResponse(userId: number, ticketDetails: { subj
         link: `/support/${ticketDetails.ticketId}`
     })
 }
+
+/**
+ * Notify new user with a Welcome Message
+ */
+export async function notifyWelcome(userId: number, userName: string) {
+    return createNotification({
+        userId,
+        title: '🎉 Welcome to Achariya Partnership Program (APP)!',
+        message: `Welcome ${userName}! We're thrilled to have you. Complete your profile and start referring to earn rewards!`,
+        type: 'success',
+        link: '/marketing'
+    })
+}

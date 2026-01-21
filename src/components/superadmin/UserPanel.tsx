@@ -8,7 +8,7 @@ import { User, Campus, BulkUserData } from '@/types'
 import { UserTable } from '@/components/superadmin/UserTable'
 import { ResetPasswordModal } from '@/components/superadmin/ResetPasswordModal'
 import CSVUploader from '@/components/CSVUploader'
-import { addUser, updateUser, removeUser, updateUserStatus, bulkAddUsers } from '@/app/superadmin-actions'
+import { addUser, updateUser, removeUser, updateUserStatus, bulkAddUsers, purgeUserPermanently } from '@/app/superadmin-actions'
 
 interface UserPanelProps {
     users: User[]
@@ -32,10 +32,16 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
         userId: null,
         userName: ''
     })
+    const [purgeConfirmation, setPurgeConfirmation] = useState<{ isOpen: boolean, userId: number | null, userName: string }>({
+        isOpen: false,
+        userId: null,
+        userName: ''
+    })
 
     // Reset Password State
     const [resetTarget, setResetTarget] = useState<{ id: number, name: string, type: 'user' | 'admin' } | null>(null)
     const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+    const [userView, setUserView] = useState<'active' | 'archive'>('active')
 
     const [userForm, setUserForm] = useState({
         fullName: '',
@@ -110,10 +116,31 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
         if (result.success) {
             setDeleteConfirmation({ isOpen: false, userId: null, userName: '' })
             router.refresh()
-            toast.success('User deleted successfully')
+            toast.success('User archived and number recycled')
         } else {
             toast.error(result.error || 'Failed to delete user')
             setDeleteConfirmation({ isOpen: false, userId: null, userName: '' })
+        }
+    }
+
+    const handlePurgeUser = (id: number, name: string) => {
+        setPurgeConfirmation({ isOpen: true, userId: id, userName: name })
+    }
+
+    const confirmPurgeUser = async () => {
+        if (!purgeConfirmation.userId) return
+
+        setModalLoading(true)
+        const result = await purgeUserPermanently(purgeConfirmation.userId)
+        setModalLoading(false)
+
+        if (result.success) {
+            setPurgeConfirmation({ isOpen: false, userId: null, userName: '' })
+            router.refresh()
+            toast.success('User purged permanently')
+        } else {
+            toast.error(result.error || 'Failed to purge user')
+            setPurgeConfirmation({ isOpen: false, userId: null, userName: '' })
         }
     }
 
@@ -140,10 +167,31 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
         }
     }
 
+    const filteredUsers = users.filter(user => {
+        if (userView === 'active') return user.status !== 'Deleted'
+        return user.status === 'Deleted'
+    })
+
     return (
         <div className="space-y-6 animate-fade-in">
+            {/* View Toggle */}
+            <div className="flex bg-white/50 backdrop-blur-sm p-1 rounded-2xl border border-white/20 w-fit shadow-sm">
+                <button
+                    onClick={() => setUserView('active')}
+                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${userView === 'active' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-indigo-600'}`}
+                >
+                    Active Users
+                </button>
+                <button
+                    onClick={() => setUserView('archive')}
+                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${userView === 'archive' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-500 hover:text-red-600'}`}
+                >
+                    Archived (Recycled)
+                </button>
+            </div>
+
             <UserTable
-                users={users}
+                users={filteredUsers}
                 searchTerm={searchQuery}
                 onSearchChange={setSearchQuery}
                 onAddUser={() => {
@@ -160,6 +208,7 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
                 }}
                 onResetPassword={openResetModal}
                 onEdit={openEditUserModal}
+                onPurge={handlePurgeUser}
             />
 
             {/* Add User Modal */}
@@ -328,6 +377,27 @@ export function UserPanel({ users, campuses, currentUserRole }: UserPanelProps) 
                 variant="danger"
                 onConfirm={confirmDeleteUser}
                 onCancel={() => setDeleteConfirmation({ isOpen: false, userId: null, userName: '' })}
+            />
+
+            {/* Purge Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={purgeConfirmation.isOpen}
+                title="PURGE USER PERMANENTLY?"
+                description={
+                    <div className="space-y-4 text-red-600 font-medium">
+                        <p>
+                            DANGER: You are about to permanently purge <strong>{purgeConfirmation.userName}</strong>.
+                        </p>
+                        <p className="bg-red-50 p-3 rounded-lg text-xs">
+                            This action will erase ALL their financial history, Lead data, and account records forever. This CANNOT be undone.
+                        </p>
+                    </div>
+                }
+                confirmText="Yes, Purge Permanently"
+                variant="danger"
+                onConfirm={confirmPurgeUser}
+                onCancel={() => setPurgeConfirmation({ isOpen: false, userId: null, userName: '' })}
+                isLoading={modalLoading}
             />
         </div>
     )

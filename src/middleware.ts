@@ -130,13 +130,13 @@ export async function middleware(request: NextRequest) {
     const isProd = process.env.NODE_ENV === 'production'
     const csp = [
         "default-src 'self' blob:",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.cashfree.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
         isProd
-            ? "connect-src 'self'"
-            : "connect-src 'self' http://localhost:3001 http://10.0.2.2:3001 http://192.168.0.250:3001 ws://localhost:3001 ws://10.0.2.2:3001 ws://192.168.0.250:3001",
+            ? "connect-src 'self' https://api.cashfree.com https://sandbox.cashfree.com"
+            : "connect-src 'self' http://localhost:3001 http://10.0.2.2:3001 http://192.168.0.250:3001 ws://localhost:3001 ws://10.0.2.2:3001 ws://192.168.0.250:3001 https://api.cashfree.com https://sandbox.cashfree.com",
     ].join('; ')
     response.headers.set('Content-Security-Policy', csp)
 

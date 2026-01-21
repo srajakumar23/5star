@@ -39,7 +39,19 @@ export async function getRegistrationTransactions(filter: 'All' | 'Recent' = 'Al
                 createdAt: true,
                 assignedCampus: true,
                 referralCode: true,
-                campusId: true
+                campusId: true,
+                // New Finance Fields (Payment Table)
+                payments: {
+                    select: {
+                        paymentMethod: true,
+                        transactionId: true, // Use this for UTR if not in User
+                        bankReference: true,
+                        paidAt: true,
+                        settlementDate: true
+                    },
+                    where: { paymentStatus: 'Success' },
+                    take: 1
+                }
             },
             orderBy: { createdAt: 'desc' },
             take: filter === 'Recent' ? 10 : 1000

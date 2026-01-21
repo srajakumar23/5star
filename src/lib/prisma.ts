@@ -14,4 +14,6 @@ const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
 
 export default prisma
 
+// Force TS Refresh
+
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

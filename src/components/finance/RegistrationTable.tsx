@@ -24,6 +24,14 @@ interface Registration {
     campus?: {
         campusName: string
     }
+    // New nested payments from finance-actions
+    payments?: {
+        paymentMethod: string | null
+        transactionId: string | null
+        bankReference: string | null
+        paidAt: Date | string | null
+        settlementDate: Date | string | null
+    }[]
 }
 
 interface RegistrationTableProps {
@@ -34,8 +42,17 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
     const [filter, setFilter] = useState('All')
     const [showExportModal, setShowExportModal] = useState(false)
 
-    // Optional client-side filtering if needed in future
-    // currently 'data' is already filtered by backend action to include only completed/process payments
+    // Helper to get payment details
+    const getPaymentDetails = (row: Registration) => {
+        // Return first success payment or default to row
+        return row.payments?.[0] || {
+            paymentMethod: null,
+            transactionId: row.transactionId,
+            bankReference: null,
+            paidAt: row.createdAt,
+            settlementDate: null
+        }
+    }
 
     // Columns Definition
     const columns = [
@@ -77,30 +94,60 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
             )
         },
         {
-            header: 'Payment Status',
-            accessorKey: 'status', // Virtual accessor
-            cell: () => (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 shadow-sm">
-                    <BadgeCheck size={10} strokeWidth={3} />
-                    PAID
-                </span>
-            )
+            header: 'Method',
+            accessorKey: 'paymentMethod',
+            cell: (row: Registration) => {
+                const details = getPaymentDetails(row)
+                return (
+                    <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">
+                        {details.paymentMethod || 'N/A'}
+                    </span>
+                )
+            }
         },
         {
-            header: 'Transaction Ref',
+            header: 'Transaction / UTR',
             accessorKey: 'transactionId',
-            cell: (row: Registration) => (
-                <span className="font-mono text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                    {row.transactionId || 'N/A'}
-                </span>
-            ),
+            cell: (row: Registration) => {
+                const details = getPaymentDetails(row)
+                // Show Bank Ref (UTR) if available, otherwise Gateway ID
+                const ref = details.bankReference || details.transactionId || row.transactionId
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-mono text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200 w-fit">
+                            {ref || 'N/A'}
+                        </span>
+                        {details.bankReference && details.transactionId && (
+                            <span className="text-[9px] text-gray-400 mt-0.5">GW: {details.transactionId}</span>
+                        )}
+                    </div>
+                )
+            },
             filterable: true
         },
         {
             header: 'Date',
             accessorKey: 'createdAt',
             sortable: true,
-            cell: (row: Registration) => format(new Date(row.createdAt), 'dd MMM yyyy')
+            cell: (row: Registration) => {
+                const details = getPaymentDetails(row)
+                const date = details.paidAt ? new Date(details.paidAt) : new Date(row.createdAt)
+                return format(date, 'dd MMM yyyy')
+            }
+        },
+        {
+            header: 'Settlement',
+            accessorKey: 'settlementDate',
+            cell: (row: Registration) => {
+                const details = getPaymentDetails(row)
+                if (!details.settlementDate) return <span className="text-xs text-gray-400 italic">Pending</span>
+                return (
+                    <div className="flex items-center gap-1 text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                        <BadgeCheck size={12} />
+                        {format(new Date(details.settlementDate), 'dd MMM')}
+                    </div>
+                )
+            }
         },
         {
             header: 'Receipt',
@@ -112,9 +159,6 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
                     title="Download Receipt"
                 >
                     <FileText size={16} />
-                    {/* [x] Implement download API/Action for Registration Data <!-- id: 2 -->
-                    - [/] Implement download API/Action for Payout Data <!-- id: 3 -->
-                    - [/] Implement UI for Download Buttons <!-- id: 4 --> */}
                 </button>
             )
         }
@@ -181,6 +225,10 @@ export function RegistrationTable({ data }: RegistrationTableProps) {
         { id: 'paymentStatus', label: 'Payment Status', defaultChecked: true },
         { id: 'txnId', label: 'Transaction ID', defaultChecked: true },
         { id: 'amount', label: 'Payment Amount', defaultChecked: true },
+        { id: 'paymentMethod', label: 'Payment Method', defaultChecked: true },
+        { id: 'bankRef', label: 'Bank Ref (UTR)', defaultChecked: true },
+        { id: 'paidAt', label: 'Payment Date', defaultChecked: true },
+        { id: 'settlementDate', label: 'Settlement Date', defaultChecked: true },
         { id: 'status', label: 'Account Status', defaultChecked: true },
         { id: 'benefitStatus', label: 'Benefit Status', defaultChecked: false }
     ]

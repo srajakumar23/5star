@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { sendOtp, verifyOtpAndResetPassword, loginWithPassword, registerUser, getLoginRedirect, getRegistrationCampuses, checkSession, verifyOtpOnly } from './actions'
+import { sendOtp, verifyOtpAndResetPassword, loginWithPassword, registerUser, createPendingUser, getLoginRedirect, getRegistrationCampuses, checkSession, verifyOtpOnly } from './actions'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 import { AuthLayout } from '@/components/auth/AuthLayout'
@@ -262,7 +262,21 @@ export default function LoginPage() {
           formData={formData}
           setFormData={setFormData}
           campuses={campuses}
-          onNext={() => setStep(4)}
+          onNext={async () => {
+            setLoading(true)
+            // Create Pending User & Session
+            const res = await createPendingUser({
+              ...formData,
+              mobileNumber: mobile
+            })
+            setLoading(false)
+
+            if (res.success) {
+              setStep(4)
+            } else {
+              toast.error(res.error)
+            }
+          }}
           onBack={() => setStep(3)}
           loading={loading}
         />
@@ -270,9 +284,6 @@ export default function LoginPage() {
 
       {step === 4 && (
         <PaymentGateway
-          transactionId={formData.transactionId}
-          setTransactionId={(id) => setFormData({ ...formData, transactionId: id })}
-          onComplete={handleRegister}
           onBack={() => setStep(3.5)}
           loading={loading}
         />
